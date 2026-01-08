@@ -21,7 +21,9 @@ export interface CustomLayerManagerProps {
   visibleLayers: Set<string>
 }
 
-// カテゴリ定義
+/**
+ * Layer categories and their visual properties
+ */
 const CATEGORIES = [
   { id: 'emergency', name: '緊急用務空域', color: '#FFA500' },
   { id: 'manned', name: '有人機発着エリア', color: '#87CEEB' },
@@ -31,6 +33,20 @@ const CATEGORIES = [
   { id: 'custom', name: 'カスタム', color: '#888888' }
 ]
 
+/**
+ * CustomLayerManager Component
+ *
+ * Manages user-created custom geographic layers with import/export functionality.
+ * Allows users to:
+ * - Import GeoJSON files as custom layers
+ * - Export layers as GeoJSON
+ * - Delete custom layers with confirmation
+ * - Configure layer properties (name, category, color, opacity)
+ *
+ * @component
+ * @param props - Component props
+ * @returns JSX Element
+ */
 export function CustomLayerManager({
   onLayerAdded,
   onLayerRemoved,
@@ -47,7 +63,10 @@ export function CustomLayerManager({
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ファイル選択ハンドラ
+  /**
+   * Handles GeoJSON file selection and import
+   * Reads file, validates GeoJSON format, and adds as new layer
+   */
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -87,7 +106,10 @@ export function CustomLayerManager({
     }
   }
 
-  // レイヤー削除
+  /**
+   * Handles layer deletion with user confirmation
+   * Shows confirm dialog before removing layer from storage
+   */
   const handleRemoveLayer = async (layerId: string) => {
     const confirmed = await showConfirm('このレイヤーを削除しますか？', {
       confirmText: '削除',
@@ -101,13 +123,17 @@ export function CustomLayerManager({
     }
   }
 
-  // 全データエクスポート
+  /**
+   * Exports all custom layers as a JSON file
+   */
   const handleExportAll = () => {
     const data = CustomLayerService.exportAll()
     downloadAsFile(data, 'custom-layers.json')
   }
 
-  // 単一レイヤーエクスポート
+  /**
+   * Exports a single custom layer as GeoJSON file
+   */
   const handleExportLayer = (layerId: string) => {
     const data = CustomLayerService.exportAsGeoJSON(layerId)
     if (data) {
@@ -116,7 +142,10 @@ export function CustomLayerManager({
     }
   }
 
-  // 一括インポート
+  /**
+   * Handles bulk import of multiple layers from JSON file
+   * Reads JSON file and imports all layers defined in it
+   */
   const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return

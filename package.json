@@ -57,11 +57,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
-  "dependencies": {
-    "maplibre-gl": "^4.0.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.14",
     "@storybook/addon-interactions": "^8.6.14",

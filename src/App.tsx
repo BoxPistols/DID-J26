@@ -1,227 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import {
+  BASE_MAPS,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  LAYER_GROUPS,
+  GEO_OVERLAYS,
+  RESTRICTION_COLORS,
+  createLayerNameMap,
+  fetchRainRadarTimestamp,
+  buildRainTileUrl,
+  generateAirportGeoJSON,
+  generateRedZoneGeoJSON,
+  generateYellowZoneGeoJSON,
+  calculateBBox,
+  getCustomLayers
+} from './lib'
+import type { BaseMapKey, LayerConfig, LayerGroup, SearchIndexItem, LayerState, CustomLayer } from './lib'
+import { CustomLayerManager } from './components/CustomLayerManager'
 
-const INITIAL_CENTER: [number, number] = [137.0, 36.5]
-const INITIAL_ZOOM = 5
-
-// ベースマップ設定
-const BASE_MAPS = {
-  osm: {
-    name: '標準',
-    style: 'https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json'
-  },
-  gsi: {
-    name: '地理院地図',
-    style: {
-      version: 8 as const,
-      sources: {
-        gsi: {
-          type: 'raster' as const,
-          tiles: ['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'
-        }
-      },
-      layers: [{ id: 'gsi-layer', type: 'raster' as const, source: 'gsi' }]
-    }
-  },
-  pale: {
-    name: '淡色地図',
-    style: {
-      version: 8 as const,
-      sources: {
-        pale: {
-          type: 'raster' as const,
-          tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
-          tileSize: 256,
-          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'
-        }
-      },
-      layers: [{ id: 'pale-layer', type: 'raster' as const, source: 'pale' }]
-    }
-  },
-  photo: {
-    name: '航空写真',
-    style: {
-      version: 8 as const,
-      sources: {
-        photo: {
-          type: 'raster' as const,
-          tiles: ['https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'],
-          tileSize: 256,
-          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'
-        }
-      },
-      layers: [{ id: 'photo-layer', type: 'raster' as const, source: 'photo' }]
-    }
-  }
-}
-
-type BaseMapKey = keyof typeof BASE_MAPS
-
-// 地理情報オーバーレイ設定
-const GEO_OVERLAYS = [
-  {
-    id: 'hillshade',
-    name: '陰影起伏',
-    tiles: ['https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png'],
-    opacity: 0.4
-  },
-  {
-    id: 'relief',
-    name: '色別標高図',
-    tiles: ['https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png'],
-    opacity: 0.5
-  },
-  {
-    id: 'slope',
-    name: '傾斜量図',
-    tiles: ['https://cyberjapandata.gsi.go.jp/xyz/slopemap/{z}/{x}/{y}.png'],
-    opacity: 0.5
-  }
-]
-
-// 気象情報オーバーレイ設定
-interface WeatherOverlay {
-  id: string
-  name: string
-  opacity: number
-  dynamic: boolean
-}
-
-const WEATHER_OVERLAYS: WeatherOverlay[] = [
-  {
-    id: 'rain-radar',
-    name: '雨雲レーダー',
-    opacity: 0.6,
-    dynamic: true
-  }
-]
-
-// RainViewer APIから最新のレーダータイムスタンプを取得
-async function fetchRainRadarTimestamp(): Promise<string | null> {
-  try {
-    const response = await fetch('https://api.rainviewer.com/public/weather-maps.json')
-    const data = await response.json()
-    if (data.radar && data.radar.past && data.radar.past.length > 0) {
-      // 最新のタイムスタンプを取得
-      const latest = data.radar.past[data.radar.past.length - 1]
-      return latest.path
-    }
-    return null
-  } catch (error) {
-    console.error('Failed to fetch rain radar timestamp:', error)
-    return null
-  }
-}
-
-interface LayerConfig {
-  id: string
-  name: string
-  path: string
-  color: string
-}
-
-interface LayerGroup {
-  name: string
-  layers: LayerConfig[]
-}
-
-const LAYER_GROUPS: LayerGroup[] = [
-  {
-    name: '北海道・東北',
-    layers: [
-      { id: 'did-01', name: '北海道', path: '/GeoJSON/h22_did_01_hokkaido.geojson', color: '#74b9ff' },
-      { id: 'did-02', name: '青森県', path: '/GeoJSON/h22_did_02_aomori.geojson', color: '#0984e3' },
-      { id: 'did-03', name: '岩手県', path: '/GeoJSON/h22_did_03_iwate.geojson', color: '#00cec9' },
-      { id: 'did-04', name: '宮城県', path: '/GeoJSON/h22_did_04_miyagi.geojson', color: '#00b894' },
-      { id: 'did-05', name: '秋田県', path: '/GeoJSON/h22_did_05_akita.geojson', color: '#55efc4' },
-      { id: 'did-06', name: '山形県', path: '/GeoJSON/h22_did_06_yamagata.geojson', color: '#81ecec' },
-      { id: 'did-07', name: '福島県', path: '/GeoJSON/h22_did_07_fukushima.geojson', color: '#a29bfe' },
-    ]
-  },
-  {
-    name: '関東',
-    layers: [
-      { id: 'did-08', name: '茨城県', path: '/GeoJSON/h22_did_08_ibaragi.geojson', color: '#ffeaa7' },
-      { id: 'did-09', name: '栃木県', path: '/GeoJSON/h22_did_09_tochigi.geojson', color: '#fdcb6e' },
-      { id: 'did-10', name: '群馬県', path: '/GeoJSON/h22_did_10_gunma.geojson', color: '#fd79a8' },
-      { id: 'did-11', name: '埼玉県', path: '/GeoJSON/h22_did_11_saitama.geojson', color: '#45b7d1' },
-      { id: 'did-12', name: '千葉県', path: '/GeoJSON/h22_did_12_chiba.geojson', color: '#96ceb4' },
-      { id: 'did-13', name: '東京都', path: '/GeoJSON/h22_did_13_tokyo.geojson', color: '#ff6b6b' },
-      { id: 'did-14', name: '神奈川県', path: '/GeoJSON/h22_did_14_kanagawa.geojson', color: '#4ecdc4' },
-    ]
-  },
-  {
-    name: '中部',
-    layers: [
-      { id: 'did-15', name: '新潟県', path: '/GeoJSON/h22_did_15_niigata.geojson', color: '#dfe6e9' },
-      { id: 'did-16', name: '富山県', path: '/GeoJSON/h22_did_16_toyama.geojson', color: '#b2bec3' },
-      { id: 'did-17', name: '石川県', path: '/GeoJSON/h22_did_17_kanazawa.geojson', color: '#636e72' },
-      { id: 'did-18', name: '福井県', path: '/GeoJSON/h22_did_18_fukui.geojson', color: '#2d3436' },
-      { id: 'did-19', name: '山梨県', path: '/GeoJSON/h22_did_19_yamanashi.geojson', color: '#e17055' },
-      { id: 'did-20', name: '長野県', path: '/GeoJSON/h22_did_20_nagano.geojson', color: '#d63031' },
-      { id: 'did-21', name: '岐阜県', path: '/GeoJSON/h22_did_21_gifu.geojson', color: '#e84393' },
-      { id: 'did-22', name: '静岡県', path: '/GeoJSON/h22_did_22_shizuoka.geojson', color: '#6c5ce7' },
-      { id: 'did-23', name: '愛知県', path: '/GeoJSON/h22_did_23_aichi.geojson', color: '#fdcb6e' },
-    ]
-  },
-  {
-    name: '近畿',
-    layers: [
-      { id: 'did-24', name: '三重県', path: '/GeoJSON/h22_did_24_mie.geojson', color: '#fab1a0' },
-      { id: 'did-25', name: '滋賀県', path: '/GeoJSON/h22_did_25_shiga.geojson', color: '#74b9ff' },
-      { id: 'did-26', name: '京都府', path: '/GeoJSON/h22_did_26_kyoto.geojson', color: '#00b894' },
-      { id: 'did-27', name: '大阪府', path: '/GeoJSON/h22_did_27_osaka.geojson', color: '#e17055' },
-      { id: 'did-28', name: '兵庫県', path: '/GeoJSON/h22_did_28_hyogo.geojson', color: '#0984e3' },
-      { id: 'did-29', name: '奈良県', path: '/GeoJSON/h22_did_29_nara.geojson', color: '#6c5ce7' },
-      { id: 'did-30', name: '和歌山県', path: '/GeoJSON/h22_did_30_wakayama.geojson', color: '#fd79a8' },
-    ]
-  },
-  {
-    name: '中国',
-    layers: [
-      { id: 'did-31', name: '鳥取県', path: '/GeoJSON/h22_did_31_tottori.geojson', color: '#00cec9' },
-      { id: 'did-32', name: '島根県', path: '/GeoJSON/h22_did_32_shimane.geojson', color: '#55efc4' },
-      { id: 'did-33', name: '岡山県', path: '/GeoJSON/h22_did_33_okayama.geojson', color: '#ffeaa7' },
-      { id: 'did-34', name: '広島県', path: '/GeoJSON/h22_did_34_hiroshima.geojson', color: '#ff7675' },
-      { id: 'did-35', name: '山口県', path: '/GeoJSON/h22_did_35_yamaguchi.geojson', color: '#a29bfe' },
-    ]
-  },
-  {
-    name: '四国',
-    layers: [
-      { id: 'did-36', name: '徳島県', path: '/GeoJSON/h22_did_36_tokushima.geojson', color: '#81ecec' },
-      { id: 'did-37', name: '香川県', path: '/GeoJSON/h22_did_37_kagawa.geojson', color: '#fab1a0' },
-      { id: 'did-38', name: '愛媛県', path: '/GeoJSON/h22_did_38_ehime.geojson', color: '#fdcb6e' },
-      { id: 'did-39', name: '高知県', path: '/GeoJSON/h22_did_39_kochi.geojson', color: '#e84393' },
-    ]
-  },
-  {
-    name: '九州・沖縄',
-    layers: [
-      { id: 'did-40', name: '福岡県', path: '/GeoJSON/h22_did_40_fukuoka.geojson', color: '#00cec9' },
-      { id: 'did-41', name: '佐賀県', path: '/GeoJSON/h22_did_41_saga.geojson', color: '#74b9ff' },
-      { id: 'did-42', name: '長崎県', path: '/GeoJSON/h22_did_42_nagasaki.geojson', color: '#a29bfe' },
-      { id: 'did-43', name: '熊本県', path: '/GeoJSON/h22_did_43_kumamoto.geojson', color: '#ff7675' },
-      { id: 'did-44', name: '大分県', path: '/GeoJSON/h22_did_44_oita.geojson', color: '#fd79a8' },
-      { id: 'did-45', name: '宮崎県', path: '/GeoJSON/h22_did_45_miyazaki.geojson', color: '#00b894' },
-      { id: 'did-46', name: '鹿児島県', path: '/GeoJSON/h22_did_46_kagoshima.geojson', color: '#e17055' },
-      { id: 'did-47', name: '沖縄県', path: '/GeoJSON/h22_did_47_okinawa.geojson', color: '#0984e3' },
-    ]
-  }
-]
-
-interface LayerState {
-  id: string
-  visible: boolean
-}
-
+// ============================================
+// Main App Component
+// ============================================
 function App() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
+
+  // State
   const [layerStates, setLayerStates] = useState<Map<string, LayerState>>(new Map())
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['関東']))
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -229,94 +36,67 @@ function App() {
   const [baseMap, setBaseMap] = useState<BaseMapKey>('osm')
   const [overlayStates, setOverlayStates] = useState<Map<string, boolean>>(new Map())
   const [weatherStates, setWeatherStates] = useState<Map<string, boolean>>(new Map())
+  const [restrictionStates, setRestrictionStates] = useState<Map<string, boolean>>(new Map())
   const [rainRadarPath, setRainRadarPath] = useState<string | null>(null)
   const [radarLastUpdate, setRadarLastUpdate] = useState<string>('')
 
-  // 検索機能用State
-  interface SearchIndexItem {
-    prefName: string
-    cityName: string
-    bbox: [number, number, number, number]
-    layerId: string
-  }
+  // Search
   const [searchIndex, setSearchIndex] = useState<SearchIndexItem[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<SearchIndexItem[]>([])
 
-  // Map layer IDs to prefecture names for easier lookup
-  const LAYER_ID_TO_NAME = new Map<string, string>()
-  LAYER_GROUPS.forEach(group => {
-    group.layers.forEach(layer => {
-      LAYER_ID_TO_NAME.set(layer.id, layer.name)
-    })
-  })
+  // Legend visibility
+  const [showLeftLegend, setShowLeftLegend] = useState(true)
+  const [showRightLegend, setShowRightLegend] = useState(true)
 
-  // BBox計算関数
-  const calculateBBox = (geometry: any): [number, number, number, number] => {
-    let minLng = 180, minLat = 90, maxLng = -180, maxLat = -90;
-    
-    const processCoord = (coord: number[]) => {
-      if (coord[0] < minLng) minLng = coord[0];
-      if (coord[0] > maxLng) maxLng = coord[0];
-      if (coord[1] < minLat) minLat = coord[1];
-      if (coord[1] > maxLat) maxLat = coord[1];
-    };
+  // Custom layers
+  const [customLayerVisibility, setCustomLayerVisibility] = useState<Set<string>>(new Set())
 
-    const traverse = (coords: any) => {
-      if (typeof coords[0] === 'number') {
-        processCoord(coords as number[]);
-      } else {
-        coords.forEach(traverse);
-      }
-    };
+  const LAYER_ID_TO_NAME = createLayerNameMap()
 
-    traverse(geometry.coordinates);
-    return [minLng, minLat, maxLng, maxLat];
-  }
-
-  // 検索処理
+  // ============================================
+  // Search functionality
+  // ============================================
   useEffect(() => {
     if (!searchTerm) {
-      setSearchResults([]);
-      return;
+      setSearchResults([])
+      return
     }
-    const results = searchIndex.filter(item => 
+    const results = searchIndex.filter(item =>
       item.cityName.includes(searchTerm) || item.prefName.includes(searchTerm)
-    );
-    // 重複排除（同じ市区町村名を表示用にはまとめる）
-    const uniqueResults = Array.from(new Map(results.map(item => [item.prefName + item.cityName, item])).values());
-    setSearchResults(uniqueResults.slice(0, 10)); // 10件まで
-  }, [searchTerm, searchIndex]);
+    )
+    const uniqueResults = Array.from(
+      new Map(results.map(item => [item.prefName + item.cityName, item])).values()
+    )
+    setSearchResults(uniqueResults.slice(0, 10))
+  }, [searchTerm, searchIndex])
 
-  // 指定したFeatureへ移動
   const flyToFeature = (item: SearchIndexItem) => {
-    const map = mapRef.current;
-    if (!map) return;
-    
-    map.fitBounds(item.bbox, {
-      padding: 50,
-      maxZoom: 14
-    });
-    
-    // 該当レイヤーが表示されていなければ表示する
-    const state = layerStates.get(item.layerId);
+    const map = mapRef.current
+    if (!map) return
+
+    map.fitBounds(item.bbox, { padding: 50, maxZoom: 14 })
+
+    const state = layerStates.get(item.layerId)
     if (!state || !state.visible) {
-       if (map.getLayer(item.layerId)) {
-          map.setLayoutProperty(item.layerId, 'visibility', 'visible');
-          map.setLayoutProperty(`${item.layerId}-outline`, 'visibility', 'visible');
-       }
-       setLayerStates(prev => {
-          const next = new Map(prev);
-          next.set(item.layerId, { id: item.layerId, visible: true });
-          return next;
-       });
+      if (map.getLayer(item.layerId)) {
+        map.setLayoutProperty(item.layerId, 'visibility', 'visible')
+        map.setLayoutProperty(`${item.layerId}-outline`, 'visibility', 'visible')
+      }
+      setLayerStates(prev => {
+        const next = new Map(prev)
+        next.set(item.layerId, { id: item.layerId, visible: true, loaded: true })
+        return next
+      })
     }
   }
 
+  // ============================================
+  // Map initialization
+  // ============================================
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // 既存のマップがあれば削除
     if (mapRef.current) {
       mapRef.current.remove()
       mapRef.current = null
@@ -327,8 +107,8 @@ function App() {
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: styleConfig as maplibregl.StyleSpecification | string,
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
@@ -347,10 +127,13 @@ function App() {
     map.on('mousemove', (e) => {
       const features = map.queryRenderedFeatures(e.point)
       const didFeature = features.find(f => f.layer.id.startsWith('did-') && f.layer.type === 'fill')
+      const restrictionFeature = features.find(f =>
+        f.layer.id.startsWith('airport-') ||
+        f.layer.id.startsWith('no-fly-')
+      )
 
       if (didFeature && popupRef.current) {
         map.getCanvas().style.cursor = 'pointer'
-
         const props = didFeature.properties
         if (!props) return
 
@@ -387,11 +170,27 @@ function App() {
             </div>
           </div>
         `
+        popupRef.current.setLngLat(e.lngLat).setHTML(content).addTo(map)
+      } else if (restrictionFeature && popupRef.current) {
+        map.getCanvas().style.cursor = 'pointer'
+        const props = restrictionFeature.properties
+        if (!props) return
 
-        popupRef.current
-          .setLngLat(e.lngLat)
-          .setHTML(content)
-          .addTo(map)
+        const content = `
+          <div class="did-popup">
+            <div class="popup-header">
+              <span class="pref-name">${props.name || ''}</span>
+              <span class="city-name">${props.type || ''}</span>
+            </div>
+            <div class="popup-stats">
+              <div class="stat-row">
+                <span class="stat-label">制限半径</span>
+                <span class="stat-value">${props.radiusKm || '-'}km</span>
+              </div>
+            </div>
+          </div>
+        `
+        popupRef.current.setLngLat(e.lngLat).setHTML(content).addTo(map)
       } else if (popupRef.current) {
         map.getCanvas().style.cursor = ''
         popupRef.current.remove()
@@ -413,6 +212,9 @@ function App() {
     }
   }, [baseMap])
 
+  // ============================================
+  // Opacity effect
+  // ============================================
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
@@ -424,64 +226,57 @@ function App() {
     })
   }, [opacity, layerStates, mapLoaded])
 
-  const addLayer = async (layer: LayerConfig) => {
+  // ============================================
+  // Layer management
+  // ============================================
+  const addLayer = useCallback(async (layer: LayerConfig) => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
     if (map.getSource(layer.id)) return
 
     try {
-      const response = await fetch(layer.path);
-      const data = await response.json();
+      const response = await fetch(layer.path)
+      const data = await response.json()
 
-      // 検索インデックスに追加
-      const newItems: SearchIndexItem[] = [];
+      const newItems: SearchIndexItem[] = []
       data.features.forEach((feature: any) => {
-        if (feature.properties && feature.properties.CITYNAME) {
+        if (feature.properties?.CITYNAME) {
           newItems.push({
             prefName: layer.name,
             cityName: feature.properties.CITYNAME,
             bbox: calculateBBox(feature.geometry),
             layerId: layer.id
-          });
+          })
         }
-      });
-      setSearchIndex(prev => [...prev, ...newItems]);
-
-      map.addSource(layer.id, {
-        type: 'geojson',
-        data: data
       })
+      setSearchIndex(prev => [...prev, ...newItems])
+
+      map.addSource(layer.id, { type: 'geojson', data })
 
       map.addLayer({
         id: layer.id,
         type: 'fill',
         source: layer.id,
-        paint: {
-          'fill-color': layer.color,
-          'fill-opacity': opacity
-        }
+        paint: { 'fill-color': layer.color, 'fill-opacity': opacity }
       })
 
       map.addLayer({
         id: `${layer.id}-outline`,
         type: 'line',
         source: layer.id,
-        paint: {
-          'line-color': layer.color,
-          'line-width': 1
-        }
+        paint: { 'line-color': layer.color, 'line-width': 1 }
       })
 
       setLayerStates(prev => {
         const next = new Map(prev)
-        next.set(layer.id, { id: layer.id, visible: true })
+        next.set(layer.id, { id: layer.id, visible: true, loaded: true })
         return next
       })
     } catch (e) {
       console.error(`Failed to add layer ${layer.id}:`, e)
     }
-  }
+  }, [mapLoaded, opacity])
 
   const toggleLayer = (layer: LayerConfig) => {
     const map = mapRef.current
@@ -519,9 +314,7 @@ function App() {
     })
   }
 
-  const isLayerVisible = (layerId: string) => {
-    return layerStates.get(layerId)?.visible ?? false
-  }
+  const isLayerVisible = (layerId: string) => layerStates.get(layerId)?.visible ?? false
 
   const enableAllInGroup = (group: LayerGroup) => {
     group.layers.forEach(layer => {
@@ -549,6 +342,9 @@ function App() {
     })
   }
 
+  // ============================================
+  // Overlay management
+  // ============================================
   const toggleOverlay = (overlay: typeof GEO_OVERLAYS[0]) => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
@@ -556,7 +352,6 @@ function App() {
     const isVisible = overlayStates.get(overlay.id) ?? false
 
     if (!isVisible) {
-      // オーバーレイを追加
       if (!map.getSource(overlay.id)) {
         map.addSource(overlay.id, {
           type: 'raster',
@@ -567,33 +362,23 @@ function App() {
           id: overlay.id,
           type: 'raster',
           source: overlay.id,
-          paint: {
-            'raster-opacity': overlay.opacity
-          }
-        }, LAYER_GROUPS.flatMap(g => g.layers).find(l => layerStates.get(l.id)?.visible)?.id)
+          paint: { 'raster-opacity': overlay.opacity }
+        })
       } else {
         map.setLayoutProperty(overlay.id, 'visibility', 'visible')
       }
-      setOverlayStates(prev => {
-        const next = new Map(prev)
-        next.set(overlay.id, true)
-        return next
-      })
+      setOverlayStates(prev => new Map(prev).set(overlay.id, true))
     } else {
       map.setLayoutProperty(overlay.id, 'visibility', 'none')
-      setOverlayStates(prev => {
-        const next = new Map(prev)
-        next.set(overlay.id, false)
-        return next
-      })
+      setOverlayStates(prev => new Map(prev).set(overlay.id, false))
     }
   }
 
-  const isOverlayVisible = (overlayId: string) => {
-    return overlayStates.get(overlayId) ?? false
-  }
+  const isOverlayVisible = (overlayId: string) => overlayStates.get(overlayId) ?? false
 
-  // 雨雲レーダーの更新
+  // ============================================
+  // Weather overlay management
+  // ============================================
   const updateRainRadar = async () => {
     const path = await fetchRainRadarTimestamp()
     if (path) {
@@ -607,25 +392,21 @@ function App() {
     return path
   }
 
-  // 気象オーバーレイの切り替え
-  const toggleWeatherOverlay = async (overlay: WeatherOverlay) => {
+  const toggleWeatherOverlay = async (overlayId: string) => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
-    const isVisible = weatherStates.get(overlay.id) ?? false
+    const isVisible = weatherStates.get(overlayId) ?? false
 
     if (!isVisible) {
-      if (overlay.id === 'rain-radar') {
+      if (overlayId === 'rain-radar') {
         let path = rainRadarPath
         if (!path) {
           path = await updateRainRadar()
         }
-        if (!path) {
-          console.error('Failed to get rain radar data')
-          return
-        }
+        if (!path) return
 
-        const tileUrl = `https://tilecache.rainviewer.com${path}/256/{z}/{x}/{y}/2/1_1.png`
+        const tileUrl = buildRainTileUrl(path)
 
         if (map.getSource('rain-radar')) {
           map.removeLayer('rain-radar')
@@ -641,34 +422,21 @@ function App() {
           id: 'rain-radar',
           type: 'raster',
           source: 'rain-radar',
-          paint: {
-            'raster-opacity': overlay.opacity
-          }
-        }, LAYER_GROUPS.flatMap(g => g.layers).find(l => layerStates.get(l.id)?.visible)?.id)
+          paint: { 'raster-opacity': 0.6 }
+        })
       }
-
-      setWeatherStates(prev => {
-        const next = new Map(prev)
-        next.set(overlay.id, true)
-        return next
-      })
+      setWeatherStates(prev => new Map(prev).set(overlayId, true))
     } else {
-      if (map.getLayer(overlay.id)) {
-        map.setLayoutProperty(overlay.id, 'visibility', 'none')
+      if (map.getLayer(overlayId)) {
+        map.setLayoutProperty(overlayId, 'visibility', 'none')
       }
-      setWeatherStates(prev => {
-        const next = new Map(prev)
-        next.set(overlay.id, false)
-        return next
-      })
+      setWeatherStates(prev => new Map(prev).set(overlayId, false))
     }
   }
 
-  const isWeatherVisible = (overlayId: string) => {
-    return weatherStates.get(overlayId) ?? false
-  }
+  const isWeatherVisible = (overlayId: string) => weatherStates.get(overlayId) ?? false
 
-  // 雨雲レーダーの自動更新（5分ごと）
+  // Rain radar auto-update
   useEffect(() => {
     if (!weatherStates.get('rain-radar')) return
 
@@ -678,8 +446,7 @@ function App() {
 
       const path = await updateRainRadar()
       if (path && map.getSource('rain-radar')) {
-        const tileUrl = `https://tilecache.rainviewer.com${path}/256/{z}/{x}/{y}/2/1_1.png`
-        // ソースを更新
+        const tileUrl = buildRainTileUrl(path)
         map.removeLayer('rain-radar')
         map.removeSource('rain-radar')
         map.addSource('rain-radar', {
@@ -691,52 +458,196 @@ function App() {
           id: 'rain-radar',
           type: 'raster',
           source: 'rain-radar',
-          paint: {
-            'raster-opacity': WEATHER_OVERLAYS.find(w => w.id === 'rain-radar')?.opacity ?? 0.6
-          }
+          paint: { 'raster-opacity': 0.6 }
         })
       }
-    }, 5 * 60 * 1000) // 5分ごと
+    }, 5 * 60 * 1000)
 
     return () => clearInterval(interval)
   }, [weatherStates, mapLoaded])
 
-  return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <aside style={{
-        width: '300px',
-        padding: '16px',
-        backgroundColor: '#1a1a2e',
-        color: '#eee',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <h1 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600 }}>
-          Japan Overlay Map
-        </h1>
-        <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#888' }}>
-          日本の地理データオーバーレイ
-        </p>
+  // ============================================
+  // Restriction zone management
+  // ============================================
+  const toggleRestriction = async (restrictionId: string) => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
 
-        {/* 検索ボックス */}
-        <div style={{ marginBottom: '16px', position: 'relative' }}>
-          <label style={{ fontSize: '13px', color: '#aaa', display: 'block', marginBottom: '4px' }}>
-            市区町村検索 (表示中の都道府県のみ)
-          </label>
+    const isVisible = restrictionStates.get(restrictionId) ?? false
+
+    if (!isVisible) {
+      let geojson: GeoJSON.FeatureCollection | null = null
+      let color = ''
+
+      if (restrictionId === 'airport-airspace') {
+        geojson = generateAirportGeoJSON()
+        color = RESTRICTION_COLORS.airport
+      } else if (restrictionId === 'no-fly-red') {
+        geojson = generateRedZoneGeoJSON()
+        color = RESTRICTION_COLORS.no_fly_red
+      } else if (restrictionId === 'no-fly-yellow') {
+        geojson = generateYellowZoneGeoJSON()
+        color = RESTRICTION_COLORS.no_fly_yellow
+      }
+
+      if (geojson && !map.getSource(restrictionId)) {
+        map.addSource(restrictionId, { type: 'geojson', data: geojson })
+        map.addLayer({
+          id: restrictionId,
+          type: 'fill',
+          source: restrictionId,
+          paint: { 'fill-color': color, 'fill-opacity': 0.4 }
+        })
+        map.addLayer({
+          id: `${restrictionId}-outline`,
+          type: 'line',
+          source: restrictionId,
+          paint: { 'line-color': color, 'line-width': 2 }
+        })
+      } else if (map.getLayer(restrictionId)) {
+        map.setLayoutProperty(restrictionId, 'visibility', 'visible')
+        map.setLayoutProperty(`${restrictionId}-outline`, 'visibility', 'visible')
+      }
+      setRestrictionStates(prev => new Map(prev).set(restrictionId, true))
+    } else {
+      if (map.getLayer(restrictionId)) {
+        map.setLayoutProperty(restrictionId, 'visibility', 'none')
+        map.setLayoutProperty(`${restrictionId}-outline`, 'visibility', 'none')
+      }
+      setRestrictionStates(prev => new Map(prev).set(restrictionId, false))
+    }
+  }
+
+  const isRestrictionVisible = (id: string) => restrictionStates.get(id) ?? false
+
+  // ============================================
+  // Custom layer management
+  // ============================================
+  const handleCustomLayerAdded = useCallback((layer: CustomLayer) => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    if (!map.getSource(layer.id)) {
+      map.addSource(layer.id, { type: 'geojson', data: layer.data })
+      map.addLayer({
+        id: layer.id,
+        type: 'fill',
+        source: layer.id,
+        paint: { 'fill-color': layer.color, 'fill-opacity': layer.opacity }
+      })
+      map.addLayer({
+        id: `${layer.id}-outline`,
+        type: 'line',
+        source: layer.id,
+        paint: { 'line-color': layer.color, 'line-width': 2 }
+      })
+    }
+    setCustomLayerVisibility(prev => new Set(prev).add(layer.id))
+  }, [mapLoaded])
+
+  const handleCustomLayerRemoved = useCallback((layerId: string) => {
+    const map = mapRef.current
+    if (!map) return
+
+    if (map.getLayer(layerId)) {
+      map.removeLayer(layerId)
+      map.removeLayer(`${layerId}-outline`)
+    }
+    if (map.getSource(layerId)) {
+      map.removeSource(layerId)
+    }
+    setCustomLayerVisibility(prev => {
+      const next = new Set(prev)
+      next.delete(layerId)
+      return next
+    })
+  }, [])
+
+  const handleCustomLayerToggle = useCallback((layerId: string, visible: boolean) => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    // レイヤーがまだ追加されていない場合は追加
+    if (visible && !map.getSource(layerId)) {
+      const customLayers = getCustomLayers()
+      const layer = customLayers.find(l => l.id === layerId)
+      if (layer) {
+        handleCustomLayerAdded(layer)
+        return
+      }
+    }
+
+    if (map.getLayer(layerId)) {
+      const visibility = visible ? 'visible' : 'none'
+      map.setLayoutProperty(layerId, 'visibility', visibility)
+      map.setLayoutProperty(`${layerId}-outline`, 'visibility', visibility)
+    }
+
+    setCustomLayerVisibility(prev => {
+      const next = new Set(prev)
+      if (visible) {
+        next.add(layerId)
+      } else {
+        next.delete(layerId)
+      }
+      return next
+    })
+  }, [mapLoaded, handleCustomLayerAdded])
+
+  // ============================================
+  // Render
+  // ============================================
+  return (
+    <div style={{ display: 'flex', height: '100vh', position: 'relative' }}>
+      {/* Left Legend Panel */}
+      <aside style={{
+        position: 'absolute',
+        left: showLeftLegend ? 0 : -280,
+        top: 0,
+        bottom: 0,
+        width: '280px',
+        padding: '12px',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        color: '#333',
+        overflowY: 'auto',
+        zIndex: 10,
+        transition: 'left 0.3s ease',
+        boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+        fontSize: '12px'
+      }}>
+        {/* Toggle button */}
+        <button
+          onClick={() => setShowLeftLegend(!showLeftLegend)}
+          style={{
+            position: 'absolute',
+            right: -24,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 24,
+            height: 48,
+            background: 'rgba(255,255,255,0.95)',
+            border: 'none',
+            borderRadius: '0 4px 4px 0',
+            cursor: 'pointer',
+            boxShadow: '2px 0 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          {showLeftLegend ? '<' : '>'}
+        </button>
+
+        {/* Search */}
+        <div style={{ marginBottom: '12px', position: 'relative' }}>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="市区町村名を入力..."
+            placeholder="市区町村検索..."
             style={{
               width: '100%',
-              padding: '8px',
-              backgroundColor: '#2d3748',
-              border: '1px solid #4a5568',
+              padding: '6px 8px',
+              border: '1px solid #ccc',
               borderRadius: '4px',
-              color: '#fff',
-              fontSize: '14px'
+              fontSize: '12px'
             }}
           />
           {searchResults.length > 0 && (
@@ -745,30 +656,27 @@ function App() {
               top: '100%',
               left: 0,
               right: 0,
-              backgroundColor: '#2d3748',
-              border: '1px solid #4a5568',
+              backgroundColor: '#fff',
+              border: '1px solid #ccc',
               borderRadius: '0 0 4px 4px',
-              maxHeight: '200px',
+              maxHeight: '150px',
               overflowY: 'auto',
-              zIndex: 10
+              zIndex: 100
             }}>
               {searchResults.map((item, index) => (
                 <div
                   key={`${item.prefName}-${item.cityName}-${index}`}
-                  onClick={() => {
-                    flyToFeature(item);
-                    setSearchTerm('');
-                  }}
+                  onClick={() => { flyToFeature(item); setSearchTerm(''); }}
                   style={{
-                    padding: '8px',
+                    padding: '6px 8px',
                     cursor: 'pointer',
-                    borderBottom: '1px solid #4a5568',
-                    fontSize: '13px'
+                    borderBottom: '1px solid #eee',
+                    fontSize: '11px'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a5568'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <span style={{ color: '#aaa', fontSize: '11px', marginRight: '4px' }}>{item.prefName}</span>
+                  <span style={{ color: '#888', marginRight: '4px' }}>{item.prefName}</span>
                   {item.cityName}
                 </div>
               ))}
@@ -776,23 +684,20 @@ function App() {
           )}
         </div>
 
-        {/* ベースマップ選択 */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', color: '#aaa', display: 'block', marginBottom: '8px' }}>
-            ベースマップ
-          </label>
+        {/* Base map selector */}
+        <div style={{ marginBottom: '12px' }}>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
             {(Object.keys(BASE_MAPS) as BaseMapKey[]).map((key) => (
               <button
                 key={key}
                 onClick={() => setBaseMap(key)}
                 style={{
-                  padding: '6px 10px',
-                  fontSize: '11px',
-                  backgroundColor: baseMap === key ? '#4a5568' : '#2d3748',
+                  padding: '4px 8px',
+                  fontSize: '10px',
+                  backgroundColor: baseMap === key ? '#4a90d9' : '#f0f0f0',
+                  color: baseMap === key ? '#fff' : '#333',
                   border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
+                  borderRadius: '3px',
                   cursor: 'pointer'
                 }}
               >
@@ -802,9 +707,10 @@ function App() {
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '13px', color: '#aaa' }}>
-            DID透明度: {Math.round(opacity * 100)}%
+        {/* Opacity slider */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ fontSize: '11px', color: '#666' }}>
+            透明度: {Math.round(opacity * 100)}%
           </label>
           <input
             type="range"
@@ -813,133 +719,117 @@ function App() {
             step="0.05"
             value={opacity}
             onChange={(e) => setOpacity(parseFloat(e.target.value))}
-            style={{ width: '100%', marginTop: '4px' }}
+            style={{ width: '100%' }}
           />
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {/* 気象情報オーバーレイ */}
-          <h2 style={{ margin: '0 0 12px', fontSize: '14px', color: '#888', fontWeight: 500 }}>
-            気象情報
-          </h2>
-          <div style={{ marginBottom: '16px' }}>
-            {WEATHER_OVERLAYS.map(overlay => (
-              <label
-                key={overlay.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 10px',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  backgroundColor: isWeatherVisible(overlay.id) ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  marginBottom: '2px'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isWeatherVisible(overlay.id)}
-                  onChange={() => toggleWeatherOverlay(overlay)}
-                />
-                <span style={{ fontSize: '13px' }}>{overlay.name}</span>
-                {overlay.id === 'rain-radar' && isWeatherVisible(overlay.id) && radarLastUpdate && (
-                  <span style={{ fontSize: '10px', color: '#888', marginLeft: 'auto' }}>
-                    {radarLastUpdate}更新
-                  </span>
-                )}
-              </label>
-            ))}
+        {/* Restriction Areas Section */}
+        <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: '#f8f8f8', borderRadius: '4px' }}>
+          <h3 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
+            禁止エリア
+          </h3>
+
+          {/* Airport airspace */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={isRestrictionVisible('airport-airspace')}
+              onChange={() => toggleRestriction('airport-airspace')}
+            />
+            <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.airport, borderRadius: '2px' }} />
+            <span>空港など周辺空域</span>
+          </label>
+
+          {/* DID */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <input type="checkbox" disabled checked={layerStates.size > 0} />
+            <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.did, borderRadius: '2px' }} />
+            <span>人口集中地区</span>
+          </label>
+
+          {/* Emergency airspace */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.emergency, borderRadius: '2px' }} />
+            <span>緊急用務空域</span>
+          </label>
+
+          {/* Manned aircraft */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.manned, borderRadius: '2px' }} />
+            <span>有人機発着エリア</span>
+          </label>
+
+          {/* Remote ID */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.remote_id, borderRadius: '2px' }} />
+            <span>リモートID特定区域</span>
+          </label>
+
+          {/* No-fly law section */}
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #ddd' }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '6px' }}>小型無人機等飛行禁止法</div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isRestrictionVisible('no-fly-red')}
+                onChange={() => toggleRestriction('no-fly-red')}
+              />
+              <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_red, borderRadius: '2px' }} />
+              <span>レッドゾーン</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={isRestrictionVisible('no-fly-yellow')}
+                onChange={() => toggleRestriction('no-fly-yellow')}
+              />
+              <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_yellow, borderRadius: '2px' }} />
+              <span>イエローゾーン</span>
+            </label>
           </div>
+        </div>
 
-          {/* 地理情報オーバーレイ */}
-          <h2 style={{ margin: '0 0 12px', fontSize: '14px', color: '#888', fontWeight: 500 }}>
-            地理情報
-          </h2>
-          <div style={{ marginBottom: '16px' }}>
-            {GEO_OVERLAYS.map(overlay => (
-              <label
-                key={overlay.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 10px',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  backgroundColor: isOverlayVisible(overlay.id) ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  marginBottom: '2px'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isOverlayVisible(overlay.id)}
-                  onChange={() => toggleOverlay(overlay)}
-                />
-                <span style={{ fontSize: '13px' }}>{overlay.name}</span>
-              </label>
-            ))}
-          </div>
-
-          <h2 style={{ margin: '0 0 12px', fontSize: '14px', color: '#888', fontWeight: 500 }}>
-            人口集中地区（DID）
-          </h2>
-
+        {/* DID Section */}
+        <div>
+          <h3 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600 }}>人口集中地区（DID）</h3>
           {LAYER_GROUPS.map(group => (
-            <div key={group.name} style={{ marginBottom: '8px' }}>
+            <div key={group.name} style={{ marginBottom: '4px' }}>
               <button
                 onClick={() => toggleGroup(group.name)}
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
-                  backgroundColor: '#16213e',
+                  padding: '6px 8px',
+                  backgroundColor: '#f0f0f0',
                   border: 'none',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: 500,
+                  borderRadius: '3px',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  fontSize: '11px'
                 }}
               >
                 <span>{group.name}</span>
-                <span style={{ fontSize: '12px' }}>
-                  {expandedGroups.has(group.name) ? '▼' : '▶'}
-                </span>
+                <span>{expandedGroups.has(group.name) ? '▼' : '▶'}</span>
               </button>
 
               {expandedGroups.has(group.name) && (
-                <div style={{ padding: '8px 0 0 8px' }}>
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ padding: '4px 0 4px 8px' }}>
+                  <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
                     <button
                       onClick={() => enableAllInGroup(group)}
-                      style={{
-                        flex: 1,
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        backgroundColor: '#2d3748',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#fff',
-                        cursor: 'pointer'
-                      }}
+                      style={{ flex: 1, padding: '2px 4px', fontSize: '10px', backgroundColor: '#e8e8e8', border: 'none', borderRadius: '2px', cursor: 'pointer' }}
                     >
                       全て表示
                     </button>
                     <button
                       onClick={() => disableAllInGroup(group)}
-                      style={{
-                        flex: 1,
-                        padding: '4px 8px',
-                        fontSize: '11px',
-                        backgroundColor: '#2d3748',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#fff',
-                        cursor: 'pointer'
-                      }}
+                      style={{ flex: 1, padding: '2px 4px', fontSize: '10px', backgroundColor: '#e8e8e8', border: 'none', borderRadius: '2px', cursor: 'pointer' }}
                     >
                       全て非表示
                     </button>
@@ -947,33 +837,15 @@ function App() {
                   {group.layers.map(layer => (
                     <label
                       key={layer.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '8px 10px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        backgroundColor: isLayerVisible(layer.id) ? 'rgba(255,255,255,0.1)' : 'transparent',
-                        marginBottom: '2px'
-                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 0', cursor: 'pointer', fontSize: '11px' }}
                     >
                       <input
                         type="checkbox"
                         checked={isLayerVisible(layer.id)}
                         onChange={() => toggleLayer(layer)}
-                        style={{ accentColor: layer.color }}
                       />
-                      <span
-                        style={{
-                          width: '14px',
-                          height: '14px',
-                          backgroundColor: layer.color,
-                          borderRadius: '3px',
-                          opacity: 0.8
-                        }}
-                      />
-                      <span style={{ fontSize: '13px' }}>{layer.name}</span>
+                      <span style={{ width: '10px', height: '10px', backgroundColor: layer.color, borderRadius: '2px' }} />
+                      <span>{layer.name}</span>
                     </label>
                   ))}
                 </div>
@@ -981,18 +853,127 @@ function App() {
             </div>
           ))}
         </div>
+      </aside>
 
-        <div style={{
-          paddingTop: '16px',
-          borderTop: '1px solid #333',
-          fontSize: '11px',
-          color: '#666'
-        }}>
-          <p>出典: 政府統計の総合窓口(e-Stat)</p>
-          <p>平成22年国勢調査データ</p>
+      {/* Right Legend Panel */}
+      <aside style={{
+        position: 'absolute',
+        right: showRightLegend ? 0 : -200,
+        top: 0,
+        bottom: 0,
+        width: '200px',
+        padding: '12px',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        color: '#333',
+        overflowY: 'auto',
+        zIndex: 10,
+        transition: 'right 0.3s ease',
+        boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+        fontSize: '12px'
+      }}>
+        {/* Toggle button */}
+        <button
+          onClick={() => setShowRightLegend(!showRightLegend)}
+          style={{
+            position: 'absolute',
+            left: -24,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 24,
+            height: 48,
+            background: 'rgba(255,255,255,0.95)',
+            border: 'none',
+            borderRadius: '4px 0 0 4px',
+            cursor: 'pointer',
+            boxShadow: '-2px 0 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          {showRightLegend ? '>' : '<'}
+        </button>
+
+        <h3 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>
+          禁止エリア
+        </h3>
+
+        {/* Geographic Info */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: '#666', marginBottom: '6px' }}>地理情報</div>
+          {GEO_OVERLAYS.filter(o => o.id !== 'buildings').map(overlay => (
+            <label key={overlay.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', cursor: 'pointer', fontSize: '11px' }}>
+              <input
+                type="checkbox"
+                checked={isOverlayVisible(overlay.id)}
+                onChange={() => toggleOverlay(overlay)}
+              />
+              <span>{overlay.name}</span>
+            </label>
+          ))}
+
+          {/* 地物 */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', cursor: 'pointer', fontSize: '11px', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span>地物</span>
+          </label>
+        </div>
+
+        {/* Weather Info */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: '#666', marginBottom: '6px' }}>天候情報</div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', cursor: 'pointer', fontSize: '11px' }}>
+            <input
+              type="checkbox"
+              checked={isWeatherVisible('rain-radar')}
+              onChange={() => toggleWeatherOverlay('rain-radar')}
+            />
+            <span>雨雲</span>
+            {isWeatherVisible('rain-radar') && radarLastUpdate && (
+              <span style={{ fontSize: '9px', color: '#888' }}>{radarLastUpdate}</span>
+            )}
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', cursor: 'pointer', fontSize: '11px', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span>風向・風量</span>
+          </label>
+        </div>
+
+        {/* Signal Info */}
+        <div>
+          <div style={{ fontSize: '11px', color: '#666', marginBottom: '6px' }}>電波種</div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', opacity: 0.5 }}>
+            <input type="checkbox" disabled />
+            <span>LTE</span>
+          </label>
         </div>
       </aside>
+
+      {/* Map Container */}
       <div ref={mapContainer} style={{ flex: 1 }} />
+
+      {/* Custom Layer Manager */}
+      <CustomLayerManager
+        onLayerAdded={handleCustomLayerAdded}
+        onLayerRemoved={handleCustomLayerRemoved}
+        onLayerToggle={handleCustomLayerToggle}
+        visibleLayers={customLayerVisibility}
+      />
+
+      {/* Attribution */}
+      <div style={{
+        position: 'absolute',
+        bottom: 4,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        fontSize: '10px',
+        color: '#666',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        padding: '2px 8px',
+        borderRadius: '2px',
+        zIndex: 5
+      }}>
+        出典: 政府統計の総合窓口(e-Stat) / 国土地理院
+      </div>
     </div>
   )
 }

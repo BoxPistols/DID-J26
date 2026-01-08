@@ -7,45 +7,66 @@ import maplibregl from 'maplibre-gl'
 // ============================================
 // Base Map Types
 // ============================================
+/**
+ * Configuration for a base map layer
+ * @interface BaseMapConfig
+ */
 export interface BaseMapConfig {
-  id: string
-  name: string
-  style: string | maplibregl.StyleSpecification
+  id: string /** Unique identifier for the base map */
+  name: string /** Display name of the base map */
+  style: string | maplibregl.StyleSpecification /** MapLibre GL style definition */
 }
 
+/** Type for available base map selections */
 export type BaseMapKey = 'osm' | 'gsi' | 'pale' | 'photo'
 
 // ============================================
 // Layer Types
 // ============================================
+/**
+ * Configuration for a single geographic layer (prefecture DID data)
+ * @interface LayerConfig
+ */
 export interface LayerConfig {
-  id: string
-  name: string
-  path: string
-  color: string
+  id: string /** Unique identifier for the layer */
+  name: string /** Display name of the layer (prefecture name) */
+  path: string /** Path to GeoJSON data file */
+  color: string /** Hex color code for layer visualization */
 }
 
+/**
+ * Grouped collection of layers organized by region
+ * @interface LayerGroup
+ */
 export interface LayerGroup {
-  name: string
-  layers: LayerConfig[]
+  name: string /** Region name (e.g., "関東", "近畿") */
+  layers: LayerConfig[] /** Array of layers in this region */
 }
 
+/**
+ * Runtime state of a layer in the UI
+ * @interface LayerState
+ */
 export interface LayerState {
-  id: string
-  visible: boolean
+  id: string /** Layer identifier */
+  visible: boolean /** Whether the layer is currently visible on the map */
 }
 
 // ============================================
 // Overlay Types
 // ============================================
+/**
+ * Configuration for geographic/weather overlay layers
+ * @interface GeoOverlay
+ */
 export interface GeoOverlay {
-  id: string
-  name: string
-  tiles: string[]
-  opacity: number
-  category: 'geo' | 'weather' | 'restriction'
-  minZoom?: number
-  maxZoom?: number
+  id: string /** Unique identifier for the overlay */
+  name: string /** Display name of the overlay */
+  tiles: string[] /** Array of tile URLs or GeoJSON paths */
+  opacity: number /** Opacity level (0-1) */
+  category: 'geo' | 'weather' | 'restriction' /** Category of overlay data */
+  minZoom?: number /** Minimum zoom level to display overlay */
+  maxZoom?: number /** Maximum zoom level to display overlay */
 }
 
 export interface WeatherOverlay {
@@ -123,11 +144,15 @@ export interface WeatherData {
 // ============================================
 // Search Types
 // ============================================
+/**
+ * Single item in the searchable index of geographic features
+ * @interface SearchIndexItem
+ */
 export interface SearchIndexItem {
-  prefName: string
-  cityName: string
-  bbox: [number, number, number, number] // [minLng, minLat, maxLng, maxLat]
-  layerId: string
+  prefName: string /** Prefecture name (都道府県) */
+  cityName: string /** City/municipality name (市区町村) */
+  bbox: [number, number, number, number] /** Bounding box for the feature [minLng, minLat, maxLng, maxLat] */
+  layerId: string /** Associated layer identifier */
 }
 
 // ============================================

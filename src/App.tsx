@@ -178,11 +178,15 @@ function App() {
               </div>
               <div class="stat-row">
                 <span class="stat-label">面積</span>
-                <span class="stat-value">${area.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}km²</span>
+                <span class="stat-value">${area.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}km²</span>
               </div>
               <div class="stat-row">
                 <span class="stat-label">人口密度</span>
                 <span class="stat-value">${density.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}人/km²</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">コード</span>
+                <span class="stat-value">${props.KEN || '-'}-${props.CITY || '-'}</span>
               </div>
             </div>
           </div>

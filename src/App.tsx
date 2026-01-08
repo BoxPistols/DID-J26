@@ -90,19 +90,29 @@ function App() {
   // ============================================
   // Search functionality
   // ============================================
-  useEffect(() => {
-    if (!searchTerm) {
+  // Debounced search
+  const performSearch = useCallback((term: string) => {
+    if (!term) {
       setSearchResults([])
       return
     }
     const results = searchIndex.filter(item =>
-      item.cityName.includes(searchTerm) || item.prefName.includes(searchTerm)
+      item.cityName.includes(term) || item.prefName.includes(term)
     )
     const uniqueResults = Array.from(
       new Map(results.map(item => [item.prefName + item.cityName, item])).values()
     )
     setSearchResults(uniqueResults.slice(0, 10))
-  }, [searchTerm, searchIndex])
+  }, [searchIndex])
+
+  // Debounce search with 300ms delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch(searchTerm)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm, performSearch])
 
   const flyToFeature = (item: SearchIndexItem) => {
     const map = mapRef.current

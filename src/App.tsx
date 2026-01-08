@@ -284,21 +284,6 @@ function App() {
   }, [baseMap])
 
   // ============================================
-  // Load default layers on map load
-  // ============================================
-  useEffect(() => {
-    if (!mapLoaded || searchIndex.length > 0) return
-
-    // Load default layers for search to work
-    const kantoGroup = LAYER_GROUPS.find(g => g.name === '関東')
-    if (kantoGroup) {
-      kantoGroup.layers.slice(0, 3).forEach(layer => {
-        addLayer(layer)
-      })
-    }
-  }, [mapLoaded, searchIndex.length, addLayer])
-
-  // ============================================
   // Opacity effect
   // ============================================
   useEffect(() => {
@@ -363,6 +348,21 @@ function App() {
       console.error(`Failed to add layer ${layer.id}:`, e)
     }
   }, [mapLoaded, opacity])
+
+  // ============================================
+  // Load default layers on map load
+  // ============================================
+  useEffect(() => {
+    if (!mapLoaded || searchIndex.length > 0) return
+
+    // Load default layers for search to work
+    const kantoGroup = LAYER_GROUPS.find(g => g.name === '関東')
+    if (kantoGroup) {
+      kantoGroup.layers.slice(0, 3).forEach(layer => {
+        addLayer(layer)
+      })
+    }
+  }, [mapLoaded, searchIndex.length, addLayer])
 
   const toggleLayer = (layer: LayerConfig) => {
     const map = mapRef.current

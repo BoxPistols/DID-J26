@@ -1,12 +1,32 @@
 {
-  "name": "japan-overlay-map",
-  "version": "0.1.0",
-  "description": "日本の各種地理データをオーバーレイ表示できる汎用地図ライブラリ",
+  "name": "japan-drone-map",
+  "version": "1.0.0",
+  "description": "日本のドローン飛行禁止エリア・地理データをオーバーレイ表示できる汎用地図ライブラリ",
   "type": "module",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/lib/index.js",
+  "types": "./dist/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/lib/index.js",
+      "types": "./dist/lib/index.d.ts"
+    },
+    "./components": {
+      "import": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/lib",
+    "dist/components",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build:lib": "tsc --project tsconfig.lib.json",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build:lib"
   },
   "repository": {
     "type": "git",
@@ -18,16 +38,28 @@
     "gis",
     "geojson",
     "did",
-    "overlay"
+    "drone",
+    "no-fly-zone",
+    "restriction",
+    "maplibre",
+    "overlay",
+    "airport",
+    "weather"
   ],
   "author": "",
   "license": "MIT",
+  "peerDependencies": {
+    "maplibre-gl": "^4.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
   "dependencies": {
-    "maplibre-gl": "^4.7.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "maplibre-gl": "^4.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.16",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",

@@ -25,7 +25,7 @@ export {
 export {
   LAYER_GROUPS,
   PREFECTURE_COLORS,
-  createLayerNameMap,
+  createLayerIdToNameMap,
   getAllLayers
 } from './config/layers'
 

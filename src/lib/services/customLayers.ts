@@ -186,32 +186,57 @@ export function importCustomLayers(jsonString: string): { success: boolean; coun
   try {
     const imported = JSON.parse(jsonString)
 
+    if (!imported || typeof imported !== 'object') {
+      return { success: false, count: 0, error: 'Invalid JSON: must be an object or array' }
+    }
+
     if (Array.isArray(imported)) {
       // Import multiple layers
       const layers = getCustomLayers()
       const now = Date.now()
+      let validCount = 0
 
       imported.forEach((item, index) => {
-        if (item.data && item.name) {
-          const newLayer: CustomLayer = {
-            id: item.id || `imported-${now}-${index}`,
-            name: item.name,
-            type: 'custom',
-            category: item.category || 'custom',
-            color: item.color || '#888888',
-            opacity: item.opacity ?? 0.5,
-            data: item.data,
-            createdAt: item.createdAt || now,
-            updatedAt: now,
-            description: item.description
-          }
-          layers.push(newLayer)
+        // Validate required properties
+        if (!item || typeof item !== 'object' || !item.data || !item.name) {
+          return
         }
+
+        // Validate data is a FeatureCollection
+        if (
+          !item.data.type ||
+          (item.data.type !== 'FeatureCollection' && item.data.type !== 'Feature')
+        ) {
+          return
+        }
+
+        const newLayer: CustomLayer = {
+          id: item.id || `imported-${now}-${index}`,
+          name: item.name,
+          type: 'custom',
+          category: item.category || 'custom',
+          color: item.color || '#888888',
+          opacity: item.opacity ?? 0.5,
+          data:
+            item.data.type === 'Feature'
+              ? { type: 'FeatureCollection', features: [item.data] }
+              : item.data,
+          createdAt: item.createdAt || now,
+          updatedAt: now,
+          description: item.description
+        }
+        layers.push(newLayer)
+        validCount++
       })
 
       saveCustomLayers(layers)
-      return { success: true, count: imported.length }
+      return { success: validCount > 0, count: validCount }
     } else if (imported.type === 'FeatureCollection') {
+      // Validate FeatureCollection structure
+      if (!Array.isArray(imported.features)) {
+        return { success: false, count: 0, error: 'Invalid FeatureCollection: features must be an array' }
+      }
+
       // Import single GeoJSON file
       const layers = getCustomLayers()
       const now = Date.now()
@@ -238,7 +263,7 @@ export function importCustomLayers(jsonString: string): { success: boolean; coun
       return { success: true, count: 1 }
     }
 
-    return { success: false, count: 0, error: 'Invalid format' }
+    return { success: false, count: 0, error: 'Invalid format: must be FeatureCollection or array of layers' }
   } catch (error) {
     return { success: false, count: 0, error: String(error) }
   }
@@ -270,22 +295,53 @@ export async function readGeoJSONFile(file: File): Promise<GeoJSON.FeatureCollec
         const content = e.target?.result as string
         const json = JSON.parse(content)
 
+        // Validate GeoJSON structure
+        if (!json || typeof json !== 'object') {
+          reject(new Error('Invalid GeoJSON: must be an object'))
+          return
+        }
+
         if (json.type === 'FeatureCollection') {
+          // Validate FeatureCollection
+          if (!Array.isArray(json.features)) {
+            reject(new Error('Invalid FeatureCollection: features must be an array'))
+            return
+          }
+          // Validate each feature
+          for (const feature of json.features) {
+            if (!feature.geometry || !feature.geometry.type) {
+              reject(new Error('Invalid Feature: missing geometry or geometry.type'))
+              return
+            }
+          }
           resolve(json)
         } else if (json.type === 'Feature') {
+          // Validate Feature
+          if (!json.geometry || !json.geometry.type) {
+            reject(new Error('Invalid Feature: missing geometry or geometry.type'))
+            return
+          }
           resolve({
             type: 'FeatureCollection',
             features: [json]
           })
         } else {
-          reject(new Error('Invalid GeoJSON format'))
+          reject(new Error('Invalid GeoJSON format: must be FeatureCollection or Feature'))
         }
       } catch (error) {
-        reject(error)
+        reject(error instanceof Error ? error : new Error('Unknown error parsing GeoJSON'))
       }
     }
 
-    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.onerror = () => {
+      reader.abort()
+      reject(new Error('Failed to read file'))
+    }
+
+    reader.onabort = () => {
+      reject(new Error('File read was aborted'))
+    }
+
     reader.readAsText(file)
   })
 }
@@ -302,7 +358,10 @@ export function downloadAsFile(content: string, filename: string, mimeType: stri
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  // Revoke the URL after a delay to ensure download completes
+  setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 100)
 }
 
 // ============================================

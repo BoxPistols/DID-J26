@@ -8,7 +8,7 @@ import {
   LAYER_GROUPS,
   GEO_OVERLAYS,
   RESTRICTION_COLORS,
-  createLayerNameMap,
+  createLayerIdToNameMap,
   fetchRainRadarTimestamp,
   buildRainTileUrl,
   generateAirportGeoJSON,
@@ -26,6 +26,19 @@ import {
 } from './lib'
 import type { BaseMapKey, LayerConfig, LayerGroup, SearchIndexItem, LayerState, CustomLayer } from './lib'
 import { CustomLayerManager } from './components/CustomLayerManager'
+
+// ============================================
+// Zone ID Constants
+// ============================================
+const ZONE_IDS = {
+  DID_ALL_JAPAN: 'ZONE_IDS.DID_ALL_JAPAN',
+  AIRPORT: 'airport',
+  NO_FLY_RED: 'ZONE_IDS.NO_FLY_RED',
+  NO_FLY_YELLOW: 'ZONE_IDS.NO_FLY_YELLOW',
+  EMERGENCY_AIRSPACE: 'ZONE_IDS.EMERGENCY_AIRSPACE',
+  MANNED_AIRCRAFT_LANDING: 'ZONE_IDS.MANNED_AIRCRAFT_LANDING',
+  REMOTE_ID_ZONE: 'ZONE_IDS.REMOTE_ID_ZONE'
+} as const
 
 // ============================================
 // Main App Component
@@ -63,7 +76,7 @@ function App() {
   // Custom layers
   const [customLayerVisibility, setCustomLayerVisibility] = useState<Set<string>>(new Set())
 
-  const LAYER_ID_TO_NAME = createLayerNameMap()
+  const layerIdToName = createLayerIdToNameMap()
 
   // ============================================
   // Tooltip ref sync
@@ -155,7 +168,7 @@ function App() {
       const restrictionFeature = features.find(f =>
         f.layer.id.startsWith('airport-') ||
         f.layer.id.startsWith('no-fly-') ||
-        f.layer.id.startsWith('did-all-japan-')
+        f.layer.id.startsWith('ZONE_IDS.DID_ALL_JAPAN-')
       )
 
       if (didFeature && popupRef.current) {
@@ -164,7 +177,7 @@ function App() {
         if (!props) return
 
         const layerId = didFeature.layer.id
-        const prefName = LAYER_ID_TO_NAME.get(layerId) || ''
+        const prefName = layerIdToName.get(layerId) || ''
         const cityName = props.CITYNAME || ''
         const population = props.JINKO || 0
         const area = props.MENSEKI || 0
@@ -564,22 +577,22 @@ function App() {
       if (restrictionId === 'airport-airspace') {
         geojson = generateAirportGeoJSON()
         color = RESTRICTION_COLORS.airport
-      } else if (restrictionId === 'no-fly-red') {
+      } else if (restrictionId === 'ZONE_IDS.NO_FLY_RED') {
         geojson = generateRedZoneGeoJSON()
         color = RESTRICTION_COLORS.no_fly_red
-      } else if (restrictionId === 'no-fly-yellow') {
+      } else if (restrictionId === 'ZONE_IDS.NO_FLY_YELLOW') {
         geojson = generateYellowZoneGeoJSON()
         color = RESTRICTION_COLORS.no_fly_yellow
-      } else if (restrictionId === 'emergency-airspace') {
+      } else if (restrictionId === 'ZONE_IDS.EMERGENCY_AIRSPACE') {
         geojson = generateEmergencyAirspaceGeoJSON()
         color = RESTRICTION_COLORS.emergency
-      } else if (restrictionId === 'manned-aircraft-landing') {
+      } else if (restrictionId === 'ZONE_IDS.MANNED_AIRCRAFT_LANDING') {
         geojson = generateMannedAircraftLandingGeoJSON()
         color = RESTRICTION_COLORS.manned
-      } else if (restrictionId === 'remote-id-zone') {
+      } else if (restrictionId === 'ZONE_IDS.REMOTE_ID_ZONE') {
         geojson = generateRemoteIDZoneGeoJSON()
         color = RESTRICTION_COLORS.remote_id
-      } else if (restrictionId === 'did-all-japan') {
+      } else if (restrictionId === 'ZONE_IDS.DID_ALL_JAPAN') {
         // DID全国一括表示モード - 全47都道府県を赤色で表示
         const allLayers = getAllLayers()
         color = '#FF0000'
@@ -637,7 +650,7 @@ function App() {
       setRestrictionStates(prev => new Map(prev).set(restrictionId, true))
     } else {
       // Hide
-      if (restrictionId === 'did-all-japan') {
+      if (restrictionId === 'ZONE_IDS.DID_ALL_JAPAN') {
         const allLayers = getAllLayers()
         for (const layer of allLayers) {
           const sourceId = `${restrictionId}-${layer.id}`
@@ -907,8 +920,8 @@ function App() {
           <label title="人口が密集している地区：航空法により飛行に許可が必要な区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={isRestrictionVisible('did-all-japan')}
-              onChange={() => toggleRestriction('did-all-japan')}
+              checked={isRestrictionVisible('ZONE_IDS.DID_ALL_JAPAN')}
+              onChange={() => toggleRestriction('ZONE_IDS.DID_ALL_JAPAN')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: '#FF0000', borderRadius: '2px' }} />
             <span>人口集中地区（全国）</span>
@@ -918,8 +931,8 @@ function App() {
           <label title="緊急用務空域（見本データ）：警察・消防などの緊急活動が必要な区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={isRestrictionVisible('emergency-airspace')}
-              onChange={() => toggleRestriction('emergency-airspace')}
+              checked={isRestrictionVisible('ZONE_IDS.EMERGENCY_AIRSPACE')}
+              onChange={() => toggleRestriction('ZONE_IDS.EMERGENCY_AIRSPACE')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.emergency, borderRadius: '2px' }} />
             <span>(見本)緊急用務空域</span>
@@ -929,8 +942,8 @@ function App() {
           <label title="有人機発着エリア（見本データ）：有人航空機の離着陸場所となっている区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={isRestrictionVisible('manned-aircraft-landing')}
-              onChange={() => toggleRestriction('manned-aircraft-landing')}
+              checked={isRestrictionVisible('ZONE_IDS.MANNED_AIRCRAFT_LANDING')}
+              onChange={() => toggleRestriction('ZONE_IDS.MANNED_AIRCRAFT_LANDING')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.manned, borderRadius: '2px' }} />
             <span>(見本)有人機発着エリア</span>
@@ -940,8 +953,8 @@ function App() {
           <label title="リモートID特定区域（見本データ）：リモートID機能の搭載が必要な区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={isRestrictionVisible('remote-id-zone')}
-              onChange={() => toggleRestriction('remote-id-zone')}
+              checked={isRestrictionVisible('ZONE_IDS.REMOTE_ID_ZONE')}
+              onChange={() => toggleRestriction('ZONE_IDS.REMOTE_ID_ZONE')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.remote_id, borderRadius: '2px' }} />
             <span>(見本)リモートID特定区域</span>
@@ -954,8 +967,8 @@ function App() {
             <label title="飛行禁止区域：許可を得ずに飛行できません" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
-                checked={isRestrictionVisible('no-fly-red')}
-                onChange={() => toggleRestriction('no-fly-red')}
+                checked={isRestrictionVisible('ZONE_IDS.NO_FLY_RED')}
+                onChange={() => toggleRestriction('ZONE_IDS.NO_FLY_RED')}
               />
               <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_red, borderRadius: '2px' }} />
               <span>レッドゾーン</span>
@@ -964,8 +977,8 @@ function App() {
             <label title="要許可区域：許可申請を得て条件を満たすことで飛行できます" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
-                checked={isRestrictionVisible('no-fly-yellow')}
-                onChange={() => toggleRestriction('no-fly-yellow')}
+                checked={isRestrictionVisible('ZONE_IDS.NO_FLY_YELLOW')}
+                onChange={() => toggleRestriction('ZONE_IDS.NO_FLY_YELLOW')}
               />
               <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_yellow, borderRadius: '2px' }} />
               <span>イエローゾーン</span>

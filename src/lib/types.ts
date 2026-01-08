@@ -33,7 +33,6 @@ export interface LayerGroup {
 export interface LayerState {
   id: string
   visible: boolean
-  loaded: boolean
 }
 
 // ============================================

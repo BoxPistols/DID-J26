@@ -12,7 +12,7 @@ import {
   downloadAsFile
 } from '../lib/services/customLayers'
 
-interface CustomLayerManagerProps {
+export interface CustomLayerManagerProps {
   onLayerAdded: (layer: CustomLayer) => void
   onLayerRemoved: (layerId: string) => void
   onLayerToggle: (layerId: string, visible: boolean) => void

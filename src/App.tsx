@@ -180,7 +180,10 @@ function App() {
       const restrictionFeature = features.find(f =>
         f.layer.id.startsWith('airport-') ||
         f.layer.id.startsWith('no-fly-') ||
-        f.layer.id.startsWith('ZONE_IDS.DID_ALL_JAPAN-')
+        f.layer.id.startsWith(ZONE_IDS.DID_ALL_JAPAN) ||
+        f.layer.id.startsWith('emergency-') ||
+        f.layer.id.startsWith('manned-') ||
+        f.layer.id.startsWith('remote-')
       )
 
       if (didFeature && popupRef.current) {
@@ -227,17 +230,34 @@ function App() {
         const props = restrictionFeature.properties
         if (!props) return
 
+        // Determine the type of restriction area
+        let areaType = ''
+        const layerId = restrictionFeature.layer.id
+        if (layerId.startsWith('airport-')) {
+          areaType = `${props.type || '空港'}周辺空域`
+        } else if (layerId.startsWith('no-fly-')) {
+          areaType = layerId.includes('red') ? 'レッドゾーン' : 'イエローゾーン'
+        } else if (layerId.startsWith('emergency-')) {
+          areaType = '緊急用務空域'
+        } else if (layerId.startsWith('manned-')) {
+          areaType = '有人機発着エリア'
+        } else if (layerId.startsWith('remote-')) {
+          areaType = 'リモートID特定区域'
+        } else if (layerId.startsWith(ZONE_IDS.DID_ALL_JAPAN)) {
+          areaType = '人口集中地区'
+        }
+
         const content = `
           <div class="did-popup">
             <div class="popup-header">
-              <span class="pref-name">${props.name || ''}</span>
-              <span class="city-name">${props.type || ''}</span>
+              <span class="pref-name">${props.name || areaType}</span>
+              <span class="city-name">${areaType}</span>
             </div>
             <div class="popup-stats">
-              <div class="stat-row">
+              ${props.radiusKm ? `<div class="stat-row">
                 <span class="stat-label">制限半径</span>
-                <span class="stat-value">${props.radiusKm || '-'}km</span>
-              </div>
+                <span class="stat-value">${props.radiusKm}km</span>
+              </div>` : ''}
             </div>
           </div>
         `

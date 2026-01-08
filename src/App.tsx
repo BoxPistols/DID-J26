@@ -284,6 +284,21 @@ function App() {
   }, [baseMap])
 
   // ============================================
+  // Load default layers on map load
+  // ============================================
+  useEffect(() => {
+    if (!mapLoaded || searchIndex.length > 0) return
+
+    // Load default layers for search to work
+    const kantoGroup = LAYER_GROUPS.find(g => g.name === '関東')
+    if (kantoGroup) {
+      kantoGroup.layers.slice(0, 3).forEach(layer => {
+        addLayer(layer)
+      })
+    }
+  }, [mapLoaded, searchIndex.length, addLayer])
+
+  // ============================================
   // Opacity effect
   // ============================================
   useEffect(() => {
@@ -341,7 +356,7 @@ function App() {
 
       setLayerStates(prev => {
         const next = new Map(prev)
-        next.set(layer.id, { id: layer.id, visible: true, loaded: true })
+        next.set(layer.id, { id: layer.id, visible: true })
         return next
       })
     } catch (e) {

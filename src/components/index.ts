@@ -3,4 +3,4 @@
  */
 
 export { CustomLayerManager } from './CustomLayerManager'
-export type { default as CustomLayerManagerType } from './CustomLayerManager'
+export type { CustomLayerManagerProps } from './CustomLayerManager'

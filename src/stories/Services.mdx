@@ -1,0 +1,243 @@
+{/* Services.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="API/Services" />
+
+# Services API
+
+## AirportService
+
+日本国内の空港データと飛行制限区域を提供します。
+
+### 使用例
+
+```typescript
+import { AirportService } from 'japan-drone-map'
+
+// 全空港を取得
+const airports = AirportService.getAll()
+
+// 空港IDで取得
+const narita = AirportService.getById('narita')
+
+// 飛行制限区域のGeoJSONを取得
+const restrictionZone = AirportService.getRestrictionZone('narita')
+
+// 近くの空港を検索
+const nearbyAirports = AirportService.findNearby(35.6762, 139.6503, 50) // 50km以内
+
+// 飛行禁止法指定空港を取得
+const designatedAirports = AirportService.getDesignatedAirports()
+```
+
+### 空港データ構造
+
+```typescript
+interface Airport {
+  id: string
+  name: string
+  nameEn: string
+  type: 'international' | 'domestic' | 'military' | 'heliport'
+  coordinates: [number, number]
+  elevation: number // メートル
+  runways: number
+  restrictionRadius: number // km
+  isDesignatedUnderLaw: boolean // 小型無人機等飛行禁止法指定
+}
+```
+
+---
+
+## NoFlyZoneService
+
+小型無人機等飛行禁止法に基づく飛行禁止区域を提供します。
+
+### 使用例
+
+```typescript
+import { NoFlyZoneService } from 'japan-drone-map'
+
+// 全ての飛行禁止区域を取得
+const allZones = NoFlyZoneService.getAll()
+
+// 赤エリア（飛行禁止）のみ取得
+const redZones = NoFlyZoneService.getByType('red')
+
+// 黄エリア（注意区域）のみ取得
+const yellowZones = NoFlyZoneService.getByType('yellow')
+
+// カテゴリで取得
+const nuclearPlants = NoFlyZoneService.getByCategory('nuclear')
+const embassies = NoFlyZoneService.getByCategory('embassy')
+
+// GeoJSON形式で取得
+const geoJson = NoFlyZoneService.toGeoJSON()
+```
+
+### 区域の種類
+
+| タイプ | 説明 | 例 |
+|--------|------|-----|
+| red | 完全飛行禁止 | 国会議事堂、首相官邸、皇居、原子力発電所 |
+| yellow | 注意区域・要許可 | 外国大使館周辺 |
+
+### 区域データ構造
+
+```typescript
+interface NoFlyZone {
+  id: string
+  name: string
+  type: 'red' | 'yellow'
+  category: 'government' | 'nuclear' | 'embassy' | 'military' | 'other'
+  coordinates: [number, number]
+  radiusKm: number
+  description?: string
+}
+```
+
+---
+
+## RainViewerService
+
+RainViewer APIを使用した雨雲レーダー機能を提供します。
+
+### 使用例
+
+```typescript
+import { RainViewerService } from 'japan-drone-map'
+
+// 利用可能なレーダーフレームを取得
+const frames = await RainViewerService.getAvailableFrames()
+
+// 最新のタイルURLを取得
+const latestTile = RainViewerService.buildTileUrl(frames.radar.past[frames.radar.past.length - 1].path)
+
+// アニメーション用の全フレームURL
+const animationUrls = frames.radar.past.map(frame =>
+  RainViewerService.buildTileUrl(frame.path)
+)
+```
+
+### フレームデータ構造
+
+```typescript
+interface RainViewerFrame {
+  time: number // Unix timestamp
+  path: string // タイルパス
+}
+
+interface RainViewerData {
+  radar: {
+    past: RainViewerFrame[]
+    nowcast: RainViewerFrame[]
+  }
+}
+```
+
+---
+
+## OpenWeatherService
+
+OpenWeatherMap APIを使用した気象データ機能を提供します。
+
+### 使用例
+
+```typescript
+import { OpenWeatherService } from 'japan-drone-map'
+
+// 天気タイルURLを取得（APIキー必須）
+const windTileUrl = OpenWeatherService.buildTileUrl('wind_new', 'YOUR_API_KEY')
+
+// 現在の天気を取得
+const weather = await OpenWeatherService.fetchWeather(35.6762, 139.6503, 'YOUR_API_KEY')
+
+// 風データのみ取得
+const wind = await OpenWeatherService.fetchWind(35.6762, 139.6503, 'YOUR_API_KEY')
+
+// 風速カテゴリを取得
+const category = OpenWeatherService.getWindCategory(5.5) // m/s
+// { level: 2, name: 'Moderate', nameJa: '和風', color: '#FFEB3B' }
+
+// Windy.com埋め込みURL（APIキー不要）
+const windyUrl = OpenWeatherService.getWindyEmbed(35.6762, 139.6503, 8)
+```
+
+### 風速カテゴリ（ビューフォート）
+
+| レベル | 名称 | 日本語 | 風速 (m/s) | 色 |
+|--------|------|--------|------------|-----|
+| 0 | Calm | 静穏 | < 0.5 | #00E5FF |
+| 1 | Light | 軽風 | 0.5 - 3.4 | #00E676 |
+| 2 | Moderate | 和風 | 3.4 - 7.9 | #FFEB3B |
+| 3 | Strong | 強風 | 7.9 - 13.9 | #FF9800 |
+| 4 | Gale | 暴風 | 13.9 - 20.8 | #F44336 |
+| 5 | Storm | 猛烈な風 | > 20.8 | #9C27B0 |
+
+---
+
+## CustomLayerService
+
+ユーザー定義のカスタムレイヤーを管理します。データはLocalStorageに保存されます。
+
+### 使用例
+
+```typescript
+import { CustomLayerService } from 'japan-drone-map'
+
+// 全カスタムレイヤーを取得
+const layers = CustomLayerService.getAll()
+
+// 新しいレイヤーを追加
+const newLayer = CustomLayerService.add(
+  {
+    id: 'my-layer',
+    name: '私のエリア',
+    category: 'custom',
+    color: '#FF5722',
+    opacity: 0.5,
+    description: 'カスタム飛行エリア'
+  },
+  myGeoJsonData
+)
+
+// レイヤーを更新
+CustomLayerService.update('my-layer', {
+  name: '更新されたエリア',
+  color: '#2196F3'
+})
+
+// レイヤーを削除
+CustomLayerService.remove('my-layer')
+
+// 全データをエクスポート
+const exportedJson = CustomLayerService.exportAll()
+
+// GeoJSONとしてエクスポート
+const geoJson = CustomLayerService.exportAsGeoJSON('my-layer')
+
+// インポート
+const result = CustomLayerService.import(jsonString)
+if (result.success) {
+  console.log(`${result.count}件インポートしました`)
+}
+
+// GeoJSONファイルを読み込み
+const geojson = await CustomLayerService.readFile(fileObject)
+```
+
+### レイヤーデータ構造
+
+```typescript
+interface CustomLayer {
+  id: string
+  name: string
+  type: 'restriction' | 'poi' | 'custom'
+  category: string
+  color: string
+  opacity: number
+  data: GeoJSON.FeatureCollection
+  createdAt: number
+  updatedAt: number
+  description?: string
+}
+```

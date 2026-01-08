@@ -1,0 +1,197 @@
+{/* Configuration.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="API/Configuration" />
+
+# Configuration API
+
+## BASE_MAPS
+
+利用可能なベースマップの設定です。
+
+```typescript
+import { BASE_MAPS } from 'japan-drone-map'
+
+// 利用可能なベースマップ
+const availableMaps = {
+  osm: BASE_MAPS.osm,       // OpenStreetMap
+  gsi: BASE_MAPS.gsi,       // 国土地理院標準地図
+  pale: BASE_MAPS.pale,     // 国土地理院淡色地図
+  photo: BASE_MAPS.photo    // 国土地理院航空写真
+}
+```
+
+### ベースマップ設定
+
+| ID | 名称 | ソース |
+|----|------|--------|
+| osm | OpenStreetMap | openstreetmap.org |
+| gsi | 国土地理院標準 | cyberjapandata.gsi.go.jp |
+| pale | 国土地理院淡色 | cyberjapandata.gsi.go.jp |
+| photo | 航空写真 | cyberjapandata.gsi.go.jp |
+
+### 使用例
+
+```typescript
+import { BASE_MAPS } from 'japan-drone-map'
+import maplibregl from 'maplibre-gl'
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {
+      base: {
+        type: 'raster',
+        tiles: [BASE_MAPS.gsi.url],
+        tileSize: 256
+      }
+    },
+    layers: [{
+      id: 'base-layer',
+      type: 'raster',
+      source: 'base'
+    }]
+  }
+})
+```
+
+---
+
+## RESTRICTION_COLORS
+
+飛行制限エリアの標準カラー定義です。
+
+```typescript
+import { RESTRICTION_COLORS } from 'japan-drone-map'
+
+const colors = {
+  airport: '#90EE90',      // 空港周辺 - ライトグリーン
+  did: '#FFB6C1',          // DID - ライトピンク
+  emergency: '#FFA500',    // 緊急用務空域 - オレンジ
+  manned: '#87CEEB',       // 有人機発着 - スカイブルー
+  remote_id: '#DDA0DD',    // リモートID - プラム
+  no_fly_red: '#FF0000',   // 飛行禁止 - 赤
+  no_fly_yellow: '#FFFF00' // 注意区域 - 黄
+}
+```
+
+### カラーマップ
+
+| 区分 | 色 | Hex | 説明 |
+|------|-----|-----|------|
+| 空港周辺空域 | 🟢 | #90EE90 | 航空法による制限 |
+| DID | 🩷 | #FFB6C1 | 人口集中地区 |
+| 緊急用務空域 | 🟠 | #FFA500 | 災害時等の緊急空域 |
+| 有人機発着 | 🔵 | #87CEEB | ヘリポート等 |
+| リモートID特定区域 | 🟣 | #DDA0DD | リモートID免除区域 |
+| 飛行禁止（赤） | 🔴 | #FF0000 | 完全飛行禁止 |
+| 注意区域（黄） | 🟡 | #FFFF00 | 要許可・注意 |
+
+---
+
+## GEO_OVERLAYS
+
+地理情報オーバーレイの設定です。
+
+```typescript
+import { GEO_OVERLAYS } from 'japan-drone-map'
+
+// 利用可能なオーバーレイ
+const overlays = {
+  hillshade: GEO_OVERLAYS.hillshade,   // 陰影起伏図
+  elevation: GEO_OVERLAYS.elevation,   // 標高図
+  slope: GEO_OVERLAYS.slope            // 傾斜量図
+}
+```
+
+### オーバーレイ設定
+
+| ID | 名称 | 用途 |
+|----|------|------|
+| hillshade | 陰影起伏図 | 地形の立体感を表現 |
+| elevation | 標高図 | 標高による色分け |
+| slope | 傾斜量図 | 傾斜の急峻さを表現 |
+
+---
+
+## DIDレイヤー設定
+
+47都道府県のDID（人口集中地区）レイヤー設定です。
+
+```typescript
+import {
+  TOKYO_DID_LAYER,
+  OSAKA_DID_LAYER,
+  ALL_DID_LAYERS
+} from 'japan-drone-map'
+
+// 東京のDIDレイヤー
+const tokyo = TOKYO_DID_LAYER
+
+// 全都道府県のDIDレイヤー
+const allLayers = ALL_DID_LAYERS
+```
+
+### レイヤー構造
+
+```typescript
+interface DIDLayerConfig {
+  id: string
+  name: string
+  prefecture: string
+  url: string
+  color: string
+  opacity: number
+}
+```
+
+### 利用可能な都道府県
+
+北海道、青森、岩手、宮城、秋田、山形、福島、茨城、栃木、群馬、
+埼玉、千葉、東京、神奈川、新潟、富山、石川、福井、山梨、長野、
+岐阜、静岡、愛知、三重、滋賀、京都、大阪、兵庫、奈良、和歌山、
+鳥取、島根、岡山、広島、山口、徳島、香川、愛媛、高知、福岡、
+佐賀、長崎、熊本、大分、宮崎、鹿児島、沖縄
+
+---
+
+## TypeScript型定義
+
+### RestrictionType
+
+```typescript
+type RestrictionType =
+  | 'airport'       // 空港周辺空域
+  | 'did'           // 人口集中地区
+  | 'emergency'     // 緊急用務空域
+  | 'manned'        // 有人航空機発着エリア
+  | 'remote_id'     // リモートID特定区域
+  | 'no_fly_red'    // 飛行禁止法（赤）
+  | 'no_fly_yellow' // 飛行禁止法（黄）
+```
+
+### BaseMapConfig
+
+```typescript
+interface BaseMapConfig {
+  id: string
+  name: string
+  url: string
+  attribution: string
+  maxZoom: number
+}
+```
+
+### LayerConfig
+
+```typescript
+interface LayerConfig {
+  id: string
+  name: string
+  type: RestrictionType | 'geo' | 'weather' | 'signal'
+  visible: boolean
+  opacity: number
+  color?: string
+}
+```

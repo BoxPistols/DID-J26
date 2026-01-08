@@ -1,0 +1,460 @@
+{/* Examples.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Examples/MapIntegration" />
+
+# Map Integration Examples
+
+## 基本的な地図表示
+
+MapLibre GL JSを使用した基本的な地図表示の例です。
+
+```tsx
+import { useEffect, useRef } from 'react'
+import maplibregl from 'maplibre-gl'
+import { BASE_MAPS } from 'japan-drone-map'
+import 'maplibre-gl/dist/maplibre-gl.css'
+
+function BasicMap() {
+  const mapContainer = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!mapContainer.current) return
+
+    const map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: [BASE_MAPS.osm.url],
+            tileSize: 256,
+            attribution: BASE_MAPS.osm.attribution
+          }
+        },
+        layers: [{
+          id: 'osm-layer',
+          type: 'raster',
+          source: 'osm'
+        }]
+      },
+      center: [139.7673, 35.6812], // 東京
+      zoom: 10
+    })
+
+    return () => map.remove()
+  }, [])
+
+  return <div ref={mapContainer} style={{ width: '100%', height: '500px' }} />
+}
+```
+
+---
+
+## DIDレイヤーの追加
+
+人口集中地区（DID）レイヤーを地図に追加する例です。
+
+```tsx
+import { useEffect, useRef } from 'react'
+import maplibregl from 'maplibre-gl'
+import { BASE_MAPS, TOKYO_DID_LAYER, RESTRICTION_COLORS } from 'japan-drone-map'
+
+function MapWithDID() {
+  const mapRef = useRef<maplibregl.Map | null>(null)
+
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: [BASE_MAPS.osm.url],
+            tileSize: 256
+          }
+        },
+        layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
+      },
+      center: [139.7673, 35.6812],
+      zoom: 11
+    })
+
+    map.on('load', () => {
+      // DIDソースを追加
+      map.addSource('tokyo-did', {
+        type: 'geojson',
+        data: TOKYO_DID_LAYER.url
+      })
+
+      // DIDレイヤーを追加
+      map.addLayer({
+        id: 'tokyo-did-fill',
+        type: 'fill',
+        source: 'tokyo-did',
+        paint: {
+          'fill-color': RESTRICTION_COLORS.did,
+          'fill-opacity': 0.5
+        }
+      })
+
+      // 境界線
+      map.addLayer({
+        id: 'tokyo-did-line',
+        type: 'line',
+        source: 'tokyo-did',
+        paint: {
+          'line-color': RESTRICTION_COLORS.did,
+          'line-width': 1
+        }
+      })
+    })
+
+    mapRef.current = map
+    return () => map.remove()
+  }, [])
+
+  return <div id="map" style={{ width: '100%', height: '500px' }} />
+}
+```
+
+---
+
+## 空港制限区域の表示
+
+空港周辺の飛行制限区域を表示する例です。
+
+```tsx
+import { useEffect } from 'react'
+import maplibregl from 'maplibre-gl'
+import { AirportService, RESTRICTION_COLORS } from 'japan-drone-map'
+
+function AirportRestrictions({ map }: { map: maplibregl.Map }) {
+  useEffect(() => {
+    if (!map) return
+
+    // 成田空港の制限区域を取得
+    const naritaZone = AirportService.getRestrictionZone('narita')
+    if (!naritaZone) return
+
+    map.addSource('narita-restriction', {
+      type: 'geojson',
+      data: naritaZone
+    })
+
+    map.addLayer({
+      id: 'narita-restriction-fill',
+      type: 'fill',
+      source: 'narita-restriction',
+      paint: {
+        'fill-color': RESTRICTION_COLORS.airport,
+        'fill-opacity': 0.3
+      }
+    })
+
+    map.addLayer({
+      id: 'narita-restriction-line',
+      type: 'line',
+      source: 'narita-restriction',
+      paint: {
+        'line-color': RESTRICTION_COLORS.airport,
+        'line-width': 2,
+        'line-dasharray': [2, 2]
+      }
+    })
+
+    // 空港マーカー
+    const narita = AirportService.getById('narita')
+    if (narita) {
+      new maplibregl.Marker({ color: '#228B22' })
+        .setLngLat(narita.coordinates)
+        .setPopup(new maplibregl.Popup().setHTML(`
+          <h3>${narita.name}</h3>
+          <p>制限半径: ${narita.restrictionRadius}km</p>
+        `))
+        .addTo(map)
+    }
+  }, [map])
+
+  return null
+}
+```
+
+---
+
+## 飛行禁止区域の表示
+
+小型無人機等飛行禁止法に基づく区域を表示する例です。
+
+```tsx
+import { NoFlyZoneService, RESTRICTION_COLORS } from 'japan-drone-map'
+
+function addNoFlyZones(map: maplibregl.Map) {
+  const geoJson = NoFlyZoneService.toGeoJSON()
+
+  map.addSource('no-fly-zones', {
+    type: 'geojson',
+    data: geoJson
+  })
+
+  // 赤エリア（完全禁止）
+  map.addLayer({
+    id: 'no-fly-red',
+    type: 'fill',
+    source: 'no-fly-zones',
+    filter: ['==', ['get', 'zoneType'], 'red'],
+    paint: {
+      'fill-color': RESTRICTION_COLORS.no_fly_red,
+      'fill-opacity': 0.5
+    }
+  })
+
+  // 黄エリア（注意区域）
+  map.addLayer({
+    id: 'no-fly-yellow',
+    type: 'fill',
+    source: 'no-fly-zones',
+    filter: ['==', ['get', 'zoneType'], 'yellow'],
+    paint: {
+      'fill-color': RESTRICTION_COLORS.no_fly_yellow,
+      'fill-opacity': 0.4
+    }
+  })
+}
+```
+
+---
+
+## 雨雲レーダーオーバーレイ
+
+リアルタイムの雨雲レーダーを表示する例です。
+
+```tsx
+import { useState, useEffect } from 'react'
+import { RainViewerService } from 'japan-drone-map'
+
+function RainRadarOverlay({ map }: { map: maplibregl.Map }) {
+  const [frames, setFrames] = useState<string[]>([])
+  const [currentFrame, setCurrentFrame] = useState(0)
+
+  useEffect(() => {
+    async function loadRadar() {
+      const data = await RainViewerService.getAvailableFrames()
+      if (!data) return
+
+      const urls = data.radar.past.map(frame =>
+        RainViewerService.buildTileUrl(frame.path)
+      )
+      setFrames(urls)
+
+      // 最新フレームを表示
+      if (urls.length > 0) {
+        map.addSource('rain-radar', {
+          type: 'raster',
+          tiles: [urls[urls.length - 1]],
+          tileSize: 256
+        })
+
+        map.addLayer({
+          id: 'rain-radar-layer',
+          type: 'raster',
+          source: 'rain-radar',
+          paint: { 'raster-opacity': 0.7 }
+        }, 'labels') // ラベルの下に配置
+      }
+    }
+
+    loadRadar()
+  }, [map])
+
+  // アニメーション機能
+  useEffect(() => {
+    if (frames.length === 0) return
+
+    const interval = setInterval(() => {
+      setCurrentFrame(prev => (prev + 1) % frames.length)
+    }, 500)
+
+    return () => clearInterval(interval)
+  }, [frames])
+
+  useEffect(() => {
+    if (!map.getSource('rain-radar') || frames.length === 0) return
+
+    const source = map.getSource('rain-radar') as maplibregl.RasterTileSource
+    source.setTiles([frames[currentFrame]])
+  }, [currentFrame, frames, map])
+
+  return null
+}
+```
+
+---
+
+## カスタムレイヤーの追加
+
+ユーザーが追加したカスタムレイヤーを地図に表示する例です。
+
+```tsx
+import { CustomLayerService } from 'japan-drone-map'
+
+function addCustomLayers(map: maplibregl.Map) {
+  const customLayers = CustomLayerService.getAll()
+
+  customLayers.forEach(layer => {
+    const sourceId = `custom-${layer.id}`
+    const layerId = `custom-${layer.id}-fill`
+
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: layer.data
+    })
+
+    map.addLayer({
+      id: layerId,
+      type: 'fill',
+      source: sourceId,
+      paint: {
+        'fill-color': layer.color,
+        'fill-opacity': layer.opacity
+      }
+    })
+
+    // 境界線
+    map.addLayer({
+      id: `${layerId}-outline`,
+      type: 'line',
+      source: sourceId,
+      paint: {
+        'line-color': layer.color,
+        'line-width': 1
+      }
+    })
+  })
+}
+```
+
+---
+
+## 全レイヤーの統合表示
+
+全ての制限レイヤーを統合して表示する完全な例です。
+
+```tsx
+import { useEffect, useRef, useState } from 'react'
+import maplibregl from 'maplibre-gl'
+import {
+  BASE_MAPS,
+  RESTRICTION_COLORS,
+  ALL_DID_LAYERS,
+  AirportService,
+  NoFlyZoneService,
+  CustomLayerService
+} from 'japan-drone-map'
+
+function FullDroneMap() {
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const [layers, setLayers] = useState({
+    did: true,
+    airport: true,
+    noFly: true,
+    custom: true
+  })
+
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: 'full-map',
+      style: {
+        version: 8,
+        sources: {
+          gsi: {
+            type: 'raster',
+            tiles: [BASE_MAPS.gsi.url],
+            tileSize: 256,
+            attribution: BASE_MAPS.gsi.attribution
+          }
+        },
+        layers: [{ id: 'gsi', type: 'raster', source: 'gsi' }]
+      },
+      center: [139.7673, 35.6812],
+      zoom: 10
+    })
+
+    map.on('load', () => {
+      // DIDレイヤー追加
+      ALL_DID_LAYERS.forEach(layer => {
+        map.addSource(layer.id, { type: 'geojson', data: layer.url })
+        map.addLayer({
+          id: `${layer.id}-fill`,
+          type: 'fill',
+          source: layer.id,
+          paint: {
+            'fill-color': RESTRICTION_COLORS.did,
+            'fill-opacity': 0.4
+          }
+        })
+      })
+
+      // 空港制限区域追加
+      const airports = AirportService.getAll()
+      airports.forEach(airport => {
+        const zone = AirportService.getRestrictionZone(airport.id)
+        if (zone) {
+          map.addSource(`airport-${airport.id}`, { type: 'geojson', data: zone })
+          map.addLayer({
+            id: `airport-${airport.id}-fill`,
+            type: 'fill',
+            source: `airport-${airport.id}`,
+            paint: {
+              'fill-color': RESTRICTION_COLORS.airport,
+              'fill-opacity': 0.3
+            }
+          })
+        }
+      })
+
+      // 飛行禁止区域追加
+      const noFlyGeoJson = NoFlyZoneService.toGeoJSON()
+      map.addSource('no-fly', { type: 'geojson', data: noFlyGeoJson })
+      map.addLayer({
+        id: 'no-fly-fill',
+        type: 'fill',
+        source: 'no-fly',
+        paint: {
+          'fill-color': ['match', ['get', 'zoneType'],
+            'red', RESTRICTION_COLORS.no_fly_red,
+            RESTRICTION_COLORS.no_fly_yellow
+          ],
+          'fill-opacity': 0.5
+        }
+      })
+    })
+
+    mapRef.current = map
+    return () => map.remove()
+  }, [])
+
+  return (
+    <div>
+      <div id="full-map" style={{ width: '100%', height: '600px' }} />
+      <div style={{ padding: '10px' }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={layers.did}
+            onChange={e => {
+              const visible = e.target.checked
+              setLayers(l => ({ ...l, did: visible }))
+              // Toggle visibility...
+            }}
+          />
+          DID表示
+        </label>
+        {/* Other layer toggles... */}
+      </div>
+    </div>
+  )
+}
+```

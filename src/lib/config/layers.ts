@@ -72,7 +72,7 @@ export const LAYER_GROUPS: LayerGroup[] = [
   {
     name: '関東',
     layers: [
-      { id: 'did-08', name: '茨城県', path: '/GeoJSON/h22_did_08_ibaraki.geojson', color: PREFECTURE_COLORS['08'] },
+      { id: 'did-08', name: '茨城県', path: '/GeoJSON/h22_did_08_ibaragi.geojson', color: PREFECTURE_COLORS['08'] },
       { id: 'did-09', name: '栃木県', path: '/GeoJSON/h22_did_09_tochigi.geojson', color: PREFECTURE_COLORS['09'] },
       { id: 'did-10', name: '群馬県', path: '/GeoJSON/h22_did_10_gunma.geojson', color: PREFECTURE_COLORS['10'] },
       { id: 'did-11', name: '埼玉県', path: '/GeoJSON/h22_did_11_saitama.geojson', color: PREFECTURE_COLORS['11'] },
@@ -86,7 +86,7 @@ export const LAYER_GROUPS: LayerGroup[] = [
     layers: [
       { id: 'did-15', name: '新潟県', path: '/GeoJSON/h22_did_15_niigata.geojson', color: PREFECTURE_COLORS['15'] },
       { id: 'did-16', name: '富山県', path: '/GeoJSON/h22_did_16_toyama.geojson', color: PREFECTURE_COLORS['16'] },
-      { id: 'did-17', name: '石川県', path: '/GeoJSON/h22_did_17_ishikawa.geojson', color: PREFECTURE_COLORS['17'] },
+      { id: 'did-17', name: '石川県', path: '/GeoJSON/h22_did_17_kanazawa.geojson', color: PREFECTURE_COLORS['17'] },
       { id: 'did-18', name: '福井県', path: '/GeoJSON/h22_did_18_fukui.geojson', color: PREFECTURE_COLORS['18'] },
       { id: 'did-19', name: '山梨県', path: '/GeoJSON/h22_did_19_yamanashi.geojson', color: PREFECTURE_COLORS['19'] },
       { id: 'did-20', name: '長野県', path: '/GeoJSON/h22_did_20_nagano.geojson', color: PREFECTURE_COLORS['20'] },

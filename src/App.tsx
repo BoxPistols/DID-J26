@@ -129,7 +129,7 @@ function App() {
       }
       setLayerStates(prev => {
         const next = new Map(prev)
-        next.set(item.layerId, { id: item.layerId, visible: true, loaded: true })
+        next.set(item.layerId, { id: item.layerId, visible: true })
         return next
       })
     }

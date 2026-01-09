@@ -36,14 +36,15 @@ export interface DrawingToolsProps {
   map: maplibregl.Map | null
   onFeaturesChange?: (features: DrawnFeature[]) => void
   darkMode?: boolean
+  embedded?: boolean // サイドバー内に埋め込む場合true
 }
 
 /**
  * DrawingTools Component
  * 飛行経路・飛行範囲の描画ツール
  */
-export function DrawingTools({ map, onFeaturesChange, darkMode = false }: DrawingToolsProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded = false }: DrawingToolsProps) {
+  const [isOpen, setIsOpen] = useState(embedded) // 埋め込み時はデフォルトで開く
   const [drawMode, setDrawMode] = useState<DrawMode>('none')
   const [drawnFeatures, setDrawnFeatures] = useState<DrawnFeature[]>([])
   const [circleRadius, setCircleRadius] = useState(100) // メートル
@@ -536,7 +537,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
   const buttonBg = darkMode ? '#444' : '#f0f0f0'
   const buttonActiveBg = '#3388ff'
 
-  if (!isOpen) {
+  // 埋め込み時は折りたたみボタンを表示しない
+  if (!isOpen && !embedded) {
     return (
       <button
         onClick={() => setIsOpen(true)}
@@ -560,9 +562,40 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
     )
   }
 
+  // 埋め込み時で閉じている場合は折りたたみヘッダーのみ表示
+  if (!isOpen && embedded) {
+    return (
+      <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#222' : '#f8f8f8', borderRadius: '4px' }}>
+        <button
+          onClick={() => setIsOpen(true)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            backgroundColor: '#3388ff',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 500
+          }}
+        >
+          飛行経路作成
+        </button>
+      </div>
+    )
+  }
+
   return (
     <>
-      <div style={{
+      <div style={embedded ? {
+        // 埋め込み時のスタイル
+        marginBottom: '12px',
+        backgroundColor: darkMode ? '#222' : '#f8f8f8',
+        borderRadius: '4px',
+        overflow: 'hidden'
+      } : {
+        // フローティング時のスタイル
         position: 'fixed',
         top: 120,
         left: 300,
@@ -576,14 +609,14 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
       }}>
         {/* Header */}
         <div style={{
-          padding: '12px 16px',
+          padding: embedded ? '8px 12px' : '12px 16px',
           backgroundColor: '#3388ff',
           color: '#fff',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <h3 style={{ margin: 0, fontSize: '14px' }}>飛行経路／飛行範囲</h3>
+          <h3 style={{ margin: 0, fontSize: embedded ? '12px' : '14px' }}>飛行経路／飛行範囲</h3>
           <button
             onClick={() => setIsOpen(false)}
             style={{
@@ -591,10 +624,10 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
               border: 'none',
               color: '#fff',
               cursor: 'pointer',
-              fontSize: '18px'
+              fontSize: embedded ? '14px' : '18px'
             }}
           >
-            ×
+            {embedded ? '▲' : '×'}
           </button>
         </div>
 

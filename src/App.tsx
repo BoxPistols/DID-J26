@@ -168,10 +168,22 @@ function App() {
           setShowTooltip(prev => !prev)
           break
         case '2':
-          setIs3DMode(false)
+          // 2Dモードに切り替え
+          if (mapRef.current) {
+            setIs3DMode(false)
+            mapRef.current.easeTo({ pitch: 0, bearing: 0, duration: 500 })
+          }
           break
         case '3':
-          setIs3DMode(true)
+          // 3Dモードに切り替え
+          if (mapRef.current) {
+            setIs3DMode(true)
+            mapRef.current.easeTo({ pitch: 60, duration: 500 })
+          }
+          break
+        case 'l':
+          // ダーク/ライトモード切り替え
+          setDarkMode(prev => !prev)
           break
         case '?':
         case '/':
@@ -1589,16 +1601,16 @@ function App() {
         visibleLayers={customLayerVisibility}
       />
 
-      {/* Dark Mode Toggle - ナビコントロールの下に配置 */}
+      {/* Dark Mode Toggle - ナビコントロールの下に配置 [L] */}
       <button
         onClick={() => setDarkMode(!darkMode)}
         style={{
           position: 'fixed',
-          top: 120,
-          right: showRightLegend ? 220 : 12,
+          top: 100,
+          right: 10,
           padding: '6px',
-          width: 30,
-          height: 30,
+          width: 29,
+          height: 29,
           backgroundColor: darkMode ? '#333' : '#fff',
           color: darkMode ? '#fff' : '#333',
           border: 'none',
@@ -1607,26 +1619,25 @@ function App() {
           fontSize: '14px',
           boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
           zIndex: 1000,
-          transition: 'right 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}
-        title={darkMode ? 'ライトモードに切替' : 'ダークモードに切替'}
+        title={`${darkMode ? 'ライトモード' : 'ダークモード'}に切替 [L]`}
       >
         {darkMode ? '☀️' : '🌙'}
       </button>
 
-      {/* 2D/3D Toggle */}
+      {/* 2D/3D Toggle [2]/[3] */}
       <button
         onClick={toggle3DMode}
         style={{
           position: 'fixed',
-          top: 158,
-          right: showRightLegend ? 220 : 12,
+          top: 134,
+          right: 10,
           padding: '6px',
-          width: 30,
-          height: 30,
+          width: 29,
+          height: 29,
           backgroundColor: is3DMode ? '#3388ff' : (darkMode ? '#333' : '#fff'),
           color: is3DMode ? '#fff' : (darkMode ? '#fff' : '#333'),
           border: 'none',
@@ -1636,26 +1647,25 @@ function App() {
           fontWeight: 'bold',
           boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
           zIndex: 1000,
-          transition: 'right 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}
-        title={is3DMode ? '2Dビューに切替' : '3Dビューに切替'}
+        title={`${is3DMode ? '2D' : '3D'}ビューに切替 [${is3DMode ? '2' : '3'}]`}
       >
         {is3DMode ? '3D' : '2D'}
       </button>
 
-      {/* Help Button */}
+      {/* Help Button [?] */}
       <button
         onClick={() => setShowHelp(true)}
         style={{
           position: 'fixed',
-          top: 196,
-          right: showRightLegend ? 220 : 12,
+          top: 168,
+          right: 10,
           padding: '6px',
-          width: 30,
-          height: 30,
+          width: 29,
+          height: 29,
           backgroundColor: darkMode ? '#333' : '#fff',
           color: darkMode ? '#fff' : '#333',
           border: 'none',
@@ -1665,7 +1675,6 @@ function App() {
           fontWeight: 'bold',
           boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
           zIndex: 1000,
-          transition: 'right 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -1743,6 +1752,8 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '4px 8px' }}>
                   <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>T</kbd>
                   <span>ツールチップ表示の切替</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>L</kbd>
+                  <span>ダーク/ライトモード切替</span>
                   <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>2</kbd>
                   <span>2D表示</span>
                   <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>3</kbd>

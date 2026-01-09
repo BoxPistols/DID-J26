@@ -369,14 +369,16 @@ function App() {
     if (!mapLoaded || searchIndex.length > 0) return
 
     console.log('Loading default layers for search...')
-    // Load default layers for search to work
-    const kantoGroup = LAYER_GROUPS.find(g => g.name === '関東')
-    if (kantoGroup) {
-      console.log('Found Kanto group, loading layers:', kantoGroup.layers.slice(0, 3).map(l => l.name))
-      kantoGroup.layers.slice(0, 3).forEach(layer => {
-        addLayer(layer)
-      })
-    }
+    // Load multiple regions for better search coverage
+    const regionsToLoad = ['関東', '近畿', '中部']
+    LAYER_GROUPS.forEach(group => {
+      if (regionsToLoad.includes(group.name)) {
+        console.log(`Loading region: ${group.name}`)
+        group.layers.forEach(layer => {
+          addLayer(layer)
+        })
+      }
+    })
   }, [mapLoaded, addLayer])
 
   const toggleLayer = (layer: LayerConfig) => {

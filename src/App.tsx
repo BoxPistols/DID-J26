@@ -1471,9 +1471,9 @@ function App() {
         style={{
           position: 'fixed',
           right: showRightLegend ? 200 : 0,
-          top: 80,
+          top: 12,
           width: 20,
-          height: 40,
+          height: 30,
           background: darkMode ? 'rgba(30,30,40,0.9)' : 'rgba(255,255,255,0.9)',
           color: darkMode ? '#aaa' : '#666',
           border: 'none',

@@ -565,23 +565,31 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   // 埋め込み時で閉じている場合は折りたたみヘッダーのみ表示
   if (!isOpen && embedded) {
     return (
-      <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#222' : '#f8f8f8', borderRadius: '4px' }}>
-        <button
+      <div style={{ marginBottom: '12px', borderRadius: '4px', overflow: 'hidden' }}>
+        <div
           onClick={() => setIsOpen(true)}
           style={{
             width: '100%',
-            padding: '8px 12px',
+            padding: '10px 12px',
             backgroundColor: '#3388ff',
             color: '#fff',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 500
+            fontSize: '13px',
+            fontWeight: 500,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            userSelect: 'none',
+            transition: 'background-color 0.2s'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a6fc9'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3388ff'}
         >
-          飛行経路作成
-        </button>
+          <span>飛行経路／飛行範囲</span>
+          <span style={{ fontSize: '12px' }}>▼</span>
+        </div>
       </div>
     )
   }
@@ -607,28 +615,40 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         zIndex: 1000,
         overflow: 'hidden'
       }}>
-        {/* Header */}
-        <div style={{
-          padding: embedded ? '8px 12px' : '12px 16px',
-          backgroundColor: '#3388ff',
-          color: '#fff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h3 style={{ margin: 0, fontSize: embedded ? '12px' : '14px' }}>飛行経路／飛行範囲</h3>
-          <button
-            onClick={() => setIsOpen(false)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: embedded ? '14px' : '18px'
-            }}
-          >
-            {embedded ? '▲' : '×'}
-          </button>
+        {/* Header - クリック可能 */}
+        <div
+          onClick={() => embedded && setIsOpen(false)}
+          style={{
+            padding: embedded ? '10px 12px' : '12px 16px',
+            backgroundColor: '#3388ff',
+            color: '#fff',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            cursor: embedded ? 'pointer' : 'default',
+            userSelect: 'none',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => embedded && (e.currentTarget.style.backgroundColor = '#2a6fc9')}
+          onMouseLeave={(e) => embedded && (e.currentTarget.style.backgroundColor = '#3388ff')}
+        >
+          <h3 style={{ margin: 0, fontSize: embedded ? '13px' : '14px', fontWeight: 500 }}>飛行経路／飛行範囲</h3>
+          {embedded ? (
+            <span style={{ fontSize: '12px', transition: 'transform 0.3s' }}>▲</span>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '18px'
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Status Banner */}

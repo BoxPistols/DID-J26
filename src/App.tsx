@@ -118,46 +118,6 @@ function App() {
     return () => clearTimeout(timer)
   }, [searchTerm, performSearch, searchIndex.length])
 
-  // ============================================
-  // Auto-load unloaded layers when search returns no results
-  // ============================================
-  useEffect(() => {
-    if (!searchTerm || searchResults.length > 0 || isLoadingForSearch) return
-
-    console.log(`Search returned 0 results for "${searchTerm}", loading unloaded layers...`)
-    setIsLoadingForSearch(true)
-
-    // Find layers that haven't been loaded yet
-    const allLayerIds = getAllPrefectureLayerIds()
-    const loadedLayerIds = new Set(layerStates.keys())
-    const unloadedLayerIds = allLayerIds.filter(id => !loadedLayerIds.has(id))
-
-    if (unloadedLayerIds.length === 0) {
-      console.log('All layers already loaded, no more prefectures to load')
-      setIsLoadingForSearch(false)
-      return
-    }
-
-    console.log(`Found ${unloadedLayerIds.length} unloaded prefectures, loading...`)
-
-    // Find and load all unloaded layers
-    let loadCount = 0
-    const loadUnloadedLayers = () => {
-      LAYER_GROUPS.forEach(group => {
-        group.layers.forEach(layer => {
-          if (unloadedLayerIds.includes(layer.id)) {
-            addLayer(layer)
-            loadCount++
-          }
-        })
-      })
-    }
-
-    loadUnloadedLayers()
-    console.log(`Requested loading of ${loadCount} unloaded layers`)
-    setIsLoadingForSearch(false)
-  }, [searchTerm, searchResults.length, isLoadingForSearch, layerStates, addLayer])
-
   const flyToFeature = (item: SearchIndexItem) => {
     const map = mapRef.current
     if (!map) {
@@ -418,6 +378,43 @@ function App() {
       }
     })
   }, [mapLoaded, addLayer])
+
+  // ============================================
+  // Auto-load unloaded layers when search returns no results
+  // ============================================
+  useEffect(() => {
+    if (!searchTerm || searchResults.length > 0 || isLoadingForSearch) return
+
+    console.log(`Search returned 0 results for "${searchTerm}", loading unloaded layers...`)
+    setIsLoadingForSearch(true)
+
+    // Find layers that haven't been loaded yet
+    const allLayerIds = getAllPrefectureLayerIds()
+    const loadedLayerIds = new Set(layerStates.keys())
+    const unloadedLayerIds = allLayerIds.filter(id => !loadedLayerIds.has(id))
+
+    if (unloadedLayerIds.length === 0) {
+      console.log('All layers already loaded, no more prefectures to load')
+      setIsLoadingForSearch(false)
+      return
+    }
+
+    console.log(`Found ${unloadedLayerIds.length} unloaded prefectures, loading...`)
+
+    // Find and load all unloaded layers
+    let loadCount = 0
+    LAYER_GROUPS.forEach(group => {
+      group.layers.forEach(layer => {
+        if (unloadedLayerIds.includes(layer.id)) {
+          addLayer(layer)
+          loadCount++
+        }
+      })
+    })
+
+    console.log(`Requested loading of ${loadCount} unloaded layers`)
+    setIsLoadingForSearch(false)
+  }, [searchTerm, searchResults.length, isLoadingForSearch, layerStates, addLayer])
 
   const toggleLayer = (layer: LayerConfig) => {
     const map = mapRef.current

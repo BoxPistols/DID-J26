@@ -102,6 +102,8 @@ function App() {
     const uniqueResults = Array.from(
       new Map(results.map(item => [item.prefName + item.cityName, item])).values()
     )
+    console.log(`Search results for "${term}": ${uniqueResults.length} items (raw: ${results.length})`)
+    console.log('Results:', uniqueResults)
     setSearchResults(uniqueResults.slice(0, 10))
   }, [searchIndex])
 
@@ -117,8 +119,12 @@ function App() {
 
   const flyToFeature = (item: SearchIndexItem) => {
     const map = mapRef.current
-    if (!map) return
+    if (!map) {
+      console.log('Map not found!')
+      return
+    }
 
+    console.log('Zooming to:', item.prefName, item.cityName, 'bbox:', item.bbox)
     map.fitBounds(item.bbox, { padding: 50, maxZoom: 14 })
 
     const state = layerStates.get(item.layerId)

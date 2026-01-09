@@ -1606,7 +1606,7 @@ function App() {
         onClick={() => setDarkMode(!darkMode)}
         style={{
           position: 'fixed',
-          top: 100,
+          top: 148,
           right: 10,
           padding: '6px',
           width: 29,
@@ -1633,7 +1633,7 @@ function App() {
         onClick={toggle3DMode}
         style={{
           position: 'fixed',
-          top: 134,
+          top: 182,
           right: 10,
           padding: '6px',
           width: 29,
@@ -1661,7 +1661,7 @@ function App() {
         onClick={() => setShowHelp(true)}
         style={{
           position: 'fixed',
-          top: 168,
+          top: 216,
           right: 10,
           padding: '6px',
           width: 29,

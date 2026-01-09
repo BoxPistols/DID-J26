@@ -52,9 +52,14 @@ export {
 export {
   AirportService,
   MAJOR_AIRPORTS,
+  REGIONAL_AIRPORTS,
   MILITARY_BASES,
+  HELIPORTS,
   getAllAirports,
+  getAllAirportsWithHeliports,
+  getNoFlyLawAirports,
   generateAirportGeoJSON,
+  generateHeliportGeoJSON,
   isInAirportZone
 } from './services/airports'
 export {
@@ -80,6 +85,17 @@ export {
   downloadAsFile
 } from './services/customLayers'
 export type { CustomLayer, CustomLayerConfig } from './services/customLayers'
+export {
+  GeocodingService,
+  searchAddress,
+  reverseGeocode,
+  formatAddress,
+  getZoomBounds,
+  quickSearch,
+  debounce,
+  MAJOR_CITIES
+} from './services/geocoding'
+export type { GeocodingResult, SearchOptions } from './services/geocoding'
 
 // Utilities
 export {
@@ -93,7 +109,9 @@ export {
   degreesToJapanese,
   generateBuildingsGeoJSON,
   generateWindFieldGeoJSON,
-  generateLTECoverageGeoJSON
+  generateLTECoverageGeoJSON,
+  generateRadioInterferenceGeoJSON,
+  generateMannedAircraftZonesGeoJSON
 } from './utils/geo'
 
 // Library metadata

@@ -12,6 +12,7 @@ import {
   fetchRainRadarTimestamp,
   buildRainTileUrl,
   generateAirportGeoJSON,
+  generateHeliportGeoJSON,
   generateRedZoneGeoJSON,
   generateYellowZoneGeoJSON,
   generateEmergencyAirspaceGeoJSON,
@@ -20,11 +21,17 @@ import {
   generateBuildingsGeoJSON,
   generateWindFieldGeoJSON,
   generateLTECoverageGeoJSON,
+  generateRadioInterferenceGeoJSON,
+  generateMannedAircraftZonesGeoJSON,
   calculateBBox,
   getCustomLayers,
   getAllLayers,
-  getAllPrefectureLayerIds
+  getAllPrefectureLayerIds,
+  searchAddress,
+  getZoomBounds,
+  quickSearch
 } from './lib'
+import type { GeocodingResult } from './lib'
 import type { BaseMapKey, LayerConfig, LayerGroup, SearchIndexItem, LayerState, CustomLayer } from './lib'
 import { CustomLayerManager } from './components/CustomLayerManager'
 import { DrawingTools } from './components/DrawingTools'
@@ -71,6 +78,10 @@ function App() {
   const [searchResults, setSearchResults] = useState<SearchIndexItem[]>([])
   const [isLoadingForSearch, setIsLoadingForSearch] = useState(false)
 
+  // Geocoding search (建物名・地名検索)
+  const [geoSearchResults, setGeoSearchResults] = useState<GeocodingResult[]>([])
+  const [isGeoSearching, setIsGeoSearching] = useState(false)
+
   // Legend visibility
   const [showLeftLegend, setShowLeftLegend] = useState(true)
   const [showRightLegend, setShowRightLegend] = useState(true)
@@ -86,6 +97,9 @@ function App() {
 
   // 3D mode
   const [is3DMode, setIs3DMode] = useState(false)
+
+  // Help modal
+  const [showHelp, setShowHelp] = useState(false)
 
   // 2D/3D切り替え
   const toggle3DMode = useCallback(() => {
@@ -112,13 +126,61 @@ function App() {
   }, [showTooltip])
 
   // ============================================
-  // Search functionality
+  // Keyboard shortcuts
   // ============================================
-  // Debounced search
-  const performSearch = useCallback((term: string) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 入力中は無視
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      const key = e.key.toLowerCase()
+
+      switch (key) {
+        case 'd':
+          toggleRestriction('ZONE_IDS.DID_ALL_JAPAN')
+          break
+        case 'a':
+          toggleRestriction('airport-airspace')
+          break
+        case 'r':
+          toggleRestriction('ZONE_IDS.NO_FLY_RED')
+          break
+        case 'y':
+          toggleRestriction('ZONE_IDS.NO_FLY_YELLOW')
+          break
+        case 'e':
+          toggleRestriction('ZONE_IDS.EMERGENCY_AIRSPACE')
+          break
+        case 'h':
+          toggleRestriction('heliports')
+          break
+        case 't':
+          setShowTooltip(prev => !prev)
+          break
+        case '?':
+        case '/':
+          setShowHelp(prev => !prev)
+          break
+        case 'escape':
+          setShowHelp(false)
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mapLoaded])
+
+  // ============================================
+  // Search functionality (DID + Geocoding)
+  // ============================================
+  // DID検索
+  const performDIDSearch = useCallback((term: string) => {
     if (!term) {
       setSearchResults([])
-      return
+      return []
     }
     const results = searchIndex.filter(item =>
       item.cityName.includes(term) || item.prefName.includes(term)
@@ -126,17 +188,74 @@ function App() {
     const uniqueResults = Array.from(
       new Map(results.map(item => [item.prefName + item.cityName, item])).values()
     )
-    setSearchResults(uniqueResults.slice(0, 10))
+    const sliced = uniqueResults.slice(0, 5)
+    setSearchResults(sliced)
+    return sliced
   }, [searchIndex])
+
+  // ジオコーディング検索（建物名・地名）
+  const performGeoSearch = useCallback(async (term: string) => {
+    if (!term || term.length < 2) {
+      setGeoSearchResults([])
+      return
+    }
+
+    // まずクイック検索（主要都市）を試行
+    const quick = quickSearch(term)
+    if (quick) {
+      const map = mapRef.current
+      if (map) {
+        map.flyTo({ center: [quick.lng, quick.lat], zoom: quick.zoom })
+      }
+      setSearchTerm('')
+      setGeoSearchResults([])
+      return
+    }
+
+    setIsGeoSearching(true)
+    try {
+      const results = await searchAddress(term, { limit: 5 })
+      setGeoSearchResults(results)
+    } catch (e) {
+      console.error('Geocoding error:', e)
+    } finally {
+      setIsGeoSearching(false)
+    }
+  }, [])
 
   // Debounce search with 300ms delay
   useEffect(() => {
-    const timer = setTimeout(() => {
-      performSearch(searchTerm)
+    const timer = setTimeout(async () => {
+      const didResults = performDIDSearch(searchTerm)
+
+      // DID検索結果がない場合、ジオコーディング検索を実行
+      if (didResults.length === 0 && searchTerm.length >= 2) {
+        await performGeoSearch(searchTerm)
+      } else {
+        setGeoSearchResults([])
+      }
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, performSearch, searchIndex.length])
+  }, [searchTerm, performDIDSearch, performGeoSearch])
+
+  // ジオコーディング結果からマップへ移動
+  const flyToGeoResult = (result: GeocodingResult) => {
+    const map = mapRef.current
+    if (!map) return
+
+    const { center, zoom, bounds } = getZoomBounds(result)
+
+    if (bounds) {
+      map.fitBounds(bounds as [[number, number], [number, number]], { padding: 50 })
+    } else {
+      map.flyTo({ center, zoom })
+    }
+
+    setSearchTerm('')
+    setGeoSearchResults([])
+    setSearchResults([])
+  }
 
   const flyToFeature = (item: SearchIndexItem) => {
     const map = mapRef.current
@@ -257,21 +376,40 @@ function App() {
         const props = restrictionFeature.properties
         if (!props) return
 
-        // Determine the type of restriction area
+        // Determine the type of restriction area and description
         let areaType = ''
+        let description = ''
+        let category = ''
         const layerId = restrictionFeature.layer.id
+
         if (layerId.startsWith('airport-')) {
           areaType = `${props.type || '空港'}周辺空域`
-        } else if (layerId.startsWith('no-fly-')) {
-          areaType = layerId.includes('red') ? 'レッドゾーン' : 'イエローゾーン'
-        } else if (layerId.startsWith('emergency-')) {
+          description = '航空法により無人機飛行には許可が必要'
+          category = '航空法'
+        } else if (layerId.includes('NO_FLY_RED') || layerId.includes('no-fly-red')) {
+          areaType = 'レッドゾーン（飛行禁止）'
+          description = '小型無人機等飛行禁止法により原則飛行禁止'
+          category = '小型無人機等飛行禁止法'
+        } else if (layerId.includes('NO_FLY_YELLOW') || layerId.includes('no-fly-yellow')) {
+          areaType = 'イエローゾーン（要許可）'
+          description = '事前通報・許可を得て条件を満たせば飛行可能'
+          category = '小型無人機等飛行禁止法'
+        } else if (layerId.startsWith('emergency-') || layerId.includes('EMERGENCY')) {
           areaType = '緊急用務空域'
-        } else if (layerId.startsWith('manned-')) {
+          description = '警察・消防などの緊急活動中は飛行禁止'
+          category = '航空法'
+        } else if (layerId.startsWith('manned-') || layerId.includes('MANNED')) {
           areaType = '有人機発着エリア'
-        } else if (layerId.startsWith('remote-')) {
+          description = '有人航空機との衝突リスクに注意'
+          category = '航空法'
+        } else if (layerId.startsWith('remote-') || layerId.includes('REMOTE')) {
           areaType = 'リモートID特定区域'
-        } else if (layerId.startsWith(ZONE_IDS.DID_ALL_JAPAN)) {
-          areaType = '人口集中地区'
+          description = 'リモートID機能の搭載が必須'
+          category = '航空法'
+        } else if (layerId.includes('DID_ALL_JAPAN')) {
+          areaType = '人口集中地区（DID）'
+          description = '航空法により無人機飛行には許可が必要'
+          category = '航空法'
         }
 
         const content = `
@@ -281,10 +419,25 @@ function App() {
               <span class="city-name">${areaType}</span>
             </div>
             <div class="popup-stats">
+              <div class="stat-row">
+                <span class="stat-label">規制法令</span>
+                <span class="stat-value">${category}</span>
+              </div>
               ${props.radiusKm ? `<div class="stat-row">
                 <span class="stat-label">制限半径</span>
                 <span class="stat-value">${props.radiusKm}km</span>
               </div>` : ''}
+              ${props.category ? `<div class="stat-row">
+                <span class="stat-label">カテゴリ</span>
+                <span class="stat-value">${props.category}</span>
+              </div>` : ''}
+              ${props.source ? `<div class="stat-row">
+                <span class="stat-label">情報源</span>
+                <span class="stat-value">${props.source}</span>
+              </div>` : ''}
+              <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #eee;">
+                <span class="stat-value" style="font-size:10px;color:#666;">${description}</span>
+              </div>
             </div>
           </div>
         `
@@ -719,6 +872,15 @@ function App() {
       } else if (restrictionId === 'ZONE_IDS.REMOTE_ID_ZONE') {
         geojson = generateRemoteIDZoneGeoJSON()
         color = RESTRICTION_COLORS.remote_id
+      } else if (restrictionId === 'heliports') {
+        geojson = generateHeliportGeoJSON()
+        color = '#FF6B6B' // ヘリポート用カラー
+      } else if (restrictionId === 'radio-interference') {
+        geojson = generateRadioInterferenceGeoJSON()
+        color = '#9B59B6' // 電波干渉区域用カラー
+      } else if (restrictionId === 'manned-aircraft-zones') {
+        geojson = generateMannedAircraftZonesGeoJSON()
+        color = '#3498DB' // 有人機発着区域用カラー
       } else if (restrictionId === 'ZONE_IDS.DID_ALL_JAPAN') {
         // DID全国一括表示モード - 全47都道府県を赤色で表示
         const allLayers = getAllLayers()
@@ -770,9 +932,30 @@ function App() {
           source: restrictionId,
           paint: { 'line-color': color, 'line-width': 2 }
         })
+        // テキストラベルを追加
+        map.addLayer({
+          id: `${restrictionId}-labels`,
+          type: 'symbol',
+          source: restrictionId,
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 11,
+            'text-anchor': 'center',
+            'text-allow-overlap': false,
+            'text-ignore-placement': false
+          },
+          paint: {
+            'text-color': '#333',
+            'text-halo-color': '#fff',
+            'text-halo-width': 1.5
+          }
+        })
       } else if (map.getLayer(restrictionId)) {
         map.setLayoutProperty(restrictionId, 'visibility', 'visible')
         map.setLayoutProperty(`${restrictionId}-outline`, 'visibility', 'visible')
+        if (map.getLayer(`${restrictionId}-labels`)) {
+          map.setLayoutProperty(`${restrictionId}-labels`, 'visibility', 'visible')
+        }
       }
       setRestrictionStates(prev => new Map(prev).set(restrictionId, true))
     } else {
@@ -790,6 +973,9 @@ function App() {
         if (map.getLayer(restrictionId)) {
           map.setLayoutProperty(restrictionId, 'visibility', 'none')
           map.setLayoutProperty(`${restrictionId}-outline`, 'visibility', 'none')
+        }
+        if (map.getLayer(`${restrictionId}-labels`)) {
+          map.setLayoutProperty(`${restrictionId}-labels`, 'visibility', 'none')
         }
       }
       setRestrictionStates(prev => new Map(prev).set(restrictionId, false))
@@ -883,21 +1069,25 @@ function App() {
         style={{
           position: 'fixed',
           left: showLeftLegend ? 280 : 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 24,
-          height: 48,
-          background: darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)',
-          color: darkMode ? '#fff' : '#333',
+          top: 80,
+          width: 20,
+          height: 40,
+          background: darkMode ? 'rgba(30,30,40,0.9)' : 'rgba(255,255,255,0.9)',
+          color: darkMode ? '#aaa' : '#666',
           border: 'none',
           borderRadius: '0 4px 4px 0',
           cursor: 'pointer',
           boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
           zIndex: 11,
-          transition: 'left 0.3s ease'
+          transition: 'left 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '10px'
         }}
+        title={showLeftLegend ? 'サイドバーを閉じる' : 'サイドバーを開く'}
       >
-        {showLeftLegend ? '<' : '>'}
+        {showLeftLegend ? '◀' : '▶'}
       </button>
 
       {/* Left Legend Panel */}
@@ -944,7 +1134,7 @@ function App() {
               color: darkMode ? '#fff' : '#333'
             }}
           />
-          {searchResults.length > 0 && (
+          {(searchResults.length > 0 || geoSearchResults.length > 0 || isGeoSearching) && (
             <div style={{
               position: 'absolute',
               top: '100%',
@@ -953,28 +1143,69 @@ function App() {
               backgroundColor: darkMode ? '#333' : '#fff',
               border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
               borderRadius: '0 0 4px 4px',
-              maxHeight: '150px',
+              maxHeight: '200px',
               overflowY: 'auto',
               zIndex: 100
             }}>
-              {searchResults.map((item, index) => (
-                <div
-                  key={`${item.prefName}-${item.cityName}-${index}`}
-                  onClick={() => { flyToFeature(item); setSearchTerm(''); }}
-                  style={{
-                    padding: '6px 8px',
-                    cursor: 'pointer',
-                    borderBottom: `1px solid ${darkMode ? '#444' : '#eee'}`,
-                    fontSize: '12px',
-                    color: darkMode ? '#fff' : '#333'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkMode ? '#444' : '#f0f0f0'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <span style={{ color: darkMode ? '#aaa' : '#888', marginRight: '4px' }}>{item.prefName}</span>
-                  {item.cityName}
+              {/* DID検索結果 */}
+              {searchResults.length > 0 && (
+                <>
+                  <div style={{ padding: '4px 8px', fontSize: '10px', color: darkMode ? '#888' : '#666', backgroundColor: darkMode ? '#2a2a2a' : '#f5f5f5' }}>
+                    人口集中地区
+                  </div>
+                  {searchResults.map((item, index) => (
+                    <div
+                      key={`did-${item.prefName}-${item.cityName}-${index}`}
+                      onClick={() => { flyToFeature(item); setSearchTerm(''); }}
+                      style={{
+                        padding: '6px 8px',
+                        cursor: 'pointer',
+                        borderBottom: `1px solid ${darkMode ? '#444' : '#eee'}`,
+                        fontSize: '12px',
+                        color: darkMode ? '#fff' : '#333'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkMode ? '#444' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <span style={{ color: darkMode ? '#aaa' : '#888', marginRight: '4px' }}>{item.prefName}</span>
+                      {item.cityName}
+                    </div>
+                  ))}
+                </>
+              )}
+              {/* ジオコーディング結果 */}
+              {isGeoSearching && (
+                <div style={{ padding: '8px', fontSize: '12px', color: darkMode ? '#aaa' : '#666', textAlign: 'center' }}>
+                  検索中...
                 </div>
-              ))}
+              )}
+              {geoSearchResults.length > 0 && (
+                <>
+                  <div style={{ padding: '4px 8px', fontSize: '10px', color: darkMode ? '#888' : '#666', backgroundColor: darkMode ? '#2a2a2a' : '#f5f5f5' }}>
+                    地名・建物名
+                  </div>
+                  {geoSearchResults.map((result, index) => (
+                    <div
+                      key={`geo-${result.lat}-${result.lng}-${index}`}
+                      onClick={() => flyToGeoResult(result)}
+                      style={{
+                        padding: '6px 8px',
+                        cursor: 'pointer',
+                        borderBottom: `1px solid ${darkMode ? '#444' : '#eee'}`,
+                        fontSize: '12px',
+                        color: darkMode ? '#fff' : '#333'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkMode ? '#444' : '#f0f0f0'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{ fontWeight: 500 }}>{result.displayName.split(',')[0]}</div>
+                      <div style={{ fontSize: '10px', color: darkMode ? '#888' : '#999', marginTop: '2px' }}>
+                        {result.displayName.split(',').slice(1, 3).join(',')}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1044,36 +1275,36 @@ function App() {
           </h3>
 
           {/* Airport airspace */}
-          <label title="空港周辺の一定範囲内：無人機飛行は許可が必要" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+          <label title="空港周辺の一定範囲内：無人機飛行は許可が必要 [A]" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={isRestrictionVisible('airport-airspace')}
               onChange={() => toggleRestriction('airport-airspace')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.airport, borderRadius: '2px' }} />
-            <span>空港など周辺空域</span>
+            <span>空港など周辺空域 [A]</span>
           </label>
 
           {/* DID */}
-          <label title="人口が密集している地区：航空法により飛行に許可が必要な区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+          <label title="人口が密集している地区：航空法により飛行に許可が必要な区域 [D]" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={isRestrictionVisible('ZONE_IDS.DID_ALL_JAPAN')}
               onChange={() => toggleRestriction('ZONE_IDS.DID_ALL_JAPAN')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: '#FF0000', borderRadius: '2px' }} />
-            <span>人口集中地区（全国）</span>
+            <span>人口集中地区（全国） [D]</span>
           </label>
 
           {/* Emergency airspace */}
-          <label title="緊急用務空域（見本データ）：警察・消防などの緊急活動が必要な区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+          <label title="緊急用務空域（見本データ）：警察・消防などの緊急活動が必要な区域 [E]" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={isRestrictionVisible('ZONE_IDS.EMERGENCY_AIRSPACE')}
               onChange={() => toggleRestriction('ZONE_IDS.EMERGENCY_AIRSPACE')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.emergency, borderRadius: '2px' }} />
-            <span>(見本)緊急用務空域</span>
+            <span>(見本)緊急用務空域 [E]</span>
           </label>
 
           {/* Manned aircraft */}
@@ -1098,28 +1329,61 @@ function App() {
             <span>(見本)リモートID特定区域</span>
           </label>
 
+          {/* Heliports */}
+          <label title="ヘリポート [H]：ビル屋上・病院等のヘリポート周辺空域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={isRestrictionVisible('heliports')}
+              onChange={() => toggleRestriction('heliports')}
+            />
+            <span style={{ width: '14px', height: '14px', backgroundColor: '#FF6B6B', borderRadius: '2px' }} />
+            <span>ヘリポート [H]</span>
+          </label>
+
+          {/* Radio Interference */}
+          <label title="電波干渉区域：電波塔・放送局周辺のドローン制御に影響を与える可能性がある区域" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={isRestrictionVisible('radio-interference')}
+              onChange={() => toggleRestriction('radio-interference')}
+            />
+            <span style={{ width: '14px', height: '14px', backgroundColor: '#9B59B6', borderRadius: '2px' }} />
+            <span>電波干渉区域</span>
+          </label>
+
+          {/* Manned Aircraft Zones */}
+          <label title="有人機発着区域：農薬散布ヘリ・グライダー・水上機等の発着場周辺" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={isRestrictionVisible('manned-aircraft-zones')}
+              onChange={() => toggleRestriction('manned-aircraft-zones')}
+            />
+            <span style={{ width: '14px', height: '14px', backgroundColor: '#3498DB', borderRadius: '2px' }} />
+            <span>有人機発着区域</span>
+          </label>
+
           {/* No-fly law section */}
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}` }}>
             <div style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666', marginBottom: '6px' }}>小型無人機等飛行禁止法</div>
 
-            <label title="飛行禁止区域：許可を得ずに飛行できません" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
+            <label title="飛行禁止区域：許可を得ずに飛行できません [R]" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={isRestrictionVisible('ZONE_IDS.NO_FLY_RED')}
                 onChange={() => toggleRestriction('ZONE_IDS.NO_FLY_RED')}
               />
               <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_red, borderRadius: '2px' }} />
-              <span>レッドゾーン</span>
+              <span>レッドゾーン [R]</span>
             </label>
 
-            <label title="要許可区域：許可申請を得て条件を満たすことで飛行できます" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <label title="要許可区域：許可申請を得て条件を満たすことで飛行できます [Y]" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={isRestrictionVisible('ZONE_IDS.NO_FLY_YELLOW')}
                 onChange={() => toggleRestriction('ZONE_IDS.NO_FLY_YELLOW')}
               />
               <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.no_fly_yellow, borderRadius: '2px' }} />
-              <span>イエローゾーン</span>
+              <span>イエローゾーン [Y]</span>
             </label>
           </div>
         </div>
@@ -1192,21 +1456,25 @@ function App() {
         style={{
           position: 'fixed',
           right: showRightLegend ? 200 : 0,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 24,
-          height: 48,
-          background: darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)',
-          color: darkMode ? '#fff' : '#333',
+          top: 80,
+          width: 20,
+          height: 40,
+          background: darkMode ? 'rgba(30,30,40,0.9)' : 'rgba(255,255,255,0.9)',
+          color: darkMode ? '#aaa' : '#666',
           border: 'none',
           borderRadius: '4px 0 0 4px',
           cursor: 'pointer',
           boxShadow: '-2px 0 4px rgba(0,0,0,0.1)',
           zIndex: 11,
-          transition: 'right 0.3s ease'
+          transition: 'right 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '10px'
         }}
+        title={showRightLegend ? 'サイドバーを閉じる' : 'サイドバーを開く'}
       >
-        {showRightLegend ? '>' : '<'}
+        {showRightLegend ? '▶' : '◀'}
       </button>
 
       {/* Right Legend Panel */}
@@ -1362,6 +1630,123 @@ function App() {
       >
         {is3DMode ? '3D' : '2D'}
       </button>
+
+      {/* Help Button */}
+      <button
+        onClick={() => setShowHelp(true)}
+        style={{
+          position: 'fixed',
+          top: 196,
+          right: showRightLegend ? 220 : 12,
+          padding: '6px',
+          width: 30,
+          height: 30,
+          backgroundColor: darkMode ? '#333' : '#fff',
+          color: darkMode ? '#fff' : '#333',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          transition: 'right 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        title="ヘルプ [?]"
+      >
+        ?
+      </button>
+
+      {/* Help Modal */}
+      {showHelp && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            style={{
+              backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+              color: darkMode ? '#fff' : '#333',
+              borderRadius: '8px',
+              padding: '20px',
+              maxWidth: '400px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>キーボードショートカット</h2>
+              <button
+                onClick={() => setShowHelp(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: darkMode ? '#aaa' : '#666'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ fontSize: '14px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontWeight: 600, marginBottom: '8px', color: darkMode ? '#4a90d9' : '#2563eb' }}>禁止エリア表示</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '4px 8px' }}>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>D</kbd>
+                  <span>人口集中地区（DID）</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>A</kbd>
+                  <span>空港周辺空域</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>R</kbd>
+                  <span>レッドゾーン（飛行禁止）</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>Y</kbd>
+                  <span>イエローゾーン（要許可）</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>E</kbd>
+                  <span>緊急用務空域</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>H</kbd>
+                  <span>ヘリポート</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontWeight: 600, marginBottom: '8px', color: darkMode ? '#4a90d9' : '#2563eb' }}>表示設定</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '4px 8px' }}>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>T</kbd>
+                  <span>詳細情報表示の切替</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>?</kbd>
+                  <span>ヘルプ表示</span>
+                  <kbd style={{ backgroundColor: darkMode ? '#444' : '#eee', padding: '2px 6px', borderRadius: '3px', textAlign: 'center' }}>Esc</kbd>
+                  <span>ヘルプを閉じる</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`, fontSize: '12px', color: darkMode ? '#888' : '#666' }}>
+                <p style={{ margin: '0 0 8px' }}>
+                  <strong>検索機能：</strong>住所・建物名・地名で検索すると、該当地点にズームします。
+                </p>
+                <p style={{ margin: 0 }}>
+                  <strong>データソース：</strong>DIDデータは政府統計の総合窓口(e-Stat)より。禁止区域は参考データです。飛行前は必ずDIPSで最新情報を確認してください。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Attribution */}
       <div style={{

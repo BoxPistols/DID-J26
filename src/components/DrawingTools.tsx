@@ -53,6 +53,55 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<string>('')
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([])
+  const [selectedCount, setSelectedCount] = useState(0)
+
+  // Delete/Backspaceキーで選択オブジェクトを削除
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 入力中は無視
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      // Delete または Backspace キー
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!drawRef.current) return
+
+        const selected = drawRef.current.getSelected()
+        if (selected && selected.features && selected.features.length > 0) {
+          e.preventDefault()
+          const ids = selected.features.map(f => String(f.id))
+          setPendingDeleteIds(ids)
+          setSelectedCount(ids.length)
+          setShowDeleteConfirm(true)
+        }
+      }
+
+      // Escapeで確認ダイアログを閉じる
+      if (e.key === 'Escape' && showDeleteConfirm) {
+        setShowDeleteConfirm(false)
+        setPendingDeleteIds([])
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showDeleteConfirm])
+
+  // 選択オブジェクトを削除実行
+  const handleConfirmDelete = () => {
+    if (!drawRef.current || pendingDeleteIds.length === 0) return
+
+    pendingDeleteIds.forEach(id => {
+      drawRef.current?.delete(id)
+    })
+
+    setShowDeleteConfirm(false)
+    setPendingDeleteIds([])
+    setSelectedCount(0)
+    setSelectedFeatureId(null)
+    updateFeatures()
+  }
 
   // Draw初期化
   useEffect(() => {
@@ -976,9 +1025,108 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             <li><strong>円:</strong> 半径選択後、地図をクリックで配置</li>
             <li><strong>編集:</strong> 図形選択→「編集」→頂点ドラッグで変形</li>
             <li><strong>移動:</strong> 図形をドラッグして移動</li>
+            <li><strong>選択:</strong> Shift+ドラッグで複数選択</li>
+            <li><strong>削除:</strong> Delete/Backspaceキーで選択オブジェクト削除</li>
           </ul>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }} onClick={() => {
+          setShowDeleteConfirm(false)
+          setPendingDeleteIds([])
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            width: '360px',
+            maxWidth: '90vw',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: '#ffebee',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+                fontSize: '24px'
+              }}>
+                🗑️
+              </div>
+              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#333' }}>
+                オブジェクトを削除しますか？
+              </h3>
+              <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                選択された {selectedCount} 個のオブジェクトを削除します。
+                <br />
+                この操作は取り消せません。
+              </p>
+            </div>
+            <div style={{
+              padding: '16px 20px',
+              backgroundColor: '#f8f8f8',
+              borderTop: '1px solid #eee',
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setPendingDeleteIds([])
+                }}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#333'
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: '#dc3545',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500
+                }}
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (

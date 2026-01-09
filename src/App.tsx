@@ -873,6 +873,10 @@ function App() {
               fontSize: '14px'
             }}
           />
+          {/* Debug info */}
+          <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+            検索インデックス: {searchIndex.length} | 結果: {searchResults.length}
+          </div>
           {searchResults.length > 0 && (
             <div style={{
               position: 'absolute',

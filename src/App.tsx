@@ -84,6 +84,24 @@ function App() {
   // Dark mode
   const [darkMode, setDarkMode] = useState(false)
 
+  // 3D mode
+  const [is3DMode, setIs3DMode] = useState(false)
+
+  // 2D/3D切り替え
+  const toggle3DMode = useCallback(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const newIs3D = !is3DMode
+    setIs3DMode(newIs3D)
+
+    map.easeTo({
+      pitch: newIs3D ? 60 : 0,
+      bearing: newIs3D ? map.getBearing() : 0,
+      duration: 500
+    })
+  }, [is3DMode])
+
   const layerIdToName = createLayerIdToNameMap()
 
   // ============================================
@@ -1314,6 +1332,35 @@ function App() {
         title={darkMode ? 'ライトモードに切替' : 'ダークモードに切替'}
       >
         {darkMode ? '☀️' : '🌙'}
+      </button>
+
+      {/* 2D/3D Toggle */}
+      <button
+        onClick={toggle3DMode}
+        style={{
+          position: 'fixed',
+          top: 158,
+          right: showRightLegend ? 220 : 12,
+          padding: '6px',
+          width: 30,
+          height: 30,
+          backgroundColor: is3DMode ? '#3388ff' : (darkMode ? '#333' : '#fff'),
+          color: is3DMode ? '#fff' : (darkMode ? '#fff' : '#333'),
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          transition: 'right 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        title={is3DMode ? '2Dビューに切替' : '3Dビューに切替'}
+      >
+        {is3DMode ? '3D' : '2D'}
       </button>
 
       {/* Attribution */}

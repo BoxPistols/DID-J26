@@ -368,7 +368,7 @@ function App() {
         addLayer(layer)
       })
     }
-  }, [mapLoaded, searchIndex.length, addLayer])
+  }, [mapLoaded, addLayer])
 
   const toggleLayer = (layer: LayerConfig) => {
     const map = mapRef.current

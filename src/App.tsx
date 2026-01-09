@@ -527,7 +527,7 @@ function App() {
   // ============================================
   // Layer management
   // ============================================
-  const addLayer = useCallback(async (layer: LayerConfig) => {
+  const addLayer = useCallback(async (layer: LayerConfig, initialVisible = false) => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
@@ -556,19 +556,21 @@ function App() {
         id: layer.id,
         type: 'fill',
         source: layer.id,
-        paint: { 'fill-color': layer.color, 'fill-opacity': opacity }
+        paint: { 'fill-color': layer.color, 'fill-opacity': opacity },
+        layout: { visibility: initialVisible ? 'visible' : 'none' }
       })
 
       map.addLayer({
         id: `${layer.id}-outline`,
         type: 'line',
         source: layer.id,
-        paint: { 'line-color': layer.color, 'line-width': 1 }
+        paint: { 'line-color': layer.color, 'line-width': 1 },
+        layout: { visibility: initialVisible ? 'visible' : 'none' }
       })
 
       setLayerStates(prev => {
         const next = new Map(prev)
-        next.set(layer.id, { id: layer.id, visible: true })
+        next.set(layer.id, { id: layer.id, visible: initialVisible })
         return next
       })
     } catch (e) {

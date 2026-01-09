@@ -1012,6 +1012,13 @@ function App() {
           </label>
         </div>
 
+        {/* Drawing Tools - サイドバー内に埋め込み */}
+        <DrawingTools
+          map={mapRef.current}
+          darkMode={darkMode}
+          embedded={true}
+        />
+
         {/* Restriction Areas Section */}
         <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#222' : '#f8f8f8', borderRadius: '4px' }}>
           <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600, borderBottom: `1px solid ${darkMode ? '#444' : '#ddd'}`, paddingBottom: '4px' }}>
@@ -1272,12 +1279,6 @@ function App() {
 
       {/* Map Container */}
       <div ref={mapContainer} style={{ flex: 1 }} />
-
-      {/* Drawing Tools */}
-      <DrawingTools
-        map={mapRef.current}
-        darkMode={darkMode}
-      />
 
       {/* Custom Layer Manager */}
       <CustomLayerManager

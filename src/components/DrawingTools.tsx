@@ -12,6 +12,15 @@ import { createCirclePolygon } from '../lib/utils/geo'
 // 描画モードの型定義
 type DrawMode = 'none' | 'polygon' | 'circle' | 'point' | 'line'
 
+// モード名の日本語表示
+const MODE_LABELS: Record<DrawMode, string> = {
+  none: '',
+  polygon: 'ポリゴン描画中',
+  circle: '円を配置（クリック）',
+  point: 'ウェイポイント配置中',
+  line: '経路描画中'
+}
+
 // 描画されたフィーチャーの型
 interface DrawnFeature {
   id: string
@@ -42,14 +51,22 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<string>('')
+  const [isEditing, setIsEditing] = useState(false)
 
   // Draw初期化
   useEffect(() => {
     if (!map) return
 
+    // ダブルクリックズームを無効化（描画時の競合防止）
+    map.doubleClickZoom.disable()
+
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {},
+      // タッチ対応とクリック検出の改善
+      touchEnabled: true,
+      clickBuffer: 4,
+      touchBuffer: 25,
       styles: [
         // 飛行範囲（ポリゴン）- 青系、ハッチングパターン風
         {
@@ -124,8 +141,18 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
     drawRef.current = draw
 
     // イベントハンドラ
-    const handleCreate = () => {
+    const handleCreate = (e: { features: Array<{ id: string }> }) => {
       updateFeatures()
+      // 作成後、自動的に選択状態にして編集しやすく
+      if (e.features.length > 0) {
+        const newFeatureId = e.features[0].id
+        setSelectedFeatureId(newFeatureId)
+        // 作成後、選択モードに戻す
+        setTimeout(() => {
+          draw.changeMode('simple_select', { featureIds: [newFeatureId] })
+        }, 100)
+      }
+      setDrawMode('none')
     }
 
     const handleUpdate = () => {
@@ -134,6 +161,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
 
     const handleDelete = () => {
       updateFeatures()
+      setSelectedFeatureId(null)
     }
 
     const handleSelectionChange = (e: { features: Array<{ id: string }> }) => {
@@ -144,16 +172,31 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
       }
     }
 
+    // 描画モード変更時のUI更新
+    const handleModeChange = (e: { mode: string }) => {
+      if (e.mode === 'simple_select' || e.mode === 'direct_select') {
+        // 編集モードではカーソルを変更
+        map.getCanvas().style.cursor = e.mode === 'direct_select' ? 'move' : ''
+        setIsEditing(e.mode === 'direct_select')
+      } else {
+        setIsEditing(false)
+      }
+    }
+
     map.on('draw.create', handleCreate)
     map.on('draw.update', handleUpdate)
     map.on('draw.delete', handleDelete)
     map.on('draw.selectionchange', handleSelectionChange)
+    map.on('draw.modechange', handleModeChange)
 
     return () => {
       map.off('draw.create', handleCreate)
       map.off('draw.update', handleUpdate)
       map.off('draw.delete', handleDelete)
       map.off('draw.selectionchange', handleSelectionChange)
+      map.off('draw.modechange', handleModeChange)
+      // ダブルクリックズームを再度有効化
+      map.doubleClickZoom.enable()
       // @ts-expect-error MapLibreとMapboxの互換性
       map.removeControl(draw)
     }
@@ -221,26 +264,35 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
 
   // 描画モード変更
   const handleModeChange = (mode: DrawMode) => {
-    if (!drawRef.current) return
+    if (!drawRef.current || !map) return
 
     setDrawMode(mode)
+    setIsEditing(false)
+
+    // カーソルを描画モードに合わせて変更
+    const canvas = map.getCanvas()
 
     switch (mode) {
       case 'polygon':
         drawRef.current.changeMode('draw_polygon')
+        canvas.style.cursor = 'crosshair'
         break
       case 'circle':
         // 円はカスタムモードで処理
         drawRef.current.changeMode('simple_select')
+        canvas.style.cursor = 'crosshair'
         break
       case 'point':
         drawRef.current.changeMode('draw_point')
+        canvas.style.cursor = 'crosshair'
         break
       case 'line':
         drawRef.current.changeMode('draw_line_string')
+        canvas.style.cursor = 'crosshair'
         break
       default:
         drawRef.current.changeMode('simple_select')
+        canvas.style.cursor = ''
     }
   }
 
@@ -338,10 +390,27 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
     alert('座標をクリップボードにコピーしました')
   }
 
-  // 選択フィーチャーの編集モードに入る
+  // 選択フィーチャーの編集モードに入る / 編集完了
   const handleEditFeature = () => {
     if (!drawRef.current || !selectedFeatureId) return
-    drawRef.current.changeMode('direct_select', { featureId: selectedFeatureId })
+    if (isEditing) {
+      // 編集中の場合は選択モードに戻る
+      drawRef.current.changeMode('simple_select', { featureIds: [selectedFeatureId] })
+      setIsEditing(false)
+    } else {
+      // 編集モードに入る
+      drawRef.current.changeMode('direct_select', { featureId: selectedFeatureId })
+      setIsEditing(true)
+    }
+  }
+
+  // 描画モードをキャンセル
+  const handleCancelMode = () => {
+    if (!drawRef.current || !map) return
+    drawRef.current.changeMode('simple_select')
+    setDrawMode('none')
+    setIsEditing(false)
+    map.getCanvas().style.cursor = ''
   }
 
   const bgColor = darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)'
@@ -411,6 +480,36 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
             ×
           </button>
         </div>
+
+        {/* Status Banner */}
+        {(drawMode !== 'none' || isEditing) && (
+          <div style={{
+            padding: '8px 16px',
+            backgroundColor: isEditing ? '#e8f5e9' : '#fff3e0',
+            borderBottom: `1px solid ${isEditing ? '#4caf50' : '#ff9800'}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: isEditing ? '#2e7d32' : '#e65100' }}>
+              {isEditing ? '編集中 - 頂点をドラッグ' : MODE_LABELS[drawMode]}
+            </span>
+            <button
+              onClick={handleCancelMode}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: 'transparent',
+                border: '1px solid currentColor',
+                borderRadius: '4px',
+                color: isEditing ? '#2e7d32' : '#e65100',
+                cursor: 'pointer',
+                fontSize: '11px'
+              }}
+            >
+              {isEditing ? '完了' : 'キャンセル'}
+            </button>
+          </div>
+        )}
 
         {/* Drawing Tools */}
         <div style={{ padding: '12px 16px' }}>
@@ -573,15 +672,16 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
               style={{
                 flex: 1,
                 padding: '8px',
-                backgroundColor: selectedFeatureId ? '#e3f2fd' : buttonBg,
-                color: selectedFeatureId ? '#1565c0' : (darkMode ? '#666' : '#999'),
-                border: `1px solid ${borderColor}`,
+                backgroundColor: isEditing ? '#4caf50' : (selectedFeatureId ? '#e3f2fd' : buttonBg),
+                color: isEditing ? '#fff' : (selectedFeatureId ? '#1565c0' : (darkMode ? '#666' : '#999')),
+                border: `1px solid ${isEditing ? '#4caf50' : borderColor}`,
                 borderRadius: '4px',
                 cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
-                fontSize: '11px'
+                fontSize: '11px',
+                fontWeight: isEditing ? 'bold' : 'normal'
               }}
             >
-              編集
+              {isEditing ? '編集完了' : '編集'}
             </button>
             <button
               onClick={handleDelete}
@@ -664,12 +764,14 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false }: Drawin
           backgroundColor: darkMode ? '#222' : '#f8f8f8',
           borderTop: `1px solid ${borderColor}`,
           fontSize: '10px',
-          color: darkMode ? '#888' : '#888'
+          color: darkMode ? '#888' : '#666'
         }}>
-          <p style={{ margin: '0 0 4px' }}>操作:</p>
-          <ul style={{ margin: 0, paddingLeft: '16px' }}>
-            <li>描画後、図形を選択して「編集」でドラッグ移動・リサイズ</li>
-            <li>ダブルクリックで描画完了</li>
+          <p style={{ margin: '0 0 4px', fontWeight: 'bold' }}>操作ガイド:</p>
+          <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.6 }}>
+            <li><strong>ポリゴン/経路:</strong> クリックで頂点追加、最初の点をクリックで完了</li>
+            <li><strong>円:</strong> 半径選択後、地図をクリックで配置</li>
+            <li><strong>編集:</strong> 図形選択→「編集」→頂点ドラッグで変形</li>
+            <li><strong>移動:</strong> 図形をドラッグして移動</li>
           </ul>
         </div>
       </div>

@@ -1,0 +1,86 @@
+{/* Introduction.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Introduction" />
+
+# Japan Drone Map Library
+
+日本のドローン飛行禁止エリア・地理データをオーバーレイ表示できる汎用地図ライブラリです。
+
+## 概要
+
+このライブラリは、日本国内でのドローン飛行に関連する各種制限エリアや地理情報を地図上に表示するための機能を提供します。
+
+### 主な機能
+
+#### 飛行制限エリア
+- **空港周辺空域** - 32の主要空港と周辺の飛行制限区域
+- **DID（人口集中地区）** - 47都道府県のDIDエリア
+- **緊急用務空域** - 災害時等の緊急用務空域
+- **有人航空機発着エリア** - ヘリポート等
+- **リモートID特定区域** - リモートID免除区域
+- **飛行禁止法エリア** - 小型無人機等飛行禁止法に基づく区域
+
+#### 地理情報オーバーレイ
+- **陰影起伏図** - 地形の陰影表現
+- **標高図** - 標高による色分け
+- **傾斜量図** - 地形の傾斜度
+
+#### 気象情報
+- **雨雲レーダー** - RainViewer API連携
+- **風況データ** - OpenWeatherMap API連携
+
+#### カスタムレイヤー
+- **GeoJSONインポート** - 独自のデータを追加
+- **LocalStorage永続化** - ブラウザに保存
+- **カテゴリ分類** - 用途別に分類
+
+## インストール
+
+```bash
+npm install japan-drone-map
+```
+
+## 基本的な使い方
+
+```tsx
+import {
+  BASE_MAPS,
+  TOKYO_DID_LAYER,
+  RESTRICTION_COLORS,
+  AirportService,
+  NoFlyZoneService,
+  RainViewerService
+} from 'japan-drone-map'
+
+// ベースマップの取得
+const osmMap = BASE_MAPS.osm
+
+// DIDレイヤーの取得
+const tokyoDid = TOKYO_DID_LAYER
+
+// 空港データの取得
+const airports = AirportService.getAll()
+const naritaZone = AirportService.getRestrictionZone('narita')
+
+// 飛行禁止区域の取得
+const noFlyZones = NoFlyZoneService.getAll()
+const redZones = NoFlyZoneService.getByType('red')
+
+// 雨雲レーダーのタイルURL
+const radarUrl = RainViewerService.buildTileUrl('some-path')
+```
+
+## データソース
+
+| データ種別 | ソース | 更新頻度 |
+|-----------|--------|----------|
+| DIDエリア | 国土数値情報 | 5年ごと |
+| 空港データ | 国土交通省 | 静的データ |
+| 飛行禁止区域 | 各種公開情報 | 適宜更新 |
+| 雨雲レーダー | RainViewer API | リアルタイム |
+| 風況データ | OpenWeatherMap | リアルタイム |
+
+## ライセンス
+
+MIT License

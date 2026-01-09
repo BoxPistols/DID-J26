@@ -1,0 +1,160 @@
+{/* GeoUtils.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="API/GeoUtils" />
+
+# Geo Utilities
+
+地理計算用のユーティリティ関数です。
+
+## calculateBBox
+
+ポリゴンのバウンディングボックスを計算します。
+
+```typescript
+import { calculateBBox } from 'japan-drone-map'
+
+const polygon: GeoJSON.Polygon = {
+  type: 'Polygon',
+  coordinates: [[
+    [139.6, 35.6],
+    [139.8, 35.6],
+    [139.8, 35.8],
+    [139.6, 35.8],
+    [139.6, 35.6]
+  ]]
+}
+
+const bbox = calculateBBox(polygon)
+// [139.6, 35.6, 139.8, 35.8] - [minLng, minLat, maxLng, maxLat]
+```
+
+---
+
+## calculateDistance
+
+2点間の距離（km）を計算します（ハバースィン公式）。
+
+```typescript
+import { calculateDistance } from 'japan-drone-map'
+
+// 東京駅から成田空港まで
+const distance = calculateDistance(
+  [139.7673, 35.6812], // 東京駅
+  [140.3929, 35.7719]  // 成田空港
+)
+// 約 57.6 km
+```
+
+---
+
+## createCirclePolygon
+
+指定した中心点と半径から円形のポリゴンを生成します。
+
+```typescript
+import { createCirclePolygon } from 'japan-drone-map'
+
+// 成田空港を中心に半径24kmの円を生成
+const circlePolygon = createCirclePolygon(
+  [140.3929, 35.7719], // 中心座標
+  24,                   // 半径 (km)
+  64                    // ポイント数（オプション、デフォルト64）
+)
+
+// GeoJSON Polygon として返される
+console.log(circlePolygon.type) // 'Polygon'
+```
+
+---
+
+## isPointInPolygon
+
+点がポリゴン内にあるかを判定します。
+
+```typescript
+import { isPointInPolygon } from 'japan-drone-map'
+
+const polygon: GeoJSON.Polygon = {
+  type: 'Polygon',
+  coordinates: [[
+    [139.6, 35.6],
+    [139.8, 35.6],
+    [139.8, 35.8],
+    [139.6, 35.8],
+    [139.6, 35.6]
+  ]]
+}
+
+const isInside = isPointInPolygon([139.7, 35.7], polygon)
+// true
+```
+
+---
+
+## degreesToCompass
+
+角度（0-360度）を方位（N, NE, E, SE, S, SW, W, NW）に変換します。
+
+```typescript
+import { degreesToCompass } from 'japan-drone-map'
+
+degreesToCompass(0)    // 'N'
+degreesToCompass(45)   // 'NE'
+degreesToCompass(90)   // 'E'
+degreesToCompass(180)  // 'S'
+degreesToCompass(270)  // 'W'
+```
+
+---
+
+## degreesToJapanese
+
+角度（0-360度）を日本語の方位に変換します。
+
+```typescript
+import { degreesToJapanese } from 'japan-drone-map'
+
+degreesToJapanese(0)    // '北'
+degreesToJapanese(45)   // '北東'
+degreesToJapanese(90)   // '東'
+degreesToJapanese(135)  // '南東'
+degreesToJapanese(180)  // '南'
+degreesToJapanese(225)  // '南西'
+degreesToJapanese(270)  // '西'
+degreesToJapanese(315)  // '北西'
+```
+
+---
+
+## formatCoordinates
+
+座標を読みやすい形式にフォーマットします。
+
+```typescript
+import { formatCoordinates } from 'japan-drone-map'
+
+const formatted = formatCoordinates([139.7673, 35.6812])
+// "35.6812°N, 139.7673°E"
+
+const formattedJa = formatCoordinates([139.7673, 35.6812], 'ja')
+// "北緯35.6812度, 東経139.7673度"
+```
+
+---
+
+## 型定義
+
+```typescript
+// バウンディングボックス [minLng, minLat, maxLng, maxLat]
+type BBox = [number, number, number, number]
+
+// 座標 [lng, lat]
+type Coordinate = [number, number]
+
+// 方位
+type CompassDirection = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW'
+
+// 日本語方位
+type JapaneseDirection = '北' | '北東' | '東' | '南東' | '南' | '南西' | '西' | '北西'
+```

@@ -52,6 +52,12 @@ const ZONE_IDS = {
 } as const
 
 // ============================================
+// UI Settings Constants
+// ============================================
+const SETTINGS_EXPIRATION_DAYS = 30
+const SETTINGS_EXPIRATION_MS = SETTINGS_EXPIRATION_DAYS * 24 * 60 * 60 * 1000
+
+// ============================================
 // Main App Component
 // ============================================
 function App() {
@@ -94,7 +100,27 @@ function App() {
   const [customLayerVisibility, setCustomLayerVisibility] = useState<Set<string>>(new Set())
 
   // Dark mode
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    // localStorageから設定を読み込み（1ヶ月期限）
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      if (stored) {
+        const { darkMode: savedDarkMode, timestamp } = JSON.parse(stored)
+        const now = Date.now()
+
+        // 期限内なら保存された設定を使用
+        if (timestamp && (now - timestamp) < SETTINGS_EXPIRATION_MS) {
+          return savedDarkMode ?? false
+        }
+
+        // 期限切れなら削除
+        localStorage.removeItem('ui-settings')
+      }
+    } catch (e) {
+      console.error('Failed to load UI settings:', e)
+    }
+    return false
+  })
 
   // 3D mode
   const [is3DMode, setIs3DMode] = useState(false)
@@ -118,6 +144,21 @@ function App() {
   }, [is3DMode])
 
   const layerIdToName = createLayerIdToNameMap()
+
+  // ============================================
+  // Save UI settings to localStorage
+  // ============================================
+  useEffect(() => {
+    try {
+      const settings = {
+        darkMode,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('ui-settings', JSON.stringify(settings))
+    } catch (e) {
+      console.error('Failed to save UI settings:', e)
+    }
+  }, [darkMode])
 
   // ============================================
   // Tooltip ref sync
@@ -183,7 +224,7 @@ function App() {
           break
         case 'l':
           // ダーク/ライトモード切り替え
-          setDarkMode(prev => !prev)
+          setDarkMode((prev: boolean) => !prev)
           break
         case '?':
         case '/':

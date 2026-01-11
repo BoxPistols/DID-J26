@@ -33,21 +33,6 @@ const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
   dms: 'DMS (NOTAM)'
 }
 
-// デフォルトカラー設定
-const DEFAULT_STROKE_COLOR = '#3388ff'
-const DEFAULT_FILL_COLOR = '#3388ff'
-const DEFAULT_STROKE_WIDTH = 3
-const DEFAULT_FILL_OPACITY = 0.25
-
-// カラーパレット
-const COLOR_PALETTE = [
-  '#ff4444', '#e91e63', '#9c27b0', '#673ab7',
-  '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4',
-  '#009688', '#4caf50', '#8bc34a', '#cddc39',
-  '#ffeb3b', '#ffc107', '#ff9800', '#ff5722',
-  '#795548', '#9e9e9e', '#607d8b', '#000000'
-]
-
 // 描画されたフィーチャーの型
 interface DrawnFeature {
   id: string
@@ -57,11 +42,6 @@ interface DrawnFeature {
   radius?: number // 円の場合の半径(m)
   center?: [number, number] // 円の中心座標
   properties?: Record<string, unknown>
-  // スタイル設定
-  strokeColor?: string // 線の色
-  fillColor?: string // 塗りつぶしの色
-  strokeWidth?: number // 線の幅
-  fillOpacity?: number // 塗りつぶしの不透明度
 }
 
 export interface DrawingToolsProps {
@@ -195,9 +175,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           type: 'fill',
           filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
           paint: {
-            'fill-color': ['coalesce', ['get', 'user_fillColor'], DEFAULT_FILL_COLOR],
-            'fill-outline-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
-            'fill-opacity': ['coalesce', ['get', 'user_fillOpacity'], DEFAULT_FILL_OPACITY]
+            'fill-color': '#3388ff',
+            'fill-outline-color': '#3388ff',
+            'fill-opacity': 0.25
           }
         },
         // ポリゴン塗りつぶし - アクティブ
@@ -206,9 +186,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           type: 'fill',
           filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']],
           paint: {
-            'fill-color': ['coalesce', ['get', 'user_fillColor'], DEFAULT_FILL_COLOR],
-            'fill-outline-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
-            'fill-opacity': ['coalesce', ['get', 'user_fillOpacity'], DEFAULT_FILL_OPACITY]
+            'fill-color': '#3388ff',
+            'fill-outline-color': '#3388ff',
+            'fill-opacity': 0.25
           }
         },
         // ポリゴンストローク - 非アクティブ
@@ -221,8 +201,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             'line-join': 'round'
           },
           paint: {
-            'line-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
-            'line-width': ['coalesce', ['get', 'user_strokeWidth'], DEFAULT_STROKE_WIDTH]
+            'line-color': '#3388ff',
+            'line-width': 3
           }
         },
         // ポリゴンストローク - アクティブ
@@ -235,9 +215,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             'line-join': 'round'
           },
           paint: {
-            'line-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
+            'line-color': '#3388ff',
             'line-dasharray': [0.2, 2],
-            'line-width': ['coalesce', ['get', 'user_strokeWidth'], DEFAULT_STROKE_WIDTH]
+            'line-width': 2
           }
         },
         // ライン - 非アクティブ
@@ -250,8 +230,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             'line-join': 'round'
           },
           paint: {
-            'line-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
-            'line-width': ['coalesce', ['get', 'user_strokeWidth'], DEFAULT_STROKE_WIDTH]
+            'line-color': '#3388ff',
+            'line-width': 3
           }
         },
         // ライン - アクティブ
@@ -264,9 +244,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             'line-join': 'round'
           },
           paint: {
-            'line-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR],
+            'line-color': '#3388ff',
             'line-dasharray': [0.2, 2],
-            'line-width': ['coalesce', ['get', 'user_strokeWidth'], DEFAULT_STROKE_WIDTH]
+            'line-width': 3
           }
         },
         // ポイント - 非アクティブ
@@ -276,7 +256,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']],
           paint: {
             'circle-radius': 6,
-            'circle-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR]
+            'circle-color': '#3388ff'
           }
         },
         // ポイント - アクティブ（描画中の点）
@@ -286,7 +266,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           filter: ['all', ['==', '$type', 'Point'], ['!=', 'meta', 'midpoint'], ['==', 'active', 'true']],
           paint: {
             'circle-radius': 8,
-            'circle-color': ['coalesce', ['get', 'user_strokeColor'], DEFAULT_STROKE_COLOR]
+            'circle-color': '#3388ff'
           }
         },
         // 描画中のポイント
@@ -297,7 +277,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           paint: {
             'circle-radius': 8,
             'circle-opacity': 1,
-            'circle-color': '#fff'
+            'circle-color': '#ff9800'
           }
         },
         // 頂点 - アクティブ
@@ -307,7 +287,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
           paint: {
             'circle-radius': 6,
-            'circle-color': '#fff'
+            'circle-color': '#ff9800'
           }
         },
         {
@@ -439,11 +419,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             isCircle: true,
             radiusKm,
             center,
-            circlePoints,
-            strokeColor: DEFAULT_STROKE_COLOR,
-            fillColor: DEFAULT_FILL_COLOR,
-            strokeWidth: DEFAULT_STROKE_WIDTH,
-            fillOpacity: DEFAULT_FILL_OPACITY
+            circlePoints
           },
           geometry: circlePolygon
         })
@@ -496,11 +472,6 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         radius: f.properties?.radiusKm ? (f.properties.radiusKm as number) * 1000 : undefined,
         center: f.properties?.center as [number, number] | undefined,
         properties: f.properties || {},
-        // スタイル情報を保持
-        strokeColor: (f.properties?.strokeColor as string) || DEFAULT_STROKE_COLOR,
-        fillColor: (f.properties?.fillColor as string) || DEFAULT_FILL_COLOR,
-        strokeWidth: (f.properties?.strokeWidth as number) || DEFAULT_STROKE_WIDTH,
-        fillOpacity: (f.properties?.fillOpacity as number) || DEFAULT_FILL_OPACITY
       }
     })
 
@@ -656,39 +627,6 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   // 名前が空かチェック
   const isNameEmpty = (name: string | undefined): boolean => {
     return !name || name.trim().length === 0
-  }
-
-  // フィーチャーのスタイル更新
-  const handleUpdateFeatureStyle = (
-    featureId: string,
-    updates: {
-      strokeColor?: string
-      fillColor?: string
-      strokeWidth?: number
-      fillOpacity?: number
-    }
-  ) => {
-    if (!drawRef.current) return
-
-    const feature = drawRef.current.get(featureId)
-    if (!feature) return
-
-    // プロパティを更新
-    feature.properties = {
-      ...feature.properties,
-      ...updates
-    }
-
-    // フィーチャーを更新（削除して再追加）
-    drawRef.current.delete(featureId)
-    const updatedIds = drawRef.current.add(feature)
-
-    // 選択状態を維持
-    if (updatedIds && updatedIds.length > 0) {
-      setSelectedFeatureId(String(updatedIds[0]))
-    }
-
-    updateFeatures()
   }
 
   // GeoJSONフォーマットに変換
@@ -965,12 +903,6 @@ ${kmlFeatures}
     // 既存の頂点数を保持、なければデフォルト24
     const savedCirclePoints = (feature.properties.circlePoints as number) || 24
 
-    // 既存の色情報を保持
-    const strokeColor = (feature.properties.strokeColor as string) || DEFAULT_STROKE_COLOR
-    const fillColor = (feature.properties.fillColor as string) || DEFAULT_FILL_COLOR
-    const strokeWidth = (feature.properties.strokeWidth as number) || DEFAULT_STROKE_WIDTH
-    const fillOpacity = (feature.properties.fillOpacity as number) || DEFAULT_FILL_OPACITY
-
     // 新しい円ポリゴンを作成
     const newCirclePolygon = createCirclePolygon(center, radiusKm, savedCirclePoints)
 
@@ -982,11 +914,7 @@ ${kmlFeatures}
         isCircle: true,
         radiusKm,
         center,
-        circlePoints: savedCirclePoints,
-        strokeColor,
-        fillColor,
-        strokeWidth,
-        fillOpacity
+        circlePoints: savedCirclePoints
       },
       geometry: newCirclePolygon
     })
@@ -1499,113 +1427,6 @@ ${kmlFeatures}
                     outline: 'none'
                   }}
                 />
-              </div>
-            )
-          })()}
-
-          {/* カラー設定 */}
-          {selectedFeatureId && (() => {
-            const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
-            if (!currentFeature) return null
-
-            const strokeColor = currentFeature.strokeColor || DEFAULT_STROKE_COLOR
-            const fillColor = currentFeature.fillColor || DEFAULT_FILL_COLOR
-            const strokeWidth = currentFeature.strokeWidth || DEFAULT_STROKE_WIDTH
-            const fillOpacity = currentFeature.fillOpacity || DEFAULT_FILL_OPACITY
-
-            return (
-              <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#fafafa', borderRadius: '4px', border: `1px solid ${borderColor}` }}>
-                <div style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', fontWeight: 'bold', marginBottom: '8px' }}>
-                  カラー設定
-                </div>
-
-                {/* 線の色 */}
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666', display: 'block', marginBottom: '4px' }}>
-                    線の色
-                  </label>
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {COLOR_PALETTE.map(color => (
-                      <button
-                        key={`stroke-${color}`}
-                        onClick={() => handleUpdateFeatureStyle(selectedFeatureId, { strokeColor: color })}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          backgroundColor: color,
-                          border: strokeColor === color ? '2px solid #fff' : `1px solid ${borderColor}`,
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          boxShadow: strokeColor === color ? '0 0 0 2px #3388ff' : 'none'
-                        }}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* 塗りつぶしの色 */}
-                {(currentFeature.type === 'polygon' || currentFeature.type === 'circle') && (
-                  <div style={{ marginBottom: '8px' }}>
-                    <label style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666', display: 'block', marginBottom: '4px' }}>
-                      塗りつぶしの色
-                    </label>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {COLOR_PALETTE.map(color => (
-                        <button
-                          key={`fill-${color}`}
-                          onClick={() => handleUpdateFeatureStyle(selectedFeatureId, { fillColor: color })}
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            backgroundColor: color,
-                            border: fillColor === color ? '2px solid #fff' : `1px solid ${borderColor}`,
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            boxShadow: fillColor === color ? '0 0 0 2px #3388ff' : 'none'
-                          }}
-                          title={color}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 線の幅 */}
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>線の幅</span>
-                    <span>{strokeWidth}px</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    step="1"
-                    value={strokeWidth}
-                    onChange={(e) => handleUpdateFeatureStyle(selectedFeatureId, { strokeWidth: Number(e.target.value) })}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                {/* 不透明度 */}
-                {(currentFeature.type === 'polygon' || currentFeature.type === 'circle') && (
-                  <div>
-                    <label style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666', display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span>不透明度</span>
-                      <span>{Math.round(fillOpacity * 100)}%</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={fillOpacity}
-                      onChange={(e) => handleUpdateFeatureStyle(selectedFeatureId, { fillOpacity: Number(e.target.value) })}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                )}
               </div>
             )
           })()}

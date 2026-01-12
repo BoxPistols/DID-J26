@@ -4,12 +4,11 @@
 
 現在のデータ（平成22年/2010年）を令和2年（2020年）国勢調査データに更新する。
 
-## 現状
+## ステータスと手順
+**更新作業中** です。詳細は [DATA_UPDATE_STATUS.md](./DATA_UPDATE_STATUS.md) を参照してください。
 
-- データ年次: 平成22年（2010年）
-- ファイル形式: GeoJSON
-- 座標系: EPSG:4326
-- ファイル数: 47都道府県
+- **北海道 (01):** 更新完了
+- **その他:** 未更新（順次対応）
 
 ## 目標
 
@@ -17,40 +16,9 @@
 - ファイル形式: GeoJSON（現行維持）
 - 座標系: EPSG:4326（現行維持）
 
-## データソース
+## 技術スタック変更点
+当初 `ogr2ogr` (GDAL) の使用を予定していましたが、環境構築の容易さから Node.js ベースの `mapshaper` を使用する方針に変更しました。
 
-| ソース | URL | 形式 |
-|--------|-----|------|
-| e-Stat 統計地理情報システム | https://www.e-stat.go.jp/gis | Shapefile |
-| G空間情報センター | https://www.geospatial.jp/ckan/dataset/soumu-r2-did | Shapefile |
-
-## 作業手順
-
-1. **データ取得**
-   - G空間情報センターまたはe-Statから令和2年DIDデータをダウンロード
-   - 47都道府県分を取得
-
-2. **データ変換**
-   - Shapefile → GeoJSON変換（ogr2ogr使用）
-   - 座標系変換: JGD2011 → EPSG:4326
-
-3. **ファイル配置**
-   - 命名規則: `r02_did_XX_prefecture.geojson`
-   - 配置先: `GeoJSON/`
-
-4. **検証**
-   - 座標系の確認
-   - ファイル整合性チェック
-   - サンプル表示による目視確認
-
-5. **旧データの扱い**
-   - `GeoJSON/archive/h22/` に移動、または別ブランチで保持
-
-## 必要ツール
-
-- GDAL/OGR（ogr2ogr）
-- Python + geopandas（オプション）
-
-## 備考
-
-- 次回更新: 令和7年（2025年）国勢調査後
+## 関連ファイル
+- `scripts/convert_did_2020.js`: 変換スクリプト
+- `docs/DATA_UPDATE_STATUS.md`: 詳細な手順と状況

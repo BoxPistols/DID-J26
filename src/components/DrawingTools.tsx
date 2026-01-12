@@ -85,6 +85,8 @@ const loadFromLocalStorage = (): GeoJSON.FeatureCollection | null => {
  */
 export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded = false, mapLoaded = false }: DrawingToolsProps) {
   const [isOpen, setIsOpen] = useState(embedded) // 埋め込み時はデフォルトで開く
+  const [activeTab, setActiveTab] = useState<'draw' | 'manage' | 'export'>('draw')
+  const [showGuide, setShowGuide] = useState(false)
   const [drawMode, setDrawMode] = useState<DrawMode>('none')
   const [drawnFeatures, setDrawnFeatures] = useState<DrawnFeature[]>([])
   const [circleRadius, setCircleRadius] = useState(100) // メートル
@@ -1470,12 +1472,99 @@ ${kmlFeatures}
           </div>
         )}
 
-        {/* Drawing Tools */}
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          borderBottom: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`,
+          backgroundColor: darkMode ? '#2a2a2a' : '#fafafa'
+        }}>
+          <button
+            onClick={() => setActiveTab('draw')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'draw' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'draw' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'draw' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            🖊️ 描画
+          </button>
+          <button
+            onClick={() => setActiveTab('manage')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'manage' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'manage' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'manage' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px',
+              position: 'relative'
+            }}
+          >
+            📋 管理
+            {drawnFeatures.length > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                backgroundColor: '#ff5722',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '2px 6px',
+                fontSize: '10px',
+                fontWeight: 'bold'
+              }}>
+                {drawnFeatures.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('export')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'export' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'export' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            📤 出力
+          </button>
+        </div>
+
+        {/* Tab Content */}
         <div style={{ padding: '12px 16px' }}>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              描画ツール
-            </label>
+          {/* 描画タブ */}
+          {activeTab === 'draw' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a3a4a' : '#e3f2fd',
+                borderRadius: '6px',
+                borderLeft: '4px solid #3388ff'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#90caf9' : '#1565c0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  🖊️ 描画ツール
+                </label>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => handleModeChange('polygon')}
@@ -1632,11 +1721,67 @@ ${kmlFeatures}
             </div>
           )}
 
-          {/* 描画済みフィーチャー一覧 */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              描画済み ({drawnFeatures.length})
-            </label>
+              {/* 操作ガイド */}
+              <div style={{
+                marginTop: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a2a2a' : '#f9f9f9',
+                borderRadius: '6px',
+                border: `1px solid ${borderColor}`
+              }}>
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: darkMode ? '#ccc' : '#666',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span>ℹ️ 操作ガイド</span>
+                  <span style={{ fontSize: '10px' }}>{showGuide ? '▲' : '▼'}</span>
+                </button>
+                {showGuide && (
+                  <div style={{
+                    marginTop: '8px',
+                    fontSize: '11px',
+                    color: darkMode ? '#aaa' : '#666',
+                    lineHeight: '1.6'
+                  }}>
+                    <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                      <li>ポリゴン/経路: クリックで頂点追加、最初の点をクリックで完了</li>
+                      <li>円: 中心をクリックして配置</li>
+                      <li>編集: 図形を選択後、頂点をドラッグで移動</li>
+                      <li>複製: 図形をドラッグして移動</li>
+                      <li>選択: Shift+ドラッグで複数選択</li>
+                      <li>削除: 図形選択後、Delete/Backspaceキー</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* 管理タブ */}
+          {activeTab === 'manage' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
+                borderRadius: '6px',
+                borderLeft: '4px solid #4caf50'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  📍 描画済み
+                </label>
             <div style={{
               maxHeight: '120px',
               overflowY: 'auto',
@@ -1679,7 +1824,6 @@ ${kmlFeatures}
                 ))
               )}
             </div>
-          </div>
 
           {/* 選択中の円のリサイズ */}
           {selectedFeatureId && drawnFeatures.find(f => f.id === selectedFeatureId)?.type === 'circle' && (
@@ -2038,12 +2182,26 @@ ${kmlFeatures}
             }
             return null
           })()}
+              </div>
+            </>
+          )}
+
+          {/* 出力タブ */}
+          {activeTab === 'export' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a2a3a' : '#e8f5e9',
+                borderRadius: '6px',
+                borderLeft: '4px solid #4caf50'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#81c784' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  📤 エクスポート形式
+                </label>
 
           {/* エクスポート形式選択 */}
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              エクスポート形式
-            </label>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {(['geojson', 'kml', 'csv', 'dms'] as ExportFormat[]).map(format => (
                 <button
@@ -2122,25 +2280,9 @@ ${kmlFeatures}
               全て削除
             </button>
           )}
-        </div>
-
-        {/* Help */}
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: darkMode ? '#222' : '#f8f8f8',
-          borderTop: `1px solid ${borderColor}`,
-          fontSize: '10px',
-          color: darkMode ? '#bbb' : '#666'
-        }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 'bold' }}>操作ガイド:</p>
-          <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.6 }}>
-            <li><strong>ポリゴン/経路:</strong> クリックで頂点追加、最初の点をクリックで完了</li>
-            <li><strong>円:</strong> 半径選択後、地図をクリックで配置</li>
-            <li><strong>編集:</strong> 図形選択→「編集」→頂点ドラッグで変形</li>
-            <li><strong>移動:</strong> 図形をドラッグして移動</li>
-            <li><strong>選択:</strong> Shift+ドラッグで複数選択</li>
-            <li><strong>削除:</strong> Delete/Backspaceキーで選択オブジェクト削除</li>
-          </ul>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

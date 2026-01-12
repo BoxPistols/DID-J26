@@ -37,6 +37,7 @@ import { CustomLayerManager } from './components/CustomLayerManager'
 import { DrawingTools } from './components/DrawingTools'
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
+import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 
 // ============================================
 // Zone ID Constants
@@ -66,13 +67,41 @@ function App() {
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const showTooltipRef = useRef(false)
   const restrictionStatesRef = useRef<Map<string, boolean>>(new Map())
+  const mapStateRef = useRef<{
+    center: [number, number]
+    zoom: number
+    pitch: number
+    bearing: number
+  }>({
+    center: DEFAULT_CENTER,
+    zoom: DEFAULT_ZOOM,
+    pitch: 0,
+    bearing: 0
+  })
 
   // State
   const [layerStates, setLayerStates] = useState<Map<string, LayerState>>(new Map())
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['関東']))
   const [mapLoaded, setMapLoaded] = useState(false)
   const [opacity, setOpacity] = useState(0.5)
-  const [baseMap, setBaseMap] = useState<BaseMapKey>('osm')
+  const [baseMap] = useState<BaseMapKey>(() => {
+    // localStorageから保存されたベースマップを読み込み
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      if (stored) {
+        const { baseMap: savedBaseMap, timestamp } = JSON.parse(stored)
+        const now = Date.now()
+
+        // 期限内なら保存された設定を使用
+        if (timestamp && (now - timestamp) < SETTINGS_EXPIRATION_MS && savedBaseMap) {
+          return savedBaseMap as BaseMapKey
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load baseMap from localStorage:', e)
+    }
+    return 'osm'
+  })
   const [overlayStates, setOverlayStates] = useState<Map<string, boolean>>(new Map())
   const [weatherStates, setWeatherStates] = useState<Map<string, boolean>>(new Map())
   const [restrictionStates, setRestrictionStates] = useState<Map<string, boolean>>(new Map())
@@ -146,19 +175,42 @@ function App() {
   const layerIdToName = createLayerIdToNameMap()
 
   // ============================================
+  // ベースマップ変更ハンドラ（リロード方式）
+  // ============================================
+  const handleBaseMapChange = useCallback((newBaseMap: BaseMapKey) => {
+    if (newBaseMap === baseMap) return
+
+    // 設定を保存
+    try {
+      const settings = {
+        darkMode,
+        baseMap: newBaseMap,
+        timestamp: Date.now()
+      }
+      localStorage.setItem('ui-settings', JSON.stringify(settings))
+    } catch (e) {
+      console.error('Failed to save settings:', e)
+    }
+
+    // ページをリロード
+    window.location.reload()
+  }, [baseMap, darkMode])
+
+  // ============================================
   // Save UI settings to localStorage
   // ============================================
   useEffect(() => {
     try {
       const settings = {
         darkMode,
+        baseMap,
         timestamp: Date.now()
       }
       localStorage.setItem('ui-settings', JSON.stringify(settings))
     } catch (e) {
       console.error('Failed to save UI settings:', e)
     }
-  }, [darkMode])
+  }, [darkMode, baseMap])
 
   // ============================================
   // Tooltip ref sync
@@ -345,12 +397,28 @@ function App() {
   }
 
   // ============================================
+  // Cache cleanup on app initialization
+  // ============================================
+  useEffect(() => {
+    clearOldCaches().catch(err => {
+      console.warn('Failed to clear old caches:', err)
+    })
+  }, [])
+
+  // ============================================
   // Map initialization
   // ============================================
   useEffect(() => {
     if (!mapContainer.current) return
 
+    // 既存のマップがある場合、現在の状態を保存してから破棄
     if (mapRef.current) {
+      mapStateRef.current = {
+        center: [mapRef.current.getCenter().lng, mapRef.current.getCenter().lat],
+        zoom: mapRef.current.getZoom(),
+        pitch: mapRef.current.getPitch(),
+        bearing: mapRef.current.getBearing()
+      }
       mapRef.current.remove()
       mapRef.current = null
       setMapLoaded(false)
@@ -360,8 +428,10 @@ function App() {
     const mapConfig: maplibregl.MapOptions = {
       container: mapContainer.current,
       style: styleConfig as maplibregl.StyleSpecification | string,
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM
+      center: mapStateRef.current.center,
+      zoom: mapStateRef.current.zoom,
+      pitch: mapStateRef.current.pitch,
+      bearing: mapStateRef.current.bearing
     }
 
 
@@ -377,6 +447,12 @@ function App() {
     })
 
     map.on('load', () => {
+      // スタイルにglyphsプロパティが存在しない場合は追加
+      const style = map.getStyle()
+      if (!style.glyphs) {
+        style.glyphs = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
+        map.setStyle(style)
+      }
       setMapLoaded(true)
     })
 
@@ -572,11 +648,13 @@ function App() {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
-    if (map.getSource(layer.id)) return
+    // ソースまたはレイヤーが既に存在する場合は早期リターン
+    if (map.getSource(layer.id) || map.getLayer(layer.id)) {
+      return
+    }
 
     try {
-      const response = await fetch(layer.path)
-      const data = await response.json()
+      const data = await fetchGeoJSONWithCache(layer.path)
 
       const newItems: SearchIndexItem[] = []
       data.features.forEach((feature: any) => {
@@ -591,7 +669,17 @@ function App() {
       })
       setSearchIndex(prev => [...prev, ...newItems])
 
+      // ソースの存在を再確認（非同期処理中に追加された可能性がある）
+      if (map.getSource(layer.id)) {
+        return
+      }
+
       map.addSource(layer.id, { type: 'geojson', data })
+
+      // レイヤーの存在を再確認
+      if (map.getLayer(layer.id) || map.getLayer(`${layer.id}-outline`)) {
+        return
+      }
 
       map.addLayer({
         id: layer.id,
@@ -623,10 +711,26 @@ function App() {
   // Load default layers on map load
   // ============================================
   useEffect(() => {
-    if (!mapLoaded || searchIndex.length > 0) return
+    if (!mapLoaded) return
+
+    // Check if we've already loaded the initial regions
+    const loadedRegions = new Set<string>()
+    layerStates.forEach((_, layerId) => {
+      LAYER_GROUPS.forEach(group => {
+        group.layers.forEach(layer => {
+          if (layer.id === layerId) {
+            loadedRegions.add(group.name)
+          }
+        })
+      })
+    })
 
     // Load multiple regions for better search coverage
     const regionsToLoad = ['関東', '近畿', '中部']
+    const needsLoading = regionsToLoad.some(region => !loadedRegions.has(region))
+
+    if (!needsLoading) return
+
     LAYER_GROUPS.forEach(group => {
       if (regionsToLoad.includes(group.name)) {
         group.layers.forEach(layer => {
@@ -634,7 +738,7 @@ function App() {
         })
       }
     })
-  }, [mapLoaded, addLayer])
+  }, [mapLoaded, layerStates, addLayer])
 
   // ============================================
   // Auto-load unloaded layers when search returns no results
@@ -976,11 +1080,19 @@ function App() {
         for (const layer of allLayers) {
           if (!map.getSource(`${restrictionId}-${layer.id}`)) {
             try {
-              const response = await fetch(layer.path)
-              const data = await response.json()
+              const data = await fetchGeoJSONWithCache(layer.path)
               const sourceId = `${restrictionId}-${layer.id}`
 
               map.addSource(sourceId, { type: 'geojson', data })
+
+              // レイヤーが既に存在する場合は削除
+              if (map.getLayer(sourceId)) {
+                map.removeLayer(sourceId)
+              }
+              if (map.getLayer(`${sourceId}-outline`)) {
+                map.removeLayer(`${sourceId}-outline`)
+              }
+
               map.addLayer({
                 id: sourceId,
                 type: 'fill',
@@ -1303,7 +1415,7 @@ function App() {
             {(Object.keys(BASE_MAPS) as BaseMapKey[]).map((key) => (
               <button
                 key={key}
-                onClick={() => setBaseMap(key)}
+                onClick={() => handleBaseMapChange(key)}
                 style={{
                   padding: '4px 8px',
                   fontSize: '12px',
@@ -1351,6 +1463,7 @@ function App() {
         {/* Drawing Tools - サイドバー内に埋め込み */}
         <DrawingTools
           map={mapRef.current}
+          mapLoaded={mapLoaded}
           darkMode={darkMode}
           embedded={true}
         />
@@ -1685,7 +1798,23 @@ function App() {
         }}
         title={`${darkMode ? 'ライトモード' : 'ダークモード'}に切替 [L]`}
       >
-        {darkMode ? '☀️' : '🌙'}
+        {darkMode ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        )}
       </button>
 
       {/* 2D/3D Toggle [2]/[3] */}

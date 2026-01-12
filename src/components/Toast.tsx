@@ -89,9 +89,7 @@ function getBackgroundColor(type: string): string {
 }
 
 function getToastStyles(type: string): React.CSSProperties {
-  return {
-    borderLeft: `4px solid ${getAccentColor(type)}`
-  }
+  return {}
 }
 
 function getAccentColor(type: string): string {

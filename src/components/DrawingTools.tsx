@@ -61,11 +61,9 @@ const STORAGE_KEY = 'did-map-drawn-features'
 // localStorageへの保存
 const saveToLocalStorage = (features: GeoJSON.FeatureCollection) => {
   try {
-    console.log('[saveToLocalStorage] Saving', features.features?.length || 0, 'features')
     localStorage.setItem(STORAGE_KEY, JSON.stringify(features))
-    console.log('[saveToLocalStorage] Saved successfully')
   } catch (error) {
-    console.error('[saveToLocalStorage] Failed to save to localStorage:', error)
+    console.error('Failed to save to localStorage:', error)
   }
 }
 
@@ -73,13 +71,10 @@ const saveToLocalStorage = (features: GeoJSON.FeatureCollection) => {
 const loadFromLocalStorage = (): GeoJSON.FeatureCollection | null => {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
-    console.log('[loadFromLocalStorage] Raw data:', data ? `${data.length} chars` : 'null')
     if (!data) return null
-    const parsed = JSON.parse(data) as GeoJSON.FeatureCollection
-    console.log('[loadFromLocalStorage] Parsed features:', parsed.features?.length || 0)
-    return parsed
+    return JSON.parse(data) as GeoJSON.FeatureCollection
   } catch (error) {
-    console.error('[loadFromLocalStorage] Failed to load from localStorage:', error)
+    console.error('Failed to load from localStorage:', error)
     return null
   }
 }
@@ -121,15 +116,10 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   // drawnFeaturesが変更されたらlocalStorageに保存（バックアップ）
   useEffect(() => {
     // データ復元中はスキップ（復元処理自体が保存するため）
-    if (isRestoringRef.current) {
-      console.log('[DrawingTools] Backup: Skipping save during restore')
-      return
-    }
+    if (isRestoringRef.current) return
 
     // 初回マウント時はスキップ（空の状態で上書きしないため）
     if (drawnFeatures.length === 0 && !drawRef.current) return
-
-    console.log('[DrawingTools] Backup: Saving', drawnFeatures.length, 'features from state')
 
     // drawnFeaturesからGeoJSONを再構築
     const featureCollection: GeoJSON.FeatureCollection = {
@@ -217,12 +207,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // Draw初期化
   useEffect(() => {
-    if (!map || !mapLoaded) {
-      console.log('[DrawingTools] Skipping init - map:', !!map, 'mapLoaded:', mapLoaded)
-      return
-    }
-
-    console.log('[DrawingTools] Initializing draw control')
+    if (!map || !mapLoaded) return
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -382,8 +367,6 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.addControl(draw, 'top-left')
     drawRef.current = draw
 
-    console.log('[DrawingTools] Draw control initialized')
-
     // イベントハンドラ
     const handleCreate = (e: { features: Array<{ id: string }> }) => {
       updateFeatures()
@@ -446,26 +429,21 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     // localStorageからデータを復元
     const restoreData = () => {
       const savedData = loadFromLocalStorage()
-      console.log('[DrawingTools] Attempting to restore data:', savedData?.features.length, 'features')
 
       if (savedData && savedData.features.length > 0) {
         try {
           isRestoringRef.current = true
           draw.set(savedData)
-          console.log('[DrawingTools] Data restored successfully, current features:', draw.getAll().features.length)
           updateFeatures()
 
           // 復元完了後、フラグをリセット
           setTimeout(() => {
             isRestoringRef.current = false
-            console.log('[DrawingTools] Restore completed, backup enabled')
           }, 500)
         } catch (error) {
-          console.error('[DrawingTools] Failed to restore drawing data:', error)
+          console.error('Failed to restore drawing data:', error)
           isRestoringRef.current = false
         }
-      } else {
-        console.log('[DrawingTools] No saved data to restore')
       }
     }
 
@@ -474,26 +452,18 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     try {
       styleLoaded = !!map.isStyleLoaded()
     } catch (e) {
-      // スタイルがまだ追加されていない場合はfalse
       styleLoaded = false
     }
 
     if (styleLoaded) {
-      console.log('[DrawingTools] Style already loaded, restoring data')
-      // スタイルがロード済みなら少し遅延させて復元
       setTimeout(restoreData, 200)
     } else {
-      console.log('[DrawingTools] Waiting for style load')
-      // スタイルロードを待ってから復元
       map.once('styledata', () => {
-        console.log('[DrawingTools] Style loaded, restoring data')
         setTimeout(restoreData, 200)
       })
     }
 
     return () => {
-      console.log('[DrawingTools] Cleanup started')
-
       // イベントリスナーを削除
       if (map) {
         try {
@@ -502,9 +472,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           map.off('draw.delete', handleDelete)
           map.off('draw.selectionchange', handleSelectionChange)
           map.off('draw.modechange', handleModeChange)
-          console.log('[DrawingTools] Event listeners removed')
         } catch (e) {
-          console.warn('[DrawingTools] Failed to remove event listeners:', e)
+          console.warn('Failed to remove event listeners:', e)
         }
 
         // Drawコントロールを削除（マップが有効な場合のみ）
@@ -512,9 +481,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           try {
             // @ts-expect-error MapLibreとMapboxの互換性
             map.removeControl(draw)
-            console.log('[DrawingTools] Draw control removed')
           } catch (e) {
-            console.warn('[DrawingTools] Failed to remove draw control:', e)
+            console.warn('Failed to remove draw control:', e)
           }
         }
       }

@@ -985,10 +985,11 @@ ${kmlFeatures}
 
       if (coords.length > 0) {
         lines.push(`【${name}】${altitudeStr}`)
-        coords.forEach((coord) => {
+        coords.forEach((coord, index) => {
           const lat = decimalToDMS(coord[1], true)
           const lng = decimalToDMS(coord[0], false)
-          lines.push(`${lat}  ${lng}`)
+          const wpNumber = index + 1
+          lines.push(`WP${wpNumber}: ${lat}  ${lng}`)
         })
         lines.push('') // 空行を追加
         featureIndex++

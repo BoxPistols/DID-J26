@@ -10,6 +10,15 @@ import type maplibregl from 'maplibre-gl'
 import { createCirclePolygon } from '../lib/utils/geo'
 import { Modal } from './Modal'
 
+// デバウンスユーティリティ
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout>
+  return ((...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
+
 // 描画モードの型定義
 type DrawMode = 'none' | 'polygon' | 'circle' | 'point' | 'line'
 
@@ -30,7 +39,7 @@ const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
   geojson: 'GeoJSON',
   kml: 'KML',
   csv: 'CSV',
-  dms: 'DMS (NOTAM)'
+  dms: 'NOTAM'
 }
 
 // 描画されたフィーチャーの型
@@ -52,6 +61,7 @@ export interface DrawingToolsProps {
   onFeaturesChange?: (features: DrawnFeature[]) => void
   darkMode?: boolean
   embedded?: boolean // サイドバー内に埋め込む場合true
+  mapLoaded?: boolean // マップロード状態
 }
 
 // localStorage用のキー
@@ -82,8 +92,10 @@ const loadFromLocalStorage = (): GeoJSON.FeatureCollection | null => {
  * DrawingTools Component
  * 飛行経路・飛行範囲の描画ツール
  */
-export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded = false }: DrawingToolsProps) {
+export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded = false, mapLoaded = false }: DrawingToolsProps) {
   const [isOpen, setIsOpen] = useState(embedded) // 埋め込み時はデフォルトで開く
+  const [activeTab, setActiveTab] = useState<'draw' | 'manage' | 'export'>('draw')
+  const [showGuide, setShowGuide] = useState(false)
   const [drawMode, setDrawMode] = useState<DrawMode>('none')
   const [drawnFeatures, setDrawnFeatures] = useState<DrawnFeature[]>([])
   const [circleRadius, setCircleRadius] = useState(100) // メートル
@@ -100,6 +112,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const [continuousMode, setContinuousMode] = useState(true) // WP連続配置モード
   const drawModeRef = useRef<DrawMode>('none') // 描画モードをrefでも保持
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
+  const isRestoringRef = useRef(false) // データ復元中フラグ
 
   // drawModeが変更されたらrefも更新
   useEffect(() => {
@@ -110,6 +123,52 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   useEffect(() => {
     continuousModeRef.current = continuousMode
   }, [continuousMode])
+
+  // drawnFeaturesが変更されたらlocalStorageに保存（バックアップ）
+  useEffect(() => {
+    // データ復元中はスキップ（復元処理自体が保存するため）
+    if (isRestoringRef.current) return
+
+    // 初回マウント時はスキップ（空の状態で上書きしないため）
+    if (drawnFeatures.length === 0 && !drawRef.current) return
+
+    // drawnFeaturesからGeoJSONを再構築
+    const featureCollection: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: drawnFeatures.map(f => {
+        // プロパティに名前とその他の情報を含める
+        const properties: Record<string, unknown> = {
+          ...f.properties,
+          name: f.name
+        }
+
+        // 円の場合は追加プロパティを含める
+        if (f.type === 'circle' && f.radius && f.center) {
+          properties.isCircle = true
+          properties.radiusKm = f.radius / 1000
+          properties.center = f.center
+        }
+
+        // 高度情報を含める
+        if (f.elevation !== undefined) properties.elevation = f.elevation
+        if (f.flightHeight !== undefined) properties.flightHeight = f.flightHeight
+        if (f.maxAltitude !== undefined) properties.maxAltitude = f.maxAltitude
+
+        return {
+          type: 'Feature',
+          id: f.id,
+          properties,
+          geometry: f.type === 'point'
+            ? { type: 'Point', coordinates: f.coordinates as GeoJSON.Position }
+            : f.type === 'line'
+            ? { type: 'LineString', coordinates: f.coordinates as GeoJSON.Position[] }
+            : { type: 'Polygon', coordinates: f.coordinates as GeoJSON.Position[][] }
+        }
+      })
+    }
+
+    saveToLocalStorage(featureCollection)
+  }, [drawnFeatures])
 
   // Delete/Backspaceキーで選択オブジェクトを削除
   useEffect(() => {
@@ -159,7 +218,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // Draw初期化
   useEffect(() => {
-    if (!map) return
+    if (!map || !mapLoaded) return
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -319,6 +378,48 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.addControl(draw, 'top-left')
     drawRef.current = draw
 
+    // 頂点ラベル用のソースとレイヤーを追加
+    if (!map.getSource('vertex-labels')) {
+      map.addSource('vertex-labels', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      })
+
+      // 円形の背景
+      map.addLayer({
+        id: 'vertex-labels-background',
+        type: 'circle',
+        source: 'vertex-labels',
+        paint: {
+          'circle-radius': 12,
+          'circle-color': '#3388ff',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      })
+
+      // テキストラベル
+      map.addLayer({
+        id: 'vertex-labels',
+        type: 'symbol',
+        source: 'vertex-labels',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-font': ['Open Sans Bold'],
+          'text-size': 13,
+          'text-anchor': 'center'
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1.5
+        }
+      })
+    }
+
     // イベントハンドラ
     const handleCreate = (e: { features: Array<{ id: string }> }) => {
       updateFeatures()
@@ -379,30 +480,99 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.on('draw.modechange', handleModeChange)
 
     // localStorageからデータを復元
-    const savedData = loadFromLocalStorage()
-    if (savedData && savedData.features.length > 0) {
-      draw.set(savedData)
-      updateFeatures()
+    const restoreData = () => {
+      const savedData = loadFromLocalStorage()
+
+      if (savedData && savedData.features.length > 0) {
+        try {
+          isRestoringRef.current = true
+          draw.set(savedData)
+          updateFeatures()
+
+          // 復元完了後、フラグをリセット
+          setTimeout(() => {
+            isRestoringRef.current = false
+          }, 500)
+        } catch (error) {
+          console.error('Failed to restore drawing data:', error)
+          isRestoringRef.current = false
+        }
+      }
+    }
+
+    // マップスタイルがロードされた後にデータを復元
+    let styleLoaded = false
+    try {
+      styleLoaded = !!map.isStyleLoaded()
+    } catch (e) {
+      styleLoaded = false
+    }
+
+    if (styleLoaded) {
+      setTimeout(() => {
+        restoreData()
+        ensureDrawLayersOnTop()
+      }, 200)
+    } else {
+      map.once('styledata', () => {
+        setTimeout(() => {
+          restoreData()
+          ensureDrawLayersOnTop()
+        }, 200)
+      })
     }
 
     return () => {
-      try {
-        // マップが有効な場合のみクリーンアップ
-        if (map && map.getCanvas()) {
+      // イベントリスナーを削除
+      if (map) {
+        try {
           map.off('draw.create', handleCreate)
           map.off('draw.update', handleUpdate)
           map.off('draw.delete', handleDelete)
           map.off('draw.selectionchange', handleSelectionChange)
           map.off('draw.modechange', handleModeChange)
-          // @ts-expect-error MapLibreとMapboxの互換性
-          map.removeControl(draw)
+        } catch (e) {
+          console.warn('Failed to remove event listeners:', e)
         }
-      } catch {
-        // マップが既に破棄されている場合は無視
+
+        // 頂点ラベルレイヤーとソースを削除
+        if (map.getLayer('vertex-labels')) {
+          try {
+            map.removeLayer('vertex-labels')
+          } catch (e) {
+            console.warn('Failed to remove vertex labels layer:', e)
+          }
+        }
+        if (map.getLayer('vertex-labels-background')) {
+          try {
+            map.removeLayer('vertex-labels-background')
+          } catch (e) {
+            console.warn('Failed to remove vertex labels background layer:', e)
+          }
+        }
+        if (map.getSource('vertex-labels')) {
+          try {
+            map.removeSource('vertex-labels')
+          } catch (e) {
+            console.warn('Failed to remove vertex labels source:', e)
+          }
+        }
+
+        // Drawコントロールを削除（マップが有効な場合のみ）
+        if (map.getCanvas() && drawRef.current) {
+          try {
+            // @ts-expect-error MapLibreとMapboxの互換性
+            map.removeControl(draw)
+          } catch (e) {
+            console.warn('Failed to remove draw control:', e)
+          }
+        }
       }
+
       drawRef.current = null
     }
-  }, [map])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, mapLoaded])
 
   // 円描画モードのクリックハンドラ
   useEffect(() => {
@@ -446,6 +616,100 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       }
     }
   }, [map, drawMode, circleRadius])
+
+  // 頂点ラベルを更新
+  const updateVertexLabels = useCallback(() => {
+    if (!map || !drawRef.current) return
+
+    const allFeatures = drawRef.current.getAll()
+    const labelFeatures: GeoJSON.Feature[] = []
+
+    allFeatures.features.forEach((feature) => {
+      // ポイントは頂点ラベル不要
+      if (feature.geometry.type === 'Point') return
+
+      let coords: [number, number][] = []
+
+      if (feature.geometry.type === 'LineString') {
+        coords = feature.geometry.coordinates as [number, number][]
+      } else if (feature.geometry.type === 'Polygon') {
+        // ポリゴンの外周座標（最後の座標は最初と同じなので除外）
+        const outerRing = feature.geometry.coordinates[0] as [number, number][]
+        coords = outerRing.slice(0, -1)
+      }
+
+      // 各頂点にラベルを追加
+      coords.forEach((coord, index) => {
+        labelFeatures.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: coord
+          },
+          properties: {
+            label: `${index + 1}`
+          }
+        })
+      })
+    })
+
+    // ラベル用のソースを更新
+    const source = map.getSource('vertex-labels') as maplibregl.GeoJSONSource | undefined
+    if (source) {
+      source.setData({
+        type: 'FeatureCollection',
+        features: labelFeatures
+      })
+    }
+  }, [map])
+
+  // デバウンスされた頂点ラベル更新
+  const debouncedUpdateVertexLabels = useRef<(() => void) | null>(null)
+
+  // updateVertexLabelsが変更されたらデバウンス関数を再生成
+  useEffect(() => {
+    debouncedUpdateVertexLabels.current = debounce(updateVertexLabels, 100)
+  }, [updateVertexLabels])
+
+  // 描画レイヤーを最前面に移動（初回のみ）
+  const ensureDrawLayersOnTop = useCallback(() => {
+    if (!map) return
+
+    try {
+      // MapboxDrawのレイヤーIDリスト
+      const drawLayerIds = [
+        'gl-draw-polygon-fill-inactive',
+        'gl-draw-polygon-fill-active',
+        'gl-draw-polygon-stroke-inactive',
+        'gl-draw-polygon-stroke-active',
+        'gl-draw-line-inactive',
+        'gl-draw-line-active',
+        'gl-draw-point-inactive',
+        'gl-draw-point-active',
+        'gl-draw-point-point-stroke-inactive',
+        'gl-draw-polygon-and-line-vertex-stroke-inactive',
+        'gl-draw-polygon-and-line-vertex-inactive',
+        'gl-draw-polygon-midpoint'
+      ]
+
+      // 描画レイヤーを最前面に移動
+      drawLayerIds.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+          map.moveLayer(layerId)
+        }
+      })
+
+      // 頂点ラベルレイヤーを最前面に移動
+      if (map.getLayer('vertex-labels-background')) {
+        map.moveLayer('vertex-labels-background')
+      }
+      if (map.getLayer('vertex-labels')) {
+        map.moveLayer('vertex-labels')
+      }
+    } catch (e) {
+      // レイヤーが存在しない場合は無視
+    }
+  }, [map])
 
   // フィーチャー更新
   const updateFeatures = useCallback(() => {
@@ -491,10 +755,15 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
     // localStorageに保存
     saveToLocalStorage(allFeatures)
+
+    // 頂点ラベルを更新（デバウンス）
+    debouncedUpdateVertexLabels.current?.()
   }, [onFeaturesChange])
 
   // 座標配列からバウンディングボックスを計算
-  const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] => {
+  const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] | null => {
+    if (!coordinates || coordinates.length === 0) return null
+
     let minLng = Infinity
     let maxLng = -Infinity
     let minLat = Infinity
@@ -507,6 +776,25 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       if (lat < minLat) minLat = lat
       if (lat > maxLat) maxLat = lat
     })
+
+    // バウンディングボックスが有効かチェック
+    if (!isFinite(minLng) || !isFinite(maxLng) || !isFinite(minLat) || !isFinite(maxLat)) {
+      return null
+    }
+
+    // 最小サイズのチェック（点や線の場合に備えて）
+    const lngDiff = maxLng - minLng
+    const latDiff = maxLat - minLat
+    const minDiff = 0.001 // 約100m
+
+    if (lngDiff < minDiff && latDiff < minDiff) {
+      // 点や非常に小さいポリゴンの場合、周囲にマージンを追加
+      const margin = minDiff / 2
+      return [
+        [minLng - margin, minLat - margin],
+        [maxLng + margin, maxLat + margin]
+      ]
+    }
 
     return [[minLng, minLat], [maxLng, maxLat]]
   }, [])
@@ -553,10 +841,46 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
 
     // ズーム実行
+    const currentZoom = map.getZoom()
     if (bounds) {
-      map.fitBounds(bounds, { padding: 50, maxZoom: 16 })
+      // boundsの妥当性をチェック
+      const [[minLng, minLat], [maxLng, maxLat]] = bounds
+      const isValidBounds =
+        isFinite(minLng) && isFinite(minLat) && isFinite(maxLng) && isFinite(maxLat) &&
+        minLng >= -180 && maxLng <= 180 && minLat >= -90 && maxLat <= 90 &&
+        minLng < maxLng && minLat < maxLat
+
+      if (isValidBounds) {
+        try {
+          map.fitBounds(bounds, {
+            padding: 100,
+            maxZoom: Math.min(15, currentZoom + 2),
+            duration: 1000
+          })
+        } catch (error) {
+          console.error('Failed to fit bounds:', error)
+        }
+      }
     } else if (center) {
-      map.flyTo({ center, zoom: 16 })
+      // centerの妥当性をチェック
+      const [lng, lat] = center
+      const isValidCenter =
+        isFinite(lng) && isFinite(lat) &&
+        lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
+
+      if (isValidCenter) {
+        // ポイント/円の場合、ズームレベルを控えめに
+        const targetZoom = Math.min(14, currentZoom + 1)
+        try {
+          map.flyTo({
+            center,
+            zoom: targetZoom,
+            duration: 1000
+          })
+        } catch (error) {
+          console.error('Failed to fly to center:', error)
+        }
+      }
     }
   }, [map, calculateBounds])
 
@@ -864,7 +1188,7 @@ ${kmlFeatures}
     return `${direction}${degrees}°${minutes}'${seconds}"`
   }
 
-  // DMS (NOTAM)フォーマットに変換
+  // NOTAMフォーマットに変換
   const convertToDMS = (features: GeoJSON.Feature[]): string => {
     const lines: string[] = []
     let featureIndex = 1
@@ -893,15 +1217,17 @@ ${kmlFeatures}
         coords.push(...lineCoords)
       } else if (f.geometry.type === 'Polygon') {
         const polygonCoords = f.geometry.coordinates[0] as [number, number][]
-        coords.push(...polygonCoords)
+        // ポリゴンの場合、最後の座標は最初の座標と同じ（閉じるため）なので除外
+        coords.push(...polygonCoords.slice(0, -1))
       }
 
       if (coords.length > 0) {
         lines.push(`【${name}】${altitudeStr}`)
-        coords.forEach((coord) => {
+        coords.forEach((coord, index) => {
           const lat = decimalToDMS(coord[1], true)
           const lng = decimalToDMS(coord[0], false)
-          lines.push(`${lat}  ${lng}`)
+          const wpNumber = index + 1
+          lines.push(`WP${wpNumber}: ${lat}  ${lng}`)
         })
         lines.push('') // 空行を追加
         featureIndex++
@@ -1223,12 +1549,98 @@ ${kmlFeatures}
           </div>
         )}
 
-        {/* Drawing Tools */}
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          borderBottom: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`,
+          backgroundColor: darkMode ? '#2a2a2a' : '#fafafa'
+        }}>
+          <button
+            onClick={() => setActiveTab('draw')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'draw' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'draw' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'draw' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            描画
+          </button>
+          <button
+            onClick={() => setActiveTab('manage')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'manage' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'manage' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'manage' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px',
+              position: 'relative'
+            }}
+          >
+            管理
+            {drawnFeatures.length > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                backgroundColor: '#ff5722',
+                color: '#fff',
+                borderRadius: '10px',
+                padding: '2px 6px',
+                fontSize: '10px',
+                fontWeight: 'bold'
+              }}>
+                {drawnFeatures.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('export')}
+            style={{
+              flex: 1,
+              padding: '12px 8px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
+              color: activeTab === 'export' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: activeTab === 'export' ? 600 : 400,
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            出力
+          </button>
+        </div>
+
+        {/* Tab Content */}
         <div style={{ padding: '12px 16px' }}>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              描画ツール
-            </label>
+          {/* 描画タブ */}
+          {activeTab === 'draw' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a3a4a' : '#e3f2fd',
+                borderRadius: '6px'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#90caf9' : '#1565c0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  描画ツール
+                </label>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => handleModeChange('polygon')}
@@ -1385,11 +1797,66 @@ ${kmlFeatures}
             </div>
           )}
 
-          {/* 描画済みフィーチャー一覧 */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              描画済み ({drawnFeatures.length})
-            </label>
+              {/* 操作ガイド */}
+              <div style={{
+                marginTop: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a2a2a' : '#f9f9f9',
+                borderRadius: '6px',
+                border: `1px solid ${borderColor}`
+              }}>
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: darkMode ? '#ccc' : '#666',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span>操作ガイド</span>
+                  <span style={{ fontSize: '10px' }}>{showGuide ? '▲' : '▼'}</span>
+                </button>
+                {showGuide && (
+                  <div style={{
+                    marginTop: '8px',
+                    fontSize: '11px',
+                    color: darkMode ? '#aaa' : '#666',
+                    lineHeight: '1.6'
+                  }}>
+                    <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                      <li>ポリゴン/経路: クリックで頂点追加、最初の点をクリックで完了</li>
+                      <li>円: 中心をクリックして配置</li>
+                      <li>編集: 図形を選択後、頂点をドラッグで移動</li>
+                      <li>複製: 図形をドラッグして移動</li>
+                      <li>選択: Shift+ドラッグで複数選択</li>
+                      <li>削除: 図形選択後、Delete/Backspaceキー</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* 管理タブ */}
+          {activeTab === 'manage' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
+                borderRadius: '6px'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  描画済み
+                </label>
             <div style={{
               maxHeight: '120px',
               overflowY: 'auto',
@@ -1432,7 +1899,6 @@ ${kmlFeatures}
                 ))
               )}
             </div>
-          </div>
 
           {/* 選択中の円のリサイズ */}
           {selectedFeatureId && drawnFeatures.find(f => f.id === selectedFeatureId)?.type === 'circle' && (
@@ -1780,7 +2246,7 @@ ${kmlFeatures}
                   fontSize: '11px',
                   color: darkMode ? '#c5e1a5' : '#558b2f'
                 }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 頂点の編集方法</div>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
                   <div style={{ lineHeight: '1.6' }}>
                     • 頂点を移動: 青い点をドラッグ<br/>
                     • 頂点を追加: 辺の中点（半透明の点）をクリック<br/>
@@ -1791,12 +2257,25 @@ ${kmlFeatures}
             }
             return null
           })()}
+              </div>
+            </>
+          )}
+
+          {/* 出力タブ */}
+          {activeTab === 'export' && (
+            <>
+              <div style={{
+                marginBottom: '12px',
+                padding: '10px',
+                backgroundColor: darkMode ? '#2a2a3a' : '#e8f5e9',
+                borderRadius: '6px'
+              }}>
+                <label style={{ fontSize: '12px', color: darkMode ? '#81c784' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+                  エクスポート形式
+                </label>
 
           {/* エクスポート形式選択 */}
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ fontSize: '12px', color: darkMode ? '#ccc' : '#666', display: 'block', marginBottom: '6px' }}>
-              エクスポート形式
-            </label>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {(['geojson', 'kml', 'csv', 'dms'] as ExportFormat[]).map(format => (
                 <button
@@ -1875,25 +2354,9 @@ ${kmlFeatures}
               全て削除
             </button>
           )}
-        </div>
-
-        {/* Help */}
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: darkMode ? '#222' : '#f8f8f8',
-          borderTop: `1px solid ${borderColor}`,
-          fontSize: '10px',
-          color: darkMode ? '#bbb' : '#666'
-        }}>
-          <p style={{ margin: '0 0 4px', fontWeight: 'bold' }}>操作ガイド:</p>
-          <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.6 }}>
-            <li><strong>ポリゴン/経路:</strong> クリックで頂点追加、最初の点をクリックで完了</li>
-            <li><strong>円:</strong> 半径選択後、地図をクリックで配置</li>
-            <li><strong>編集:</strong> 図形選択→「編集」→頂点ドラッグで変形</li>
-            <li><strong>移動:</strong> 図形をドラッグして移動</li>
-            <li><strong>選択:</strong> Shift+ドラッグで複数選択</li>
-            <li><strong>削除:</strong> Delete/Backspaceキーで選択オブジェクト削除</li>
-          </ul>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1937,7 +2400,7 @@ ${kmlFeatures}
                 margin: '0 auto 16px',
                 fontSize: '24px'
               }}>
-                🗑️
+                ×
               </div>
               <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#333' }}>
                 オブジェクトを削除しますか？

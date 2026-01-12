@@ -28,7 +28,8 @@
     "preview": "vite preview",
     "prepublishOnly": "npm run build:lib",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "convert:did": "node scripts/convert_did_2020.js"
   },
   "repository": {
     "type": "git",
@@ -73,6 +74,7 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "mapshaper": "^0.6.113",
     "storybook": "^8.6.15",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"

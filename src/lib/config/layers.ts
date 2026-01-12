@@ -60,7 +60,7 @@ export const LAYER_GROUPS: LayerGroup[] = [
   {
     name: '北海道・東北',
     layers: [
-      { id: 'did-01', name: '北海道', path: '/GeoJSON/h22_did_01_hokkaido.geojson', color: PREFECTURE_COLORS['01'] },
+      { id: 'did-01', name: '北海道', path: '/GeoJSON/2020/r02_did_01_hokkaido.geojson', color: PREFECTURE_COLORS['01'] },
       { id: 'did-02', name: '青森県', path: '/GeoJSON/h22_did_02_aomori.geojson', color: PREFECTURE_COLORS['02'] },
       { id: 'did-03', name: '岩手県', path: '/GeoJSON/h22_did_03_iwate.geojson', color: PREFECTURE_COLORS['03'] },
       { id: 'did-04', name: '宮城県', path: '/GeoJSON/h22_did_04_miyagi.geojson', color: PREFECTURE_COLORS['04'] },

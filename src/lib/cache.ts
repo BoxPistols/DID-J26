@@ -6,8 +6,8 @@
 const CACHE_NAME = 'didj-geojson-v1'
 const CACHE_EXPIRATION_DAYS = 7 // 7日間キャッシュ
 
-interface CachedData {
-  data: any
+interface CachedData<T = unknown> {
+  data: T
   timestamp: number
 }
 
@@ -21,7 +21,7 @@ const isCacheAvailable = (): boolean => {
 /**
  * GeoJSONデータをキャッシュから取得
  */
-export const getCachedGeoJSON = async (url: string): Promise<any | null> => {
+export const getCachedGeoJSON = async <T = GeoJSON.FeatureCollection>(url: string): Promise<T | null> => {
   if (!isCacheAvailable()) return null
 
   try {
@@ -30,7 +30,7 @@ export const getCachedGeoJSON = async (url: string): Promise<any | null> => {
 
     if (!response) return null
 
-    const cachedData: CachedData = await response.json()
+    const cachedData: CachedData<T> = await response.json()
     const now = Date.now()
     const expirationMs = CACHE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000
 
@@ -50,12 +50,12 @@ export const getCachedGeoJSON = async (url: string): Promise<any | null> => {
 /**
  * GeoJSONデータをキャッシュに保存
  */
-export const setCachedGeoJSON = async (url: string, data: any): Promise<void> => {
+export const setCachedGeoJSON = async <T = GeoJSON.FeatureCollection>(url: string, data: T): Promise<void> => {
   if (!isCacheAvailable()) return
 
   try {
     const cache = await caches.open(CACHE_NAME)
-    const cachedData: CachedData = {
+    const cachedData: CachedData<T> = {
       data,
       timestamp: Date.now()
     }
@@ -73,16 +73,21 @@ export const setCachedGeoJSON = async (url: string, data: any): Promise<void> =>
 /**
  * GeoJSONデータをfetchし、キャッシュを活用
  */
-export const fetchGeoJSONWithCache = async (url: string): Promise<any> => {
+export const fetchGeoJSONWithCache = async <T = GeoJSON.FeatureCollection>(url: string): Promise<T> => {
   // まずキャッシュを確認
-  const cached = await getCachedGeoJSON(url)
+  const cached = await getCachedGeoJSON<T>(url)
   if (cached) {
     return cached
   }
 
   // キャッシュにない場合はfetch
   const response = await fetch(url)
-  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json() as T
 
   // 取得したデータをキャッシュに保存
   await setCachedGeoJSON(url, data)

@@ -301,9 +301,11 @@ function App() {
       setSearchResults([])
       return []
     }
+    console.log('Search term:', term, 'Search index length:', searchIndex.length)
     const results = searchIndex.filter(item =>
       item.cityName.includes(term) || item.prefName.includes(term)
     )
+    console.log('DID search results:', results.length)
     const uniqueResults = Array.from(
       new Map(results.map(item => [item.prefName + item.cityName, item])).values()
     )
@@ -447,6 +449,12 @@ function App() {
     })
 
     map.on('load', () => {
+      // スタイルにglyphsプロパティが存在しない場合は追加
+      const style = map.getStyle()
+      if (!style.glyphs) {
+        style.glyphs = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
+        map.setStyle(style)
+      }
       setMapLoaded(true)
     })
 
@@ -642,7 +650,10 @@ function App() {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
-    if (map.getSource(layer.id)) return
+    // ソースまたはレイヤーが既に存在する場合は早期リターン
+    if (map.getSource(layer.id) || map.getLayer(layer.id)) {
+      return
+    }
 
     try {
       const data = await fetchGeoJSONWithCache(layer.path)
@@ -660,14 +671,16 @@ function App() {
       })
       setSearchIndex(prev => [...prev, ...newItems])
 
+      // ソースの存在を再確認（非同期処理中に追加された可能性がある）
+      if (map.getSource(layer.id)) {
+        return
+      }
+
       map.addSource(layer.id, { type: 'geojson', data })
 
-      // レイヤーが既に存在する場合は削除
-      if (map.getLayer(layer.id)) {
-        map.removeLayer(layer.id)
-      }
-      if (map.getLayer(`${layer.id}-outline`)) {
-        map.removeLayer(`${layer.id}-outline`)
+      // レイヤーの存在を再確認
+      if (map.getLayer(layer.id) || map.getLayer(`${layer.id}-outline`)) {
+        return
       }
 
       map.addLayer({
@@ -700,10 +713,26 @@ function App() {
   // Load default layers on map load
   // ============================================
   useEffect(() => {
-    if (!mapLoaded || searchIndex.length > 0) return
+    if (!mapLoaded) return
+
+    // Check if we've already loaded the initial regions
+    const loadedRegions = new Set<string>()
+    layerStates.forEach((_, layerId) => {
+      LAYER_GROUPS.forEach(group => {
+        group.layers.forEach(layer => {
+          if (layer.id === layerId) {
+            loadedRegions.add(group.name)
+          }
+        })
+      })
+    })
 
     // Load multiple regions for better search coverage
     const regionsToLoad = ['関東', '近畿', '中部']
+    const needsLoading = regionsToLoad.some(region => !loadedRegions.has(region))
+
+    if (!needsLoading) return
+
     LAYER_GROUPS.forEach(group => {
       if (regionsToLoad.includes(group.name)) {
         group.layers.forEach(layer => {
@@ -711,7 +740,7 @@ function App() {
         })
       }
     })
-  }, [mapLoaded, addLayer])
+  }, [mapLoaded, layerStates, addLayer])
 
   // ============================================
   // Auto-load unloaded layers when search returns no results
@@ -1771,7 +1800,23 @@ function App() {
         }}
         title={`${darkMode ? 'ライトモード' : 'ダークモード'}に切替 [L]`}
       >
-        {darkMode ? '☀️' : '🌙'}
+        {darkMode ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        )}
       </button>
 
       {/* 2D/3D Toggle [2]/[3] */}

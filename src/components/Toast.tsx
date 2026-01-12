@@ -37,8 +37,7 @@ export function ToastContainer() {
             animation: 'slideIn 0.3s ease-in-out',
             backgroundColor: getBackgroundColor(toast.type),
             color: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            ...getToastStyles(toast.type)
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
           }}
         >
           <span>{toast.message}</span>
@@ -85,23 +84,5 @@ function getBackgroundColor(type: string): string {
     case 'info':
     default:
       return '#2196F3'
-  }
-}
-
-function getToastStyles(type: string): React.CSSProperties {
-  return {}
-}
-
-function getAccentColor(type: string): string {
-  switch (type) {
-    case 'success':
-      return '#45a049'
-    case 'error':
-      return '#da190b'
-    case 'warning':
-      return '#e65100'
-    case 'info':
-    default:
-      return '#0b7dda'
   }
 }

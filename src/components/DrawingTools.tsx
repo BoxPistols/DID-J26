@@ -367,6 +367,35 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.addControl(draw, 'top-left')
     drawRef.current = draw
 
+    // 頂点ラベル用のソースとレイヤーを追加
+    if (!map.getSource('vertex-labels')) {
+      map.addSource('vertex-labels', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      })
+
+      map.addLayer({
+        id: 'vertex-labels',
+        type: 'symbol',
+        source: 'vertex-labels',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 14,
+          'text-offset': [0, -1.5],
+          'text-anchor': 'center'
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#3388ff',
+          'text-halo-width': 2
+        }
+      })
+    }
+
     // イベントハンドラ
     const handleCreate = (e: { features: Array<{ id: string }> }) => {
       updateFeatures()
@@ -476,6 +505,22 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           console.warn('Failed to remove event listeners:', e)
         }
 
+        // 頂点ラベルレイヤーとソースを削除
+        if (map.getLayer('vertex-labels')) {
+          try {
+            map.removeLayer('vertex-labels')
+          } catch (e) {
+            console.warn('Failed to remove vertex labels layer:', e)
+          }
+        }
+        if (map.getSource('vertex-labels')) {
+          try {
+            map.removeSource('vertex-labels')
+          } catch (e) {
+            console.warn('Failed to remove vertex labels source:', e)
+          }
+        }
+
         // Drawコントロールを削除（マップが有効な場合のみ）
         if (map.getCanvas() && drawRef.current) {
           try {
@@ -534,6 +579,52 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
   }, [map, drawMode, circleRadius])
 
+  // 頂点ラベルを更新
+  const updateVertexLabels = useCallback(() => {
+    if (!map || !drawRef.current) return
+
+    const allFeatures = drawRef.current.getAll()
+    const labelFeatures: GeoJSON.Feature[] = []
+
+    allFeatures.features.forEach((feature) => {
+      // ポイントは頂点ラベル不要
+      if (feature.geometry.type === 'Point') return
+
+      let coords: [number, number][] = []
+
+      if (feature.geometry.type === 'LineString') {
+        coords = feature.geometry.coordinates as [number, number][]
+      } else if (feature.geometry.type === 'Polygon') {
+        // ポリゴンの外周座標（最後の座標は最初と同じなので除外）
+        const outerRing = feature.geometry.coordinates[0] as [number, number][]
+        coords = outerRing.slice(0, -1)
+      }
+
+      // 各頂点にラベルを追加
+      coords.forEach((coord, index) => {
+        labelFeatures.push({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: coord
+          },
+          properties: {
+            label: `${index + 1}`
+          }
+        })
+      })
+    })
+
+    // ラベル用のソースを更新
+    const source = map.getSource('vertex-labels') as maplibregl.GeoJSONSource | undefined
+    if (source) {
+      source.setData({
+        type: 'FeatureCollection',
+        features: labelFeatures
+      })
+    }
+  }, [map])
+
   // フィーチャー更新
   const updateFeatures = useCallback(() => {
     if (!drawRef.current) return
@@ -578,7 +669,10 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
     // localStorageに保存
     saveToLocalStorage(allFeatures)
-  }, [onFeaturesChange])
+
+    // 頂点ラベルを更新
+    updateVertexLabels()
+  }, [onFeaturesChange, updateVertexLabels])
 
   // 座標配列からバウンディングボックスを計算
   const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] => {

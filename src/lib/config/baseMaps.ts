@@ -16,6 +16,7 @@ export const BASE_MAPS: Record<BaseMapKey, { name: string; style: string | mapli
     name: '地理院地図',
     style: {
       version: 8 as const,
+      glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       sources: {
         gsi: {
           type: 'raster' as const,
@@ -31,6 +32,7 @@ export const BASE_MAPS: Record<BaseMapKey, { name: string; style: string | mapli
     name: '淡色地図',
     style: {
       version: 8 as const,
+      glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       sources: {
         pale: {
           type: 'raster' as const,
@@ -46,6 +48,7 @@ export const BASE_MAPS: Record<BaseMapKey, { name: string; style: string | mapli
     name: '航空写真',
     style: {
       version: 8 as const,
+      glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       sources: {
         photo: {
           type: 'raster' as const,

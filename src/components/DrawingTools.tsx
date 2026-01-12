@@ -399,12 +399,14 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         source: 'vertex-labels',
         layout: {
           'text-field': ['get', 'label'],
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-font': ['Open Sans Bold'],
           'text-size': 13,
           'text-anchor': 'center'
         },
         paint: {
-          'text-color': '#ffffff'
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 1.5
         }
       })
     }
@@ -741,7 +743,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   }, [onFeaturesChange, updateVertexLabels])
 
   // 座標配列からバウンディングボックスを計算
-  const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] => {
+  const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] | null => {
+    if (!coordinates || coordinates.length === 0) return null
+
     let minLng = Infinity
     let maxLng = -Infinity
     let minLat = Infinity
@@ -754,6 +758,25 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       if (lat < minLat) minLat = lat
       if (lat > maxLat) maxLat = lat
     })
+
+    // バウンディングボックスが有効かチェック
+    if (!isFinite(minLng) || !isFinite(maxLng) || !isFinite(minLat) || !isFinite(maxLat)) {
+      return null
+    }
+
+    // 最小サイズのチェック（点や線の場合に備えて）
+    const lngDiff = maxLng - minLng
+    const latDiff = maxLat - minLat
+    const minDiff = 0.001 // 約100m
+
+    if (lngDiff < minDiff && latDiff < minDiff) {
+      // 点や非常に小さいポリゴンの場合、周囲にマージンを追加
+      const margin = minDiff / 2
+      return [
+        [minLng - margin, minLat - margin],
+        [maxLng + margin, maxLat + margin]
+      ]
+    }
 
     return [[minLng, minLat], [maxLng, maxLat]]
   }, [])
@@ -800,10 +823,46 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
 
     // ズーム実行
+    const currentZoom = map.getZoom()
     if (bounds) {
-      map.fitBounds(bounds, { padding: 50, maxZoom: 16 })
+      // boundsの妥当性をチェック
+      const [[minLng, minLat], [maxLng, maxLat]] = bounds
+      const isValidBounds =
+        isFinite(minLng) && isFinite(minLat) && isFinite(maxLng) && isFinite(maxLat) &&
+        minLng >= -180 && maxLng <= 180 && minLat >= -90 && maxLat <= 90 &&
+        minLng < maxLng && minLat < maxLat
+
+      if (isValidBounds) {
+        try {
+          map.fitBounds(bounds, {
+            padding: 100,
+            maxZoom: Math.min(15, currentZoom + 2),
+            duration: 1000
+          })
+        } catch (error) {
+          console.error('Failed to fit bounds:', error)
+        }
+      }
     } else if (center) {
-      map.flyTo({ center, zoom: 16 })
+      // centerの妥当性をチェック
+      const [lng, lat] = center
+      const isValidCenter =
+        isFinite(lng) && isFinite(lat) &&
+        lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
+
+      if (isValidCenter) {
+        // ポイント/円の場合、ズームレベルを控えめに
+        const targetZoom = Math.min(14, currentZoom + 1)
+        try {
+          map.flyTo({
+            center,
+            zoom: targetZoom,
+            duration: 1000
+          })
+        } catch (error) {
+          console.error('Failed to fly to center:', error)
+        }
+      }
     }
   }, [map, calculateBounds])
 
@@ -1494,7 +1553,7 @@ ${kmlFeatures}
               marginBottom: '-2px'
             }}
           >
-            🖊️ 描画
+            描画
           </button>
           <button
             onClick={() => setActiveTab('manage')}
@@ -1513,7 +1572,7 @@ ${kmlFeatures}
               position: 'relative'
             }}
           >
-            📋 管理
+            管理
             {drawnFeatures.length > 0 && (
               <span style={{
                 position: 'absolute',
@@ -1546,7 +1605,7 @@ ${kmlFeatures}
               marginBottom: '-2px'
             }}
           >
-            📤 出力
+            出力
           </button>
         </div>
 
@@ -1559,11 +1618,10 @@ ${kmlFeatures}
                 marginBottom: '12px',
                 padding: '10px',
                 backgroundColor: darkMode ? '#2a3a4a' : '#e3f2fd',
-                borderRadius: '6px',
-                borderLeft: '4px solid #3388ff'
+                borderRadius: '6px'
               }}>
                 <label style={{ fontSize: '12px', color: darkMode ? '#90caf9' : '#1565c0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                  🖊️ 描画ツール
+                  描画ツール
                 </label>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               <button
@@ -1745,7 +1803,7 @@ ${kmlFeatures}
                     alignItems: 'center'
                   }}
                 >
-                  <span>ℹ️ 操作ガイド</span>
+                  <span>操作ガイド</span>
                   <span style={{ fontSize: '10px' }}>{showGuide ? '▲' : '▼'}</span>
                 </button>
                 {showGuide && (
@@ -1776,11 +1834,10 @@ ${kmlFeatures}
                 marginBottom: '12px',
                 padding: '10px',
                 backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
-                borderRadius: '6px',
-                borderLeft: '4px solid #4caf50'
+                borderRadius: '6px'
               }}>
                 <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                  📍 描画済み
+                  描画済み
                 </label>
             <div style={{
               maxHeight: '120px',
@@ -2171,7 +2228,7 @@ ${kmlFeatures}
                   fontSize: '11px',
                   color: darkMode ? '#c5e1a5' : '#558b2f'
                 }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 頂点の編集方法</div>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
                   <div style={{ lineHeight: '1.6' }}>
                     • 頂点を移動: 青い点をドラッグ<br/>
                     • 頂点を追加: 辺の中点（半透明の点）をクリック<br/>
@@ -2193,11 +2250,10 @@ ${kmlFeatures}
                 marginBottom: '12px',
                 padding: '10px',
                 backgroundColor: darkMode ? '#2a2a3a' : '#e8f5e9',
-                borderRadius: '6px',
-                borderLeft: '4px solid #4caf50'
+                borderRadius: '6px'
               }}>
                 <label style={{ fontSize: '12px', color: darkMode ? '#81c784' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                  📤 エクスポート形式
+                  エクスポート形式
                 </label>
 
           {/* エクスポート形式選択 */}
@@ -2326,7 +2382,7 @@ ${kmlFeatures}
                 margin: '0 auto 16px',
                 fontSize: '24px'
               }}>
-                🗑️
+                ×
               </div>
               <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#333' }}>
                 オブジェクトを削除しますか？

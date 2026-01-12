@@ -466,6 +466,15 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.on('draw.selectionchange', handleSelectionChange)
     map.on('draw.modechange', handleModeChange)
 
+    // マップにレイヤーが追加されたときに描画レイヤーを最前面に移動
+    const handleSourceData = () => {
+      // 少し遅延させて、レイヤーが完全に追加された後に実行
+      setTimeout(() => {
+        updateVertexLabels()
+      }, 100)
+    }
+    map.on('sourcedata', handleSourceData)
+
     // localStorageからデータを復元
     const restoreData = () => {
       const savedData = loadFromLocalStorage()
@@ -512,6 +521,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           map.off('draw.delete', handleDelete)
           map.off('draw.selectionchange', handleSelectionChange)
           map.off('draw.modechange', handleModeChange)
+          map.off('sourcedata', handleSourceData)
         } catch (e) {
           console.warn('Failed to remove event listeners:', e)
         }
@@ -640,6 +650,42 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         type: 'FeatureCollection',
         features: labelFeatures
       })
+    }
+
+    // 描画レイヤーと頂点ラベルレイヤーを常に最前面に移動
+    try {
+      // MapboxDrawのレイヤーIDリスト
+      const drawLayerIds = [
+        'gl-draw-polygon-fill-inactive',
+        'gl-draw-polygon-fill-active',
+        'gl-draw-polygon-stroke-inactive',
+        'gl-draw-polygon-stroke-active',
+        'gl-draw-line-inactive',
+        'gl-draw-line-active',
+        'gl-draw-point-inactive',
+        'gl-draw-point-active',
+        'gl-draw-point-point-stroke-inactive',
+        'gl-draw-polygon-and-line-vertex-stroke-inactive',
+        'gl-draw-polygon-and-line-vertex-inactive',
+        'gl-draw-polygon-midpoint'
+      ]
+
+      // 描画レイヤーを最前面に移動
+      drawLayerIds.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+          map.moveLayer(layerId)
+        }
+      })
+
+      // 頂点ラベルレイヤーを最前面に移動
+      if (map.getLayer('vertex-labels-background')) {
+        map.moveLayer('vertex-labels-background')
+      }
+      if (map.getLayer('vertex-labels')) {
+        map.moveLayer('vertex-labels')
+      }
+    } catch (e) {
+      // レイヤーが存在しない場合は無視
     }
   }, [map])
 

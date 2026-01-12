@@ -301,11 +301,9 @@ function App() {
       setSearchResults([])
       return []
     }
-    console.log('Search term:', term, 'Search index length:', searchIndex.length)
     const results = searchIndex.filter(item =>
       item.cityName.includes(term) || item.prefName.includes(term)
     )
-    console.log('DID search results:', results.length)
     const uniqueResults = Array.from(
       new Map(results.map(item => [item.prefName + item.cityName, item])).values()
     )

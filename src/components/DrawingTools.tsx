@@ -10,6 +10,15 @@ import type maplibregl from 'maplibre-gl'
 import { createCirclePolygon } from '../lib/utils/geo'
 import { Modal } from './Modal'
 
+// デバウンスユーティリティ
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout>
+  return ((...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }) as T
+}
+
 // 描画モードの型定義
 type DrawMode = 'none' | 'polygon' | 'circle' | 'point' | 'line'
 
@@ -470,15 +479,6 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.on('draw.selectionchange', handleSelectionChange)
     map.on('draw.modechange', handleModeChange)
 
-    // マップにレイヤーが追加されたときに描画レイヤーを最前面に移動
-    const handleSourceData = () => {
-      // 少し遅延させて、レイヤーが完全に追加された後に実行
-      setTimeout(() => {
-        updateVertexLabels()
-      }, 100)
-    }
-    map.on('sourcedata', handleSourceData)
-
     // localStorageからデータを復元
     const restoreData = () => {
       const savedData = loadFromLocalStorage()
@@ -509,10 +509,16 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
 
     if (styleLoaded) {
-      setTimeout(restoreData, 200)
+      setTimeout(() => {
+        restoreData()
+        ensureDrawLayersOnTop()
+      }, 200)
     } else {
       map.once('styledata', () => {
-        setTimeout(restoreData, 200)
+        setTimeout(() => {
+          restoreData()
+          ensureDrawLayersOnTop()
+        }, 200)
       })
     }
 
@@ -525,7 +531,6 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           map.off('draw.delete', handleDelete)
           map.off('draw.selectionchange', handleSelectionChange)
           map.off('draw.modechange', handleModeChange)
-          map.off('sourcedata', handleSourceData)
         } catch (e) {
           console.warn('Failed to remove event listeners:', e)
         }
@@ -566,6 +571,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
       drawRef.current = null
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, mapLoaded])
 
   // 円描画モードのクリックハンドラ
@@ -655,8 +661,20 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         features: labelFeatures
       })
     }
+  }, [map])
 
-    // 描画レイヤーと頂点ラベルレイヤーを常に最前面に移動
+  // デバウンスされた頂点ラベル更新
+  const debouncedUpdateVertexLabels = useRef<(() => void) | null>(null)
+
+  // updateVertexLabelsが変更されたらデバウンス関数を再生成
+  useEffect(() => {
+    debouncedUpdateVertexLabels.current = debounce(updateVertexLabels, 100)
+  }, [updateVertexLabels])
+
+  // 描画レイヤーを最前面に移動（初回のみ）
+  const ensureDrawLayersOnTop = useCallback(() => {
+    if (!map) return
+
     try {
       // MapboxDrawのレイヤーIDリスト
       const drawLayerIds = [
@@ -738,9 +756,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     // localStorageに保存
     saveToLocalStorage(allFeatures)
 
-    // 頂点ラベルを更新
-    updateVertexLabels()
-  }, [onFeaturesChange, updateVertexLabels])
+    // 頂点ラベルを更新（デバウンス）
+    debouncedUpdateVertexLabels.current?.()
+  }, [onFeaturesChange])
 
   // 座標配列からバウンディングボックスを計算
   const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] | null => {

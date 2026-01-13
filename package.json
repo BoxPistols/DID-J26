@@ -29,7 +29,8 @@
     "prepublishOnly": "npm run build:lib",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "convert:did": "node scripts/convert_did_2020.js"
+    "convert:did": "node scripts/convert_did_2020.js",
+    "download:did": "python3 scripts/download_did_2020.py"
   },
   "repository": {
     "type": "git",

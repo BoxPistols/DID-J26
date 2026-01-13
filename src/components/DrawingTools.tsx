@@ -3,7 +3,7 @@
  * DIPS風の描画ツール - ポリゴン、円、ウェイポイント、飛行経路
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import type maplibregl from 'maplibre-gl'
@@ -110,6 +110,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([])
   const [selectedCount, setSelectedCount] = useState(0)
   const [continuousMode, setContinuousMode] = useState(true) // WP連続配置モード
+  const [checkedFeatureIds, setCheckedFeatureIds] = useState<Set<string>>(new Set()) // 複数選択用
+  const [searchQuery, setSearchQuery] = useState('') // 検索クエリ
+  const [typeFilter, setTypeFilter] = useState<'all' | 'polygon' | 'circle' | 'point' | 'line'>('all') // タイプフィルタ
   const drawModeRef = useRef<DrawMode>('none') // 描画モードをrefでも保持
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
   const isRestoringRef = useRef(false) // データ復元中フラグ
@@ -180,6 +183,17 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (!drawRef.current) return
 
+        // direct_selectモード（頂点編集中）の場合は、選択された頂点を削除
+        const currentMode = drawRef.current.getMode()
+        if (currentMode === 'direct_select') {
+          e.preventDefault()
+          // trash()メソッドはdirect_selectモードで選択中の頂点を削除する
+          // 頂点が選択されていない場合はフィーチャー全体を削除
+          drawRef.current.trash()
+          return
+        }
+
+        // simple_selectモード（フィーチャー選択中）の場合は確認ダイアログを表示
         const selected = drawRef.current.getSelected()
         if (selected && selected.features && selected.features.length > 0) {
           e.preventDefault()
@@ -201,24 +215,16 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showDeleteConfirm])
 
-  // 選択オブジェクトを削除実行
-  const handleConfirmDelete = () => {
-    if (!drawRef.current || pendingDeleteIds.length === 0) return
-
-    pendingDeleteIds.forEach(id => {
-      drawRef.current?.delete(id)
-    })
-
-    setShowDeleteConfirm(false)
-    setPendingDeleteIds([])
-    setSelectedCount(0)
-    setSelectedFeatureId(null)
-    updateFeatures()
-  }
-
   // Draw初期化
   useEffect(() => {
+    if (drawnFeatures.length === 0 && activeTab !== 'draw') {
+      setActiveTab('draw')
+    }
+  }, [drawnFeatures.length, activeTab])
+
+  useEffect(() => {
     if (!map || !mapLoaded) return
+    if (drawRef.current) return
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -388,15 +394,15 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         }
       })
 
-      // 円形の背景
+      // 円形の背景（選択状態でオレンジに変化）
       map.addLayer({
         id: 'vertex-labels-background',
         type: 'circle',
         source: 'vertex-labels',
         paint: {
-          'circle-radius': 12,
-          'circle-color': '#3388ff',
-          'circle-stroke-width': 2,
+          'circle-radius': ['case', ['get', 'selected'], 14, 12],
+          'circle-color': ['case', ['get', 'selected'], '#ff9800', '#3388ff'],
+          'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
           'circle-stroke-color': '#ffffff'
         }
       })
@@ -409,13 +415,29 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         layout: {
           'text-field': ['get', 'label'],
           'text-font': ['Open Sans Bold'],
-          'text-size': 13,
+          'text-size': ['case', ['get', 'selected'], 14, 13],
           'text-anchor': 'center'
         },
         paint: {
           'text-color': '#ffffff',
-          'text-halo-color': '#000000',
+          'text-halo-color': ['case', ['get', 'selected'], '#e65100', '#000000'],
           'text-halo-width': 1.5
+        }
+      })
+    }
+
+    // 頂点ラベルを最前面に維持する関数
+    const bringLabelsToFront = () => {
+      requestAnimationFrame(() => {
+        try {
+          if (map.getLayer('vertex-labels-background')) {
+            map.moveLayer('vertex-labels-background')
+          }
+          if (map.getLayer('vertex-labels')) {
+            map.moveLayer('vertex-labels')
+          }
+        } catch {
+          // レイヤーが存在しない場合は無視
         }
       })
     }
@@ -423,6 +445,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     // イベントハンドラ
     const handleCreate = (e: { features: Array<{ id: string }> }) => {
       updateFeatures()
+      bringLabelsToFront()
 
       // WP連続モードの場合は継続
       if (drawModeRef.current === 'point' && continuousModeRef.current) {
@@ -447,11 +470,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
     const handleUpdate = () => {
       updateFeatures()
+      bringLabelsToFront()
     }
 
     const handleDelete = () => {
       updateFeatures()
       setSelectedFeatureId(null)
+      bringLabelsToFront()
     }
 
     const handleSelectionChange = (e: { features: Array<{ id: string }> }) => {
@@ -460,6 +485,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       } else {
         setSelectedFeatureId(null)
       }
+      // direct_selectモードの場合、頂点ラベルを更新して選択状態を反映
+      if (draw.getMode() === 'direct_select') {
+        setTimeout(() => {
+          debouncedUpdateVertexLabels.current?.()
+        }, 50)
+      }
+      bringLabelsToFront()
     }
 
     // 描画モード変更時のUI更新
@@ -468,9 +500,14 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         // 編集モードではカーソルを変更
         map.getCanvas().style.cursor = e.mode === 'direct_select' ? 'move' : ''
         setIsEditing(e.mode === 'direct_select')
+        // 選択/編集モードの場合のみ頂点ラベルを更新
+        setTimeout(() => {
+          debouncedUpdateVertexLabels.current?.()
+        }, 50)
       } else {
         setIsEditing(false)
       }
+      bringLabelsToFront()
     }
 
     map.on('draw.create', handleCreate)
@@ -478,6 +515,20 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     map.on('draw.delete', handleDelete)
     map.on('draw.selectionchange', handleSelectionChange)
     map.on('draw.modechange', handleModeChange)
+
+    // マップスタイル変更時にレイヤー順序を修正（デバウンス付き）
+    let styleChangeTimeout: ReturnType<typeof setTimeout> | null = null
+    const handleStyleData = () => {
+      // 連続発火を防ぐ
+      if (styleChangeTimeout) {
+        clearTimeout(styleChangeTimeout)
+      }
+      styleChangeTimeout = setTimeout(() => {
+        bringLabelsToFront()
+        styleChangeTimeout = null
+      }, 300)
+    }
+    map.on('styledata', handleStyleData)
 
     // localStorageからデータを復元
     const restoreData = () => {
@@ -494,7 +545,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             isRestoringRef.current = false
           }, 500)
         } catch (error) {
-          console.error('Failed to restore drawing data:', error)
+          console.error('[Draw] Failed to restore:', error)
           isRestoringRef.current = false
         }
       }
@@ -531,6 +582,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           map.off('draw.delete', handleDelete)
           map.off('draw.selectionchange', handleSelectionChange)
           map.off('draw.modechange', handleModeChange)
+          map.off('styledata', handleStyleData)
         } catch (e) {
           console.warn('Failed to remove event listeners:', e)
         }
@@ -567,9 +619,9 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             console.warn('Failed to remove draw control:', e)
           }
         }
+        
+        drawRef.current = null
       }
-
-      drawRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, mapLoaded])
@@ -617,12 +669,26 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
   }, [map, drawMode, circleRadius])
 
-  // 頂点ラベルを更新
+  // 頂点ラベルを更新（選択状態も反映）
   const updateVertexLabels = useCallback(() => {
     if (!map || !drawRef.current) return
 
     const allFeatures = drawRef.current.getAll()
     const labelFeatures: GeoJSON.Feature[] = []
+
+    // 選択された頂点の座標を取得
+    let selectedCoords: [number, number] | null = null
+    try {
+      const selectedPoints = drawRef.current.getSelectedPoints()
+      if (selectedPoints && selectedPoints.features.length > 0) {
+        const point = selectedPoints.features[0]
+        if (point.geometry.type === 'Point') {
+          selectedCoords = point.geometry.coordinates as [number, number]
+        }
+      }
+    } catch {
+      // getSelectedPointsがサポートされていない場合
+    }
 
     allFeatures.features.forEach((feature) => {
       // ポイントは頂点ラベル不要
@@ -640,6 +706,11 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
       // 各頂点にラベルを追加
       coords.forEach((coord, index) => {
+        // 選択状態をチェック（座標が一致するか）
+        const isSelected = selectedCoords !== null &&
+          Math.abs(coord[0] - selectedCoords[0]) < 0.0000001 &&
+          Math.abs(coord[1] - selectedCoords[1]) < 0.0000001
+
         labelFeatures.push({
           type: 'Feature',
           geometry: {
@@ -647,7 +718,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             coordinates: coord
           },
           properties: {
-            label: `${index + 1}`
+            label: `${index + 1}`,
+            selected: isSelected
           }
         })
       })
@@ -660,6 +732,18 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         type: 'FeatureCollection',
         features: labelFeatures
       })
+    }
+
+    // 頂点ラベルを常に最前面に維持
+    try {
+      if (map.getLayer('vertex-labels-background')) {
+        map.moveLayer('vertex-labels-background')
+      }
+      if (map.getLayer('vertex-labels')) {
+        map.moveLayer('vertex-labels')
+      }
+    } catch {
+      // レイヤーが存在しない場合は無視
     }
   }, [map])
 
@@ -884,9 +968,69 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
   }, [map, calculateBounds])
 
+  // フィルタリングされたフィーチャーリスト
+  const filteredFeatures = useMemo(() => {
+    return drawnFeatures.filter(f => {
+      // タイプフィルタ
+      if (typeFilter !== 'all' && f.type !== typeFilter) return false
+      // 検索フィルタ
+      if (searchQuery && !f.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
+      return true
+    })
+  }, [drawnFeatures, typeFilter, searchQuery])
+
+  // 全選択/解除
+  const handleSelectAll = useCallback(() => {
+    if (checkedFeatureIds.size === filteredFeatures.length) {
+      // 全解除
+      setCheckedFeatureIds(new Set())
+    } else {
+      // 全選択
+      setCheckedFeatureIds(new Set(filteredFeatures.map(f => f.id)))
+    }
+  }, [checkedFeatureIds.size, filteredFeatures])
+
+  // 選択中のフィーチャーを一括削除
+  const handleBulkDelete = useCallback(() => {
+    if (checkedFeatureIds.size === 0) return
+    setPendingDeleteIds(Array.from(checkedFeatureIds))
+    setSelectedCount(checkedFeatureIds.size)
+    setShowDeleteConfirm(true)
+  }, [checkedFeatureIds])
+
+  // チェックボックスのトグル
+  const toggleFeatureCheck = useCallback((featureId: string) => {
+    setCheckedFeatureIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(featureId)) {
+        newSet.delete(featureId)
+      } else {
+        newSet.add(featureId)
+      }
+      return newSet
+    })
+  }, [])
+
+  // 削除後にチェック状態をクリア
+  const handleConfirmDeleteWithClear = useCallback(() => {
+    if (!drawRef.current || pendingDeleteIds.length === 0) return
+    pendingDeleteIds.forEach(id => {
+      drawRef.current?.delete(id)
+    })
+    setShowDeleteConfirm(false)
+    setPendingDeleteIds([])
+    setSelectedCount(0)
+    setSelectedFeatureId(null)
+    setCheckedFeatureIds(new Set()) // チェックをクリア
+    updateFeatures()
+  }, [pendingDeleteIds, updateFeatures])
+
   // 描画モード変更
   const handleModeChange = (mode: DrawMode) => {
-    if (!drawRef.current || !map) return
+    if (!drawRef.current || !map) {
+      console.error('Draw instance or map not available')
+      return
+    }
 
     setDrawMode(mode)
     setIsEditing(false)
@@ -896,7 +1040,11 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
     switch (mode) {
       case 'polygon':
-        drawRef.current.changeMode('draw_polygon')
+        try {
+          drawRef.current.changeMode('draw_polygon')
+        } catch (e) {
+          console.error('Failed to change mode to draw_polygon:', e)
+        }
         canvas.style.cursor = 'crosshair'
         break
       case 'circle':
@@ -1487,7 +1635,7 @@ ${kmlFeatures}
         <div
           onClick={() => embedded && setIsOpen(false)}
           style={{
-            padding: embedded ? '10px 12px' : '12px 16px',
+            padding: embedded ? '10px 8px' : '12px 16px',
             backgroundColor: '#3388ff',
             color: '#fff',
             display: 'flex',
@@ -1527,21 +1675,24 @@ ${kmlFeatures}
             borderBottom: `1px solid ${isEditing ? '#4caf50' : '#ff9800'}`,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: isEditing ? '#2e7d32' : '#e65100' }}>
-              {isEditing ? '編集中 - 頂点をドラッグ' : MODE_LABELS[drawMode]}
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: isEditing ? '#2e7d32' : '#e65100', flex: 1 }}>
+              {isEditing ? '編集中' : MODE_LABELS[drawMode]}
             </span>
             <button
               onClick={handleCancelMode}
               style={{
-                padding: '4px 8px',
-                backgroundColor: 'transparent',
-                border: '1px solid currentColor',
+                padding: '4px 12px',
+                backgroundColor: isEditing ? '#4caf50' : 'transparent',
+                border: isEditing ? 'none' : '1px solid currentColor',
                 borderRadius: '4px',
-                color: isEditing ? '#2e7d32' : '#e65100',
+                color: isEditing ? '#fff' : '#e65100',
                 cursor: 'pointer',
-                fontSize: '11px'
+                fontSize: '11px',
+                fontWeight: 'bold',
+                flexShrink: 0
               }}
             >
               {isEditing ? '完了' : 'キャンセル'}
@@ -1574,7 +1725,9 @@ ${kmlFeatures}
             描画
           </button>
           <button
-            onClick={() => setActiveTab('manage')}
+            onClick={() => drawnFeatures.length > 0 && setActiveTab('manage')}
+            disabled={drawnFeatures.length === 0}
+            title={drawnFeatures.length === 0 ? 'データがありません' : ''}
             style={{
               flex: 1,
               padding: '12px 8px',
@@ -1582,7 +1735,8 @@ ${kmlFeatures}
               border: 'none',
               borderBottom: activeTab === 'manage' ? '3px solid #3388ff' : '3px solid transparent',
               color: activeTab === 'manage' ? '#3388ff' : (darkMode ? '#999' : '#666'),
-              cursor: 'pointer',
+              cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: drawnFeatures.length === 0 ? 0.5 : 1,
               fontSize: '13px',
               fontWeight: activeTab === 'manage' ? 600 : 400,
               transition: 'all 0.2s',
@@ -1608,7 +1762,9 @@ ${kmlFeatures}
             )}
           </button>
           <button
-            onClick={() => setActiveTab('export')}
+            onClick={() => drawnFeatures.length > 0 && setActiveTab('export')}
+            disabled={drawnFeatures.length === 0}
+            title={drawnFeatures.length === 0 ? 'データがありません' : ''}
             style={{
               flex: 1,
               padding: '12px 8px',
@@ -1616,7 +1772,8 @@ ${kmlFeatures}
               border: 'none',
               borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
               color: activeTab === 'export' ? '#3388ff' : (darkMode ? '#999' : '#666'),
-              cursor: 'pointer',
+              cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: drawnFeatures.length === 0 ? 0.5 : 1,
               fontSize: '13px',
               fontWeight: activeTab === 'export' ? 600 : 400,
               transition: 'all 0.2s',
@@ -1628,8 +1785,7 @@ ${kmlFeatures}
         </div>
 
         {/* Tab Content */}
-        <div style={{ padding: '12px 16px' }}>
-          {/* 描画タブ */}
+        <div style={{ padding: '12px 8px' }}>
           {activeTab === 'draw' && (
             <>
               <div style={{
@@ -1834,10 +1990,11 @@ ${kmlFeatures}
                     <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                       <li>ポリゴン/経路: クリックで頂点追加、最初の点をクリックで完了</li>
                       <li>円: 中心をクリックして配置</li>
-                      <li>編集: 図形を選択後、頂点をドラッグで移動</li>
-                      <li>複製: 図形をドラッグして移動</li>
+                      <li>編集: 図形を選択後「編集」ボタン → 頂点をドラッグで移動</li>
+                      <li>頂点削除: 編集モードで頂点を選択 → Delete/Backspaceキー</li>
+                      <li>移動: 図形をドラッグ</li>
                       <li>選択: Shift+ドラッグで複数選択</li>
-                      <li>削除: 図形選択後、Delete/Backspaceキー</li>
+                      <li>削除: 図形選択後、Delete/Backspaceキー（確認あり）</li>
                     </ul>
                   </div>
                 )}
@@ -1854,51 +2011,183 @@ ${kmlFeatures}
                 backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
                 borderRadius: '6px'
               }}>
-                <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
-                  描画済み
-                </label>
-            <div style={{
-              maxHeight: '120px',
-              overflowY: 'auto',
-              border: `1px solid ${borderColor}`,
-              borderRadius: '4px'
-            }}>
-              {drawnFeatures.length === 0 ? (
-                <p style={{ padding: '8px', fontSize: '11px', color: darkMode ? '#aaa' : '#888', margin: 0, textAlign: 'center' }}>
-                  地図上をクリックして描画
-                </p>
-              ) : (
-                drawnFeatures.map(f => (
-                  <div
-                    key={f.id}
-                    style={{
-                      padding: '6px 8px',
-                      borderBottom: `1px solid ${borderColor}`,
-                      fontSize: '11px',
-                      backgroundColor: selectedFeatureId === f.id ? (darkMode ? '#444' : '#e8f4ff') : 'transparent',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      setSelectedFeatureId(f.id)
-                      zoomToFeature(f)
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: f.type === 'point' ? '50%' : '2px',
-                        backgroundColor: '#3388ff'
-                      }} />
-                      <span>{f.name}</span>
-                      <span style={{ marginLeft: 'auto', color: darkMode ? '#aaa' : '#888' }}>
-                        {f.type === 'circle' && f.radius ? `${f.radius}m` : ''}
-                      </span>
-                    </div>
+                {/* ヘッダー: タイトル + 件数 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', fontWeight: 600 }}>
+                    描画済み
+                  </label>
+                  <span style={{ fontSize: '11px', color: darkMode ? '#888' : '#666' }}>
+                    {filteredFeatures.length}/{drawnFeatures.length}件
+                  </span>
+                </div>
+
+                {/* 検索バー */}
+                <input
+                  type="text"
+                  placeholder="名前で検索..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    marginBottom: '8px',
+                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                    borderRadius: '4px',
+                    backgroundColor: darkMode ? '#333' : '#fff',
+                    color: darkMode ? '#fff' : '#333',
+                    fontSize: '12px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+
+                {/* タイプフィルタ */}
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  {(['all', 'polygon', 'circle', 'point', 'line'] as const).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => setTypeFilter(type)}
+                      style={{
+                        padding: '3px 8px',
+                        fontSize: '10px',
+                        border: 'none',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        backgroundColor: typeFilter === type
+                          ? '#3388ff'
+                          : (darkMode ? '#444' : '#e0e0e0'),
+                        color: typeFilter === type ? '#fff' : (darkMode ? '#ccc' : '#666')
+                      }}
+                    >
+                      {type === 'all' ? '全て' : type === 'polygon' ? 'ポリゴン' : type === 'circle' ? '円' : type === 'point' ? 'WP' : '経路'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 一括操作ボタン */}
+                {filteredFeatures.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <button
+                      onClick={handleSelectAll}
+                      style={{
+                        flex: 1,
+                        padding: '5px 8px',
+                        fontSize: '11px',
+                        border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        backgroundColor: darkMode ? '#333' : '#fff',
+                        color: darkMode ? '#ccc' : '#666'
+                      }}
+                    >
+                      {checkedFeatureIds.size === filteredFeatures.length ? '全解除' : '全選択'}
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      disabled={checkedFeatureIds.size === 0}
+                      style={{
+                        flex: 1,
+                        padding: '5px 8px',
+                        fontSize: '11px',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: checkedFeatureIds.size === 0 ? 'not-allowed' : 'pointer',
+                        backgroundColor: checkedFeatureIds.size === 0
+                          ? (darkMode ? '#444' : '#e0e0e0')
+                          : '#f44336',
+                        color: checkedFeatureIds.size === 0
+                          ? (darkMode ? '#666' : '#999')
+                          : '#fff'
+                      }}
+                    >
+                      選択削除 ({checkedFeatureIds.size})
+                    </button>
                   </div>
-                ))
-              )}
-            </div>
+                )}
+
+                {/* フィーチャーリスト */}
+                <div style={{
+                  maxHeight: '150px',
+                  overflowY: 'auto',
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '4px'
+                }}>
+                  {filteredFeatures.length === 0 ? (
+                    <p style={{ padding: '8px', fontSize: '11px', color: darkMode ? '#aaa' : '#888', margin: 0, textAlign: 'center' }}>
+                      {drawnFeatures.length === 0 ? '地図上をクリックして描画' : '該当なし'}
+                    </p>
+                  ) : (
+                    filteredFeatures.map(f => (
+                      <div
+                        key={f.id}
+                        style={{
+                          padding: '6px 8px',
+                          borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+                          fontSize: '12px',
+                          backgroundColor: selectedFeatureId === f.id
+                            ? (darkMode ? 'rgba(30, 58, 95, 0.6)' : 'rgba(187, 222, 251, 0.6)')
+                            : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        {/* チェックボックス */}
+                        <input
+                          type="checkbox"
+                          checked={checkedFeatureIds.has(f.id)}
+                          onChange={() => toggleFeatureCheck(f.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ cursor: 'pointer', flexShrink: 0 }}
+                        />
+                        {/* タイプアイコン */}
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: f.type === 'point' ? '50%' : f.type === 'circle' ? '50%' : '2px',
+                          backgroundColor: f.type === 'point' ? '#ff9800' : f.type === 'circle' ? '#9c27b0' : f.type === 'line' ? '#4caf50' : '#3388ff',
+                          flexShrink: 0
+                        }} />
+                        {/* 名前（クリックでズーム） */}
+                        <span
+                          style={{
+                            flex: 1,
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          onClick={() => {
+                            setSelectedFeatureId(f.id)
+                            zoomToFeature(f)
+                          }}
+                          title={f.name}
+                        >
+                          {f.name}
+                        </span>
+                        {/* ZOOMボタン */}
+                        <button
+                          onClick={() => {
+                            setSelectedFeatureId(f.id)
+                            zoomToFeature(f)
+                          }}
+                          style={{
+                            padding: '2px 6px',
+                            fontSize: '9px',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            backgroundColor: darkMode ? 'rgba(66, 165, 245, 0.2)' : 'rgba(21, 101, 192, 0.1)',
+                            color: darkMode ? '#90caf9' : '#1565c0',
+                            flexShrink: 0
+                          }}
+                        >
+                          ZOOM
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
           {/* 選択中の円のリサイズ */}
           {selectedFeatureId && drawnFeatures.find(f => f.id === selectedFeatureId)?.type === 'circle' && (
@@ -2200,9 +2489,9 @@ ${kmlFeatures}
               style={{
                 flex: 1,
                 padding: '8px',
-                backgroundColor: isEditing ? '#4caf50' : (selectedFeatureId ? '#e3f2fd' : buttonBg),
-                color: isEditing ? '#fff' : (selectedFeatureId ? '#1565c0' : (darkMode ? '#666' : '#999')),
-                border: `1px solid ${isEditing ? '#4caf50' : borderColor}`,
+                backgroundColor: isEditing ? '#4caf50' : (selectedFeatureId ? (darkMode ? '#1e3a5f' : '#e3f2fd') : buttonBg),
+                color: isEditing ? '#fff' : (selectedFeatureId ? (darkMode ? '#64b5f6' : '#1565c0') : (darkMode ? '#666' : '#999')),
+                border: `1px solid ${isEditing ? '#4caf50' : (selectedFeatureId ? (darkMode ? '#1565c0' : borderColor) : borderColor)}`,
                 borderRadius: '4px',
                 cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
                 fontSize: '11px',
@@ -2217,9 +2506,9 @@ ${kmlFeatures}
               style={{
                 flex: 1,
                 padding: '8px',
-                backgroundColor: selectedFeatureId ? '#ffebee' : buttonBg,
-                color: selectedFeatureId ? '#c62828' : (darkMode ? '#666' : '#999'),
-                border: `1px solid ${borderColor}`,
+                backgroundColor: selectedFeatureId ? (darkMode ? '#4a2020' : '#ffebee') : buttonBg,
+                color: selectedFeatureId ? (darkMode ? '#ef9a9a' : '#c62828') : (darkMode ? '#666' : '#999'),
+                border: `1px solid ${selectedFeatureId ? (darkMode ? '#c62828' : borderColor) : borderColor}`,
                 borderRadius: '4px',
                 cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
                 fontSize: '11px'
@@ -2229,35 +2518,52 @@ ${kmlFeatures}
             </button>
           </div>
 
-          {/* 編集モード時の操作説明 */}
-          {isEditing && selectedFeatureId && (() => {
+          {/* 頂点編集の操作説明 */}
+          {selectedFeatureId && (() => {
             const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
             const isCircle = currentFeature?.type === 'circle'
             const isPolygonOrLine = currentFeature?.type === 'polygon' || currentFeature?.type === 'line'
 
             if (!isCircle && isPolygonOrLine) {
-              return (
-                <div style={{
-                  marginBottom: '12px',
-                  padding: '8px',
-                  backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
-                  borderRadius: '4px',
-                  border: '1px solid #8bc34a',
-                  fontSize: '11px',
-                  color: darkMode ? '#c5e1a5' : '#558b2f'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
-                  <div style={{ lineHeight: '1.6' }}>
-                    • 頂点を移動: 青い点をドラッグ<br/>
-                    • 頂点を追加: 辺の中点（半透明の点）をクリック<br/>
-                    • 頂点を削除: 頂点を選択 → Delete/Backspace
+              if (isEditing) {
+                // 編集モード中の詳細説明
+                return (
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
+                    borderRadius: '4px',
+                    border: '1px solid #8bc34a',
+                    fontSize: '11px',
+                    color: darkMode ? '#c5e1a5' : '#558b2f'
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
+                    <div style={{ lineHeight: '1.6' }}>
+                      - 頂点を移動: 青い点をドラッグ<br/>
+                      - 頂点を追加: 辺の中点（小さい点）をクリック<br/>
+                      - 頂点を削除: 頂点を選択 → Delete/Backspace
+                    </div>
                   </div>
-                </div>
-              )
+                )
+              } else {
+                // 編集モード前のヒント
+                return (
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '6px 8px',
+                    backgroundColor: darkMode ? '#1e3a5f' : '#e3f2fd',
+                    borderRadius: '4px',
+                    border: `1px solid ${darkMode ? '#2196f3' : '#90caf9'}`,
+                    fontSize: '10px',
+                    color: darkMode ? '#90caf9' : '#1565c0'
+                  }}>
+                    「編集」ボタンで頂点の追加・削除・移動が可能
+                  </div>
+                )
+              }
             }
             return null
           })()}
-              </div>
             </>
           )}
 
@@ -2378,46 +2684,55 @@ ${kmlFeatures}
           setPendingDeleteIds([])
         }}>
           <div style={{
-            backgroundColor: '#fff',
-            borderRadius: '8px',
-            width: '360px',
+            backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+            borderRadius: '16px',
+            width: '400px',
             maxWidth: '90vw',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
             overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
             <div style={{
-              padding: '20px',
+              padding: '32px 24px 24px',
               textAlign: 'center'
             }}>
+              {/* アイコン: 外側リング + 内側円 + ! */}
               <div style={{
-                width: '48px',
-                height: '48px',
+                width: '72px',
+                height: '72px',
                 borderRadius: '50%',
-                backgroundColor: '#ffebee',
+                backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.1)' : 'rgba(239, 83, 80, 0.08)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px',
-                fontSize: '24px'
+                margin: '0 auto 20px'
               }}>
-                ×
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  border: `2px solid ${darkMode ? '#ef5350' : '#ef5350'}`,
+                  backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.15)' : 'rgba(239, 83, 80, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  color: '#ef5350'
+                }}>
+                  !
+                </div>
               </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#333' }}>
-                オブジェクトを削除しますか？
+              <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600, color: darkMode ? '#fff' : '#333' }}>
+                削除しますか？
               </h3>
-              <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-                選択された {selectedCount} 個のオブジェクトを削除します。
-                <br />
-                この操作は取り消せません。
+              <p style={{ margin: 0, fontSize: '14px', color: darkMode ? '#999' : '#666', lineHeight: 1.5 }}>
+                選択された {selectedCount} 個のオブジェクトを削除します
               </p>
             </div>
             <div style={{
-              padding: '16px 20px',
-              backgroundColor: '#f8f8f8',
-              borderTop: '1px solid #eee',
+              padding: '16px 24px 24px',
               display: 'flex',
-              gap: '12px',
-              justifyContent: 'center'
+              gap: '12px'
             }}>
               <button
                 onClick={() => {
@@ -2425,32 +2740,34 @@ ${kmlFeatures}
                   setPendingDeleteIds([])
                 }}
                 style={{
-                  padding: '10px 24px',
-                  backgroundColor: '#fff',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
+                  flex: 1,
+                  padding: '14px 24px',
+                  backgroundColor: darkMode ? '#3a3a3a' : '#fff',
+                  border: `1px solid ${darkMode ? '#555' : '#ddd'}`,
+                  borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  fontSize: '15px',
                   fontWeight: 500,
-                  color: '#333'
+                  color: darkMode ? '#ccc' : '#333'
                 }}
               >
                 キャンセル
               </button>
               <button
-                onClick={handleConfirmDelete}
+                onClick={handleConfirmDeleteWithClear}
                 style={{
-                  padding: '10px 24px',
-                  backgroundColor: '#dc3545',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
+                  flex: 1,
+                  padding: '14px 24px',
+                  backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.15)' : 'rgba(239, 83, 80, 0.08)',
+                  color: '#ef5350',
+                  border: '1px solid #ef5350',
+                  borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500
+                  fontSize: '15px',
+                  fontWeight: 600
                 }}
               >
-                削除する
+                削除
               </button>
             </div>
           </div>

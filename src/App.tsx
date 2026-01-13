@@ -122,6 +122,12 @@ function App() {
   const [showLeftLegend, setShowLeftLegend] = useState(true)
   const [showRightLegend, setShowRightLegend] = useState(true)
 
+  // Sidebar Resizing
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(250) // 初期値を少し広く
+  const [isResizingLeft, setIsResizingLeft] = useState(false)
+  const [isResizingRight, setIsResizingRight] = useState(false)
+
   // Tooltip visibility
   const [showTooltip, setShowTooltip] = useState(false)
 
@@ -1258,6 +1264,44 @@ function App() {
   }, [mapLoaded, handleCustomLayerAdded])
 
   // ============================================
+  // Sidebar Resizing Logic
+  // ============================================
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingLeft) {
+        // 左サイドバー: 最小200px, 最大600px
+        const newWidth = Math.max(200, Math.min(e.clientX, 600))
+        setLeftSidebarWidth(newWidth)
+      } else if (isResizingRight) {
+        // 右サイドバー: 最小200px, 最大600px
+        const newWidth = Math.max(200, Math.min(window.innerWidth - e.clientX, 600))
+        setRightSidebarWidth(newWidth)
+      }
+    }
+
+    const handleMouseUp = () => {
+      if (isResizingLeft || isResizingRight) {
+        setIsResizingLeft(false)
+        setIsResizingRight(false)
+        document.body.style.cursor = 'default'
+        document.body.style.userSelect = 'auto'
+      }
+    }
+
+    if (isResizingLeft || isResizingRight) {
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'col-resize'
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizingLeft, isResizingRight])
+
+  // ============================================
   // Render
   // ============================================
   return (
@@ -1267,7 +1311,7 @@ function App() {
         onClick={() => setShowLeftLegend(!showLeftLegend)}
         style={{
           position: 'fixed',
-          left: showLeftLegend ? 280 : 0,
+          left: showLeftLegend ? leftSidebarWidth : 0,
           top: 80,
           width: 20,
           height: 40,
@@ -1278,7 +1322,7 @@ function App() {
           cursor: 'pointer',
           boxShadow: '2px 0 4px rgba(0,0,0,0.1)',
           zIndex: 11,
-          transition: 'left 0.3s ease',
+          transition: isResizingLeft ? 'none' : 'left 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1292,19 +1336,41 @@ function App() {
       {/* Left Legend Panel */}
       <aside style={{
         position: 'absolute',
-        left: showLeftLegend ? 0 : -280,
+        left: showLeftLegend ? 0 : -leftSidebarWidth,
         top: 0,
         bottom: 0,
-        width: '280px',
+        width: `${leftSidebarWidth}px`,
         padding: '12px',
         backgroundColor: darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)',
         color: darkMode ? '#fff' : '#333',
         overflowY: 'auto',
+        overflowX: 'hidden',
         zIndex: 10,
-        transition: 'left 0.3s ease, background-color 0.3s ease',
+        transition: isResizingLeft ? 'none' : 'left 0.3s ease',
         boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
         fontSize: '14px'
       }}>
+        {/* Resize Handle */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsResizingLeft(true)
+          }}
+          title="ドラッグして幅を変更"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '8px',
+            height: '100%',
+            cursor: 'col-resize',
+            zIndex: 100,
+            transition: 'background-color 0.2s',
+            backgroundColor: 'transparent'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 136, 255, 0.3)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        />
 
         {/* App Title */}
         <h1 style={{
@@ -1655,7 +1721,7 @@ function App() {
         onClick={() => setShowRightLegend(!showRightLegend)}
         style={{
           position: 'fixed',
-          right: showRightLegend ? 200 : 0,
+          right: showRightLegend ? rightSidebarWidth : 0,
           top: 12,
           width: 20,
           height: 30,
@@ -1666,7 +1732,7 @@ function App() {
           cursor: 'pointer',
           boxShadow: '-2px 0 4px rgba(0,0,0,0.1)',
           zIndex: 11,
-          transition: 'right 0.3s ease',
+          transition: isResizingRight ? 'none' : 'right 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1680,19 +1746,41 @@ function App() {
       {/* Right Legend Panel */}
       <aside style={{
         position: 'absolute',
-        right: showRightLegend ? 0 : -200,
+        right: showRightLegend ? 0 : -rightSidebarWidth,
         top: 0,
         bottom: 0,
-        width: '200px',
+        width: `${rightSidebarWidth}px`,
         padding: '12px',
         backgroundColor: darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)',
         color: darkMode ? '#fff' : '#333',
         overflowY: 'auto',
+        overflowX: 'hidden',
         zIndex: 10,
-        transition: 'right 0.3s ease, background-color 0.3s ease',
+        transition: isResizingRight ? 'none' : 'right 0.3s ease',
         boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
         fontSize: '14px'
       }}>
+        {/* Resize Handle */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsResizingRight(true)
+          }}
+          title="ドラッグして幅を変更"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '8px',
+            height: '100%',
+            cursor: 'col-resize',
+            zIndex: 100,
+            transition: 'background-color 0.2s',
+            backgroundColor: 'transparent'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(51, 136, 255, 0.3)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        />
 
         <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600, borderBottom: `1px solid ${darkMode ? '#444' : '#ddd'}`, paddingBottom: '4px' }}>
           環境情報
@@ -1918,6 +2006,18 @@ function App() {
             </div>
 
             <div style={{ fontSize: '14px' }}>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: darkMode ? 'rgba(74, 144, 217, 0.1)' : '#f0f7ff', borderRadius: '6px', border: `1px solid ${darkMode ? '#444' : '#e0e0e0'}` }}>
+                <div style={{ fontWeight: 600, marginBottom: '8px', color: darkMode ? '#4a90d9' : '#2563eb', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  基本操作・ヒント
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.6', fontSize: '13px', color: darkMode ? '#ddd' : '#555' }}>
+                  <li style={{ marginBottom: '4px' }}><strong>描画リストのズーム:</strong> 右サイドバーの「描画済み」リストの項目をクリックすると、その場所へズームします。<span style={{ color: darkMode ? '#ffb74d' : '#f57c00', fontWeight: 'bold' }}>連続してクリックすると、さらに段階的に拡大</span>します。</li>
+                  <li style={{ marginBottom: '4px' }}><strong>地図操作:</strong> 左クリックで移動、右クリック＋ドラッグで回転・チルト（傾き）ができます。</li>
+                  <li><strong>検索:</strong> 画面左上の検索ボックスから、地名や住所で場所を検索・移動できます。</li>
+                </ul>
+              </div>
+
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '8px', color: darkMode ? '#4a90d9' : '#2563eb' }}>禁止エリア表示</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr', gap: '4px 8px' }}>

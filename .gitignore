@@ -3,3 +3,4 @@ dist/
 tsconfig.tsbuildinfo
 .gemini-clipboard/
 rawdata/
+.claude/

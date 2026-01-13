@@ -42,7 +42,10 @@ files.forEach(file => {
   const zipPath = path.join(RAW_DIR, file);
   // ファイル名から都道府県コードを抽出 (例: 2020_did_ddsw_01-JGD2011.zip -> 01)
   // パターン: 数値2桁が最初に出てくるところ、あるいは _01_ のようなパターン
-  const match = file.match(/_(\d{2})[-_]/) || file.match(/^(\d{2})/);
+  // ファイル名パターン例:
+  // - 2020_did_ddsw_01-JGD2011.zip (既存)
+  // - did_2020_01.zip (download_did_2020.py生成)
+  const match = file.match(/_(\d{2})[-_.]/) || file.match(/_(\d{2})\.zip$/) || file.match(/^(\d{2})/);
   
   if (!match) {
     console.warn(`Skipping ${file}: Could not extract prefecture code.`);

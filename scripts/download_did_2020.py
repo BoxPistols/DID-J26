@@ -8,7 +8,6 @@ e-Statから2020年国勢調査DID（人口集中地区）データをダウン�
 出力先: rawdata/2020/
 """
 
-import os
 import time
 import urllib.request
 from pathlib import Path
@@ -40,8 +39,15 @@ def build_url(pref_code: str) -> str:
     return f"{BASE_URL}?{query}"
 
 
-def download_prefecture(pref_code: str) -> bool:
-    """指定された都道府県のDIDデータをダウンロード"""
+def download_prefecture(pref_code: str) -> str:
+    """
+    指定された都道府県のDIDデータをダウンロード
+
+    Returns:
+        'DOWNLOADED': ダウンロード成功
+        'SKIPPED': 既存ファイルがあるためスキップ
+        'FAILED': エラー発生
+    """
     url = build_url(pref_code)
     filename = OUTPUT_DIR / f"did_2020_{pref_code}.zip"
 
@@ -53,7 +59,7 @@ def download_prefecture(pref_code: str) -> bool:
     ]
     if existing_files:
         print(f"  [SKIP] {pref_code}: already exists ({existing_files[0].name})")
-        return True
+        return "SKIPPED"
 
     print(f"  Downloading {pref_code}...", end=" ", flush=True)
 
@@ -78,17 +84,17 @@ def download_prefecture(pref_code: str) -> bool:
 
             size_kb = len(content) / 1024
             print(f"OK ({size_kb:.1f} KB)")
-            return True
+            return "DOWNLOADED"
 
     except urllib.error.HTTPError as e:
         print(f"HTTP Error {e.code}: {e.reason}")
-        return False
+        return "FAILED"
     except urllib.error.URLError as e:
         print(f"URL Error: {e.reason}")
-        return False
+        return "FAILED"
     except Exception as e:
         print(f"Error: {e}")
-        return False
+        return "FAILED"
 
 
 def main():
@@ -105,31 +111,29 @@ def main():
     # 都道府県コード（01: 北海道 〜 47: 沖縄）
     pref_codes = [str(i).zfill(2) for i in range(1, 48)]
 
-    success_count = 0
-    skip_count = 0
+    downloaded_count = 0
+    skipped_count = 0
     fail_count = 0
 
     print("Starting download...")
     print("-" * 40)
 
-    for code in pref_codes:
-        result = download_prefecture(code)
+    for i, code in enumerate(pref_codes):
+        status = download_prefecture(code)
 
-        if result:
-            # スキップかダウンロード成功かを判定
-            existing = list(OUTPUT_DIR.glob(f"*_{code}*.zip")) + \
-                      list(OUTPUT_DIR.glob(f"*_{code}-*.zip"))
-            if existing:
-                success_count += 1
-        else:
+        if status == "DOWNLOADED":
+            downloaded_count += 1
+        elif status == "SKIPPED":
+            skipped_count += 1
+        else:  # FAILED
             fail_count += 1
 
-        # e-Statサーバーへの負荷軽減（3秒待機）
-        if result and code != "47":  # 最後以外は待機
+        # e-Statサーバーへの負荷軽減（失敗時と最後以外は待機）
+        if status != "FAILED" and i < len(pref_codes) - 1:
             time.sleep(3)
 
     print("-" * 40)
-    print(f"Complete! Success: {success_count}, Failed: {fail_count}")
+    print(f"Complete! Downloaded: {downloaded_count}, Skipped: {skipped_count}, Failed: {fail_count}")
     print()
 
     if fail_count > 0:

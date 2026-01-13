@@ -661,6 +661,18 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         features: labelFeatures
       })
     }
+
+    // 頂点ラベルを常に最前面に維持
+    try {
+      if (map.getLayer('vertex-labels-background')) {
+        map.moveLayer('vertex-labels-background')
+      }
+      if (map.getLayer('vertex-labels')) {
+        map.moveLayer('vertex-labels')
+      }
+    } catch {
+      // レイヤーが存在しない場合は無視
+    }
   }, [map])
 
   // デバウンスされた頂点ラベル更新
@@ -2229,31 +2241,49 @@ ${kmlFeatures}
             </button>
           </div>
 
-          {/* 編集モード時の操作説明 */}
-          {isEditing && selectedFeatureId && (() => {
+          {/* 頂点編集の操作説明 */}
+          {selectedFeatureId && (() => {
             const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
             const isCircle = currentFeature?.type === 'circle'
             const isPolygonOrLine = currentFeature?.type === 'polygon' || currentFeature?.type === 'line'
 
             if (!isCircle && isPolygonOrLine) {
-              return (
-                <div style={{
-                  marginBottom: '12px',
-                  padding: '8px',
-                  backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
-                  borderRadius: '4px',
-                  border: '1px solid #8bc34a',
-                  fontSize: '11px',
-                  color: darkMode ? '#c5e1a5' : '#558b2f'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
-                  <div style={{ lineHeight: '1.6' }}>
-                    • 頂点を移動: 青い点をドラッグ<br/>
-                    • 頂点を追加: 辺の中点（半透明の点）をクリック<br/>
-                    • 頂点を削除: 頂点を選択 → Delete/Backspace
+              if (isEditing) {
+                // 編集モード中の詳細説明
+                return (
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
+                    borderRadius: '4px',
+                    border: '1px solid #8bc34a',
+                    fontSize: '11px',
+                    color: darkMode ? '#c5e1a5' : '#558b2f'
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
+                    <div style={{ lineHeight: '1.6' }}>
+                      - 頂点を移動: 青い点をドラッグ<br/>
+                      - 頂点を追加: 辺の中点（小さい点）をクリック<br/>
+                      - 頂点を削除: 頂点を選択 → Delete/Backspace
+                    </div>
                   </div>
-                </div>
-              )
+                )
+              } else {
+                // 編集モード前のヒント
+                return (
+                  <div style={{
+                    marginBottom: '12px',
+                    padding: '6px 8px',
+                    backgroundColor: darkMode ? '#1e3a5f' : '#e3f2fd',
+                    borderRadius: '4px',
+                    border: `1px solid ${darkMode ? '#2196f3' : '#90caf9'}`,
+                    fontSize: '10px',
+                    color: darkMode ? '#90caf9' : '#1565c0'
+                  }}>
+                    「編集」ボタンで頂点の追加・削除・移動が可能
+                  </div>
+                )
+              }
             }
             return null
           })()}

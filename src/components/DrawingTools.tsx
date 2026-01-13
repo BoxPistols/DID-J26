@@ -1883,12 +1883,24 @@ ${kmlFeatures}
                 drawnFeatures.map(f => (
                   <div
                     key={f.id}
+                    title="クリックで選択・ズーム"
                     style={{
                       padding: '6px 8px',
                       borderBottom: `1px solid ${borderColor}`,
                       fontSize: '11px',
-                      backgroundColor: selectedFeatureId === f.id ? (darkMode ? '#444' : '#e8f4ff') : 'transparent',
-                      cursor: 'pointer'
+                      backgroundColor: selectedFeatureId === f.id ? (darkMode ? '#1e3a5f' : '#bbdefb') : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedFeatureId !== f.id) {
+                        e.currentTarget.style.backgroundColor = darkMode ? '#3a3a3a' : '#e3f2fd'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedFeatureId !== f.id) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
                     }}
                     onClick={() => {
                       setSelectedFeatureId(f.id)
@@ -1900,11 +1912,19 @@ ${kmlFeatures}
                         width: '8px',
                         height: '8px',
                         borderRadius: f.type === 'point' ? '50%' : '2px',
-                        backgroundColor: '#3388ff'
+                        backgroundColor: '#3388ff',
+                        flexShrink: 0
                       }} />
-                      <span>{f.name}</span>
-                      <span style={{ marginLeft: 'auto', color: darkMode ? '#aaa' : '#888' }}>
+                      <span style={{ flex: 1 }}>{f.name}</span>
+                      <span style={{ color: darkMode ? '#aaa' : '#888', fontSize: '10px' }}>
                         {f.type === 'circle' && f.radius ? `${f.radius}m` : ''}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        opacity: 0.6,
+                        marginLeft: '4px'
+                      }}>
+                        {'->'}
                       </span>
                     </div>
                   </div>

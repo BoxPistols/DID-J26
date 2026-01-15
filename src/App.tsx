@@ -858,20 +858,33 @@ function App() {
   // ============================================
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapLoaded) return
+    if (!map || !mapLoaded) {
+      console.log('[DEBUG] Comparison: map or mapLoaded not ready', { hasMap: !!map, mapLoaded })
+      return
+    }
+
+    console.log('[DEBUG] Comparison Layers init starting...')
 
     async function initComparisonLayers() {
       if (!map) return
+      console.log('[DEBUG] ISHIKAWA_NOTO_COMPARISON_LAYERS:', ISHIKAWA_NOTO_COMPARISON_LAYERS)
       for (const layerConfig of ISHIKAWA_NOTO_COMPARISON_LAYERS) {
-        if (map.getSource(layerConfig.id)) continue
+        console.log(`[DEBUG] Processing layer: ${layerConfig.id}`)
+        if (map.getSource(layerConfig.id)) {
+          console.log(`[DEBUG] Source already exists: ${layerConfig.id}`)
+          continue
+        }
 
         try {
+          console.log(`[DEBUG] Fetching GeoJSON: ${layerConfig.path}`)
           const geojson = await fetchGeoJSONWithCache(layerConfig.path)
+          console.log(`[DEBUG] GeoJSON loaded for ${layerConfig.id}:`, geojson?.features?.length, 'features')
 
           map.addSource(layerConfig.id, {
             type: 'geojson',
             data: geojson
           })
+          console.log(`[DEBUG] Source added: ${layerConfig.id}`)
 
           // Circle レイヤー（ポイントデータ用）
           map.addLayer({
@@ -909,13 +922,15 @@ function App() {
             }
           })
         } catch (error) {
-          console.error(`Failed to load comparison layer ${layerConfig.id}:`, error)
+          console.error(`[ERROR] Failed to load comparison layer ${layerConfig.id}:`, error)
         }
       }
+      console.log('[DEBUG] Comparison Layers init complete')
     }
 
     initComparisonLayers()
-  }, [mapLoaded, comparisonLayerOpacity])
+  }, [mapLoaded])
+  }, [mapLoaded])
   // Load default layers on map load
   // ============================================
   useEffect(() => {

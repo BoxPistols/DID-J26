@@ -101,16 +101,25 @@ async function queryGSIDEMTile(
   lat: number
 ): Promise<number | null> {
   try {
-    // GSI DEM5b タイルサービスへのリクエスト
-    // このスタブは、実装時に実際のタイル座標計算とデータ取得に置き換える
+    // 国土地理院の標高APIを使用
+    // https://maps.gsi.go.jp/development/siyou.html
+    const response = await fetch(
+      `https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${lng}&lat=${lat}&outtype=JSON`
+    )
     
-    // TODO: GSI DEM5bのテキストタイルまたはPNGタイルを取得して標高を計算する実装が必要
-    // 現在は外部APIの不適切な使用を避けるため、意図的にnullを返す
-    console.warn('GSI DEM tile fetching is not yet implemented.', { lng, lat })
+    if (!response.ok) {
+      throw new Error(`GSI API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    
+    if (data.elevation !== null && data.elevation !== undefined && typeof data.elevation === 'number') {
+      return data.elevation
+    }
     
     return null
   } catch (error) {
-    console.error('Error querying DEM tile:', error)
+    console.error('Error querying DEM API:', error)
     return null
   }
 }

@@ -9,34 +9,28 @@ import { GeoOverlay, WeatherOverlay, RestrictionCategory, RestrictionZone } from
 // ============================================
 export const GEO_OVERLAYS: GeoOverlay[] = [
   {
-    id: 'terrain-2024',
-    name: '2024年地形データ（ポスト災害）',
-    tiles: [],
-    geojson: '/GeoJSON/2024/noto_2024_elevation.geojson',
-    opacity: 0.6,
-    category: 'geo',
-    description: '2024年能登半島地震後の地形データ（GSI DEM）'
-  },
-  {
     id: 'hillshade',
     name: '陰影起伏',
     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png'],
     opacity: 0.4,
-    category: 'geo'
+    category: 'geo',
+    description: '陰影起伏図（地形の凹凸を陰影で強調）'
   },
   {
     id: 'relief',
     name: '色別標高図',
     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png'],
     opacity: 0.5,
-    category: 'geo'
+    category: 'geo',
+    description: '色別標高図（標高を色分け表示）'
   },
   {
     id: 'slope',
     name: '傾斜量図',
     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/slopemap/{z}/{x}/{y}.png'],
     opacity: 0.5,
-    category: 'geo'
+    category: 'geo',
+    description: '傾斜量図（傾斜の大きい場所を強調）'
   },
   {
     id: 'buildings',
@@ -44,7 +38,19 @@ export const GEO_OVERLAYS: GeoOverlay[] = [
     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbf'],
     opacity: 0.6,
     category: 'geo',
-    minZoom: 14
+    minZoom: 14,
+    description: '地物（建物・駅舎などの建造物）※見本データ'
+  },
+  {
+    // NOTE: 実体は「隆起エリア（点/ヒートマップ）」として comparison layer 側で描画する
+    // 右上UIのチェックボックスは toggleOverlay ではなく比較レイヤーのON/OFFに紐づける（App側で特別扱い）
+    id: 'terrain-2024-noto',
+    name: '能登半島隆起エリア',
+    tiles: [],
+    geojson: '/GeoJSON/2024/noto_2024_elevation.geojson',
+    opacity: 0.6,
+    category: 'geo',
+    description: '2024年能登半島地震後の隆起を示す点サンプル（標準Map限定）'
   }
 ]
 
@@ -104,8 +110,8 @@ export const RESTRICTION_ZONES: RestrictionZone[] = [
     type: 'airport',
     color: RESTRICTION_COLORS.airport,
     opacity: 0.4,
-    path: '/data/airports.geojson',
-    description: '空港等の周辺空域（進入表面、水平表面等）'
+    path: '/GeoJSON/airports/airport_surfaces.geojson',
+    description: '空港等の敷地範囲（国土数値情報 C28）'
   },
   {
     id: 'did-area',

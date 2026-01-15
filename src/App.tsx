@@ -858,33 +858,20 @@ function App() {
   // ============================================
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mapLoaded) {
-      console.log('[DEBUG] Comparison: map or mapLoaded not ready', { hasMap: !!map, mapLoaded })
-      return
-    }
-
-    console.log('[DEBUG] Comparison Layers init starting...')
+    if (!map || !mapLoaded) return
 
     async function initComparisonLayers() {
       if (!map) return
-      console.log('[DEBUG] ISHIKAWA_NOTO_COMPARISON_LAYERS:', ISHIKAWA_NOTO_COMPARISON_LAYERS)
       for (const layerConfig of ISHIKAWA_NOTO_COMPARISON_LAYERS) {
-        console.log(`[DEBUG] Processing layer: ${layerConfig.id}`)
-        if (map.getSource(layerConfig.id)) {
-          console.log(`[DEBUG] Source already exists: ${layerConfig.id}`)
-          continue
-        }
+        if (map.getSource(layerConfig.id)) continue
 
         try {
-          console.log(`[DEBUG] Fetching GeoJSON: ${layerConfig.path}`)
           const geojson = await fetchGeoJSONWithCache(layerConfig.path)
-          console.log(`[DEBUG] GeoJSON loaded for ${layerConfig.id}:`, geojson?.features?.length, 'features')
 
           map.addSource(layerConfig.id, {
             type: 'geojson',
             data: geojson
           })
-          console.log(`[DEBUG] Source added: ${layerConfig.id}`)
 
           // Circle レイヤー（ポイントデータ用）
           map.addLayer({
@@ -922,14 +909,13 @@ function App() {
             }
           })
         } catch (error) {
-          console.error(`[ERROR] Failed to load comparison layer ${layerConfig.id}:`, error)
+          console.error(`Failed to load comparison layer ${layerConfig.id}:`, error)
         }
       }
-      console.log('[DEBUG] Comparison Layers init complete')
     }
 
     initComparisonLayers()
-  }, [mapLoaded])
+  }, [mapLoaded, comparisonLayerOpacity])
   // Load default layers on map load
   // ============================================
   useEffect(() => {
@@ -2017,12 +2003,6 @@ function App() {
                       style={{ flex: 1, padding: '2px 4px', fontSize: '12px', backgroundColor: darkMode ? '#444' : '#e8e8e8', color: darkMode ? '#fff' : '#333', border: 'none', borderRadius: '2px', cursor: 'pointer' }}
                     >
                       全て非表示
-                    </button>
-                    <button
-                      onClick={() => applyGroupRedMode(group)}
-                      style={{ flex: 1, padding: '2px 4px', fontSize: '12px', backgroundColor: redDIDGroups.has(group.name) ? '#FF0000' : (darkMode ? '#555' : '#d8d8d8'), color: redDIDGroups.has(group.name) ? '#fff' : (darkMode ? '#fff' : '#333'), border: 'none', borderRadius: '2px', cursor: 'pointer', fontWeight: redDIDGroups.has(group.name) ? 600 : 400 }}
-                    >
-                      赤色表示
                     </button>
                   </div>
                   {group.layers.map(layer => (

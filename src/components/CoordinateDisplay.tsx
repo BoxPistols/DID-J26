@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { formatCoordinates, formatCoordinatesDMS } from '../lib/utils/geo'
 
-interface CoordinateDisplayProps {
+export interface CoordinateDisplayProps {
   lng: number
   lat: number
   darkMode: boolean

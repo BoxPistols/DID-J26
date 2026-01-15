@@ -5,7 +5,6 @@
  * 指定座標の海抜高度を取得します。
  */
 
-import maplibregl from 'maplibre-gl'
 
 // ============================================
 // タイプ定義
@@ -36,7 +35,6 @@ export interface CoordinateInfo {
 // ============================================
 
 const elevationCache = new Map<string, ElevationData>()
-const CACHE_EXPIRY_MS = 60 * 60 * 1000 // 1時間
 
 /**
  * キャッシュキーを生成

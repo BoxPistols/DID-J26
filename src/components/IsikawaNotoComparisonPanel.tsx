@@ -6,4 +6,345 @@
  * 透明度を個別に調整し、レイヤーを重ね合わせて確認可能。
  */
 
-import { useState, useRef } from 'react'\nimport { showToast } from '../utils/toast'\n\nexport interface IsikawaNotoComparisonPanelProps {\n  onLayerToggle: (layerId: string, visible: boolean) => void\n  onOpacityChange: (layerId: string, opacity: number) => void\n  visibleLayers: Set<string>\n  opacityLayers: Map<string, number>\n  darkMode?: boolean\n}\n\nconst LAYER_CONFIG = {\n  ishikawa2020: {\n    id: 'did-17-ishikawa-2020',\n    name: '石川県 (2020年)',\n    year: 2020,\n    color: '#4444FF',\n    description: '2020年国勢調査DID（地震前基準データ）',\n    helpText: '青色で表示される2020年の人口集中地区'\n  },\n  noto2024: {\n    id: 'terrain-2024-noto',\n    name: '能登半島 (2024年)',\n    year: 2024,\n    color: '#FF4444',\n    description: '2024年能登半島地震後の地形データ',\n    helpText: '赤色で表示される2024年のデータ（隆起地域を反映）'\n  }\n}\n\nexport function IsikawaNotoComparisonPanel({\n  onLayerToggle,\n  onOpacityChange,\n  visibleLayers,\n  opacityLayers,\n  darkMode = false\n}: IsikawaNotoComparisonPanelProps) {\n  const [isOpen, setIsOpen] = useState(false)\n  const [hoveredLayer, setHoveredLayer] = useState<string | null>(null)\n\n  const isLayerVisible = (layerId: string) => visibleLayers.has(layerId)\n  const getOpacity = (layerId: string) => opacityLayers.get(layerId) ?? 0.5\n\n  const handleToggle = (layerId: string) => {\n    onLayerToggle(layerId, !isLayerVisible(layerId))\n  }\n\n  const handleOpacityChange = (layerId: string, opacity: number) => {\n    onOpacityChange(layerId, opacity)\n  }\n\n  if (!isOpen) {\n    return (\n      <button\n        onClick={() => setIsOpen(true)}\n        title=\"石川県2020年 vs 能登2024年の地形比較\"\n        style={{\n          position: 'fixed',\n          bottom: 80,\n          right: 20,\n          padding: '10px 16px',\n          backgroundColor: '#e17055',\n          color: '#fff',\n          border: 'none',\n          borderRadius: '8px',\n          cursor: 'pointer',\n          fontSize: '12px',\n          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',\n          zIndex: 999,\n          fontWeight: 'bold',\n          whiteSpace: 'nowrap'\n        }}\n      >\n        📊 地形比較\n      </button>\n    )\n  }\n\n  return (\n    <div\n      style={{\n        position: 'fixed',\n        bottom: 20,\n        right: 20,\n        width: '380px',\n        maxHeight: '70vh',\n        backgroundColor: darkMode ? '#2a2a2a' : '#fff',\n        color: darkMode ? '#fff' : '#333',\n        borderRadius: '12px',\n        boxShadow: '0 4px 24px rgba(0,0,0,0.15)',\n        zIndex: 999,\n        overflow: 'hidden',\n        display: 'flex',\n        flexDirection: 'column',\n        border: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`\n      }}\n    >\n      {/* Header */}\n      <div\n        style={{\n          padding: '14px 16px',\n          background: 'linear-gradient(135deg, #e17055 0%, #d63031 100%)',\n          color: '#fff',\n          display: 'flex',\n          justifyContent: 'space-between',\n          alignItems: 'center',\n          flexShrink: 0\n        }}\n      >\n        <div>\n          <h3 style={{ margin: '0 0 2px', fontSize: '14px', fontWeight: 'bold' }}>\n            📊 地形変化比較\n          </h3>\n          <p style={{ margin: 0, fontSize: '11px', opacity: 0.9 }}>\n            2024年能登地震による地形変化\n          </p>\n        </div>\n        <button\n          onClick={() => setIsOpen(false)}\n          style={{\n            background: 'none',\n            border: 'none',\n            color: '#fff',\n            cursor: 'pointer',\n            fontSize: '18px',\n            padding: '0',\n            width: '24px',\n            height: '24px',\n            display: 'flex',\n            alignItems: 'center',\n            justifyContent: 'center'\n          }}\n          title=\"閉じる\"\n        >\n          ✕\n        </button>\n      </div>\n\n      {/* Content */}\n      <div\n        style={{\n          flex: 1,\n          overflowY: 'auto',\n          padding: '14px',\n          display: 'flex',\n          flexDirection: 'column',\n          gap: '12px'\n        }}\n      >\n        {/* Info Box */}\n        <div\n          style={{\n            padding: '10px 12px',\n            backgroundColor: darkMode ? 'rgba(225, 112, 85, 0.1)' : '#fff3e0',\n            border: `1px solid ${darkMode ? '#444' : '#ffe0b2'}`,\n            borderRadius: '6px',\n            fontSize: '12px',\n            color: darkMode ? '#ffb74d' : '#e65100',\n            lineHeight: '1.4'\n          }}\n        >\n          <strong>💡 使用方法:</strong> スライダーで透明度を調整し、2つの年度データを重ね合わせて地形変化を比較してください。\n        </div>\n\n        {/* Layer Controls */}\n        {[LAYER_CONFIG.ishikawa2020, LAYER_CONFIG.noto2024].map((layer) => (\n          <div\n            key={layer.id}\n            onMouseEnter={() => setHoveredLayer(layer.id)}\n            onMouseLeave={() => setHoveredLayer(null)}\n            style={{\n              padding: '12px',\n              backgroundColor: darkMode ? '#333' : '#f5f5f5',\n              border: `2px solid ${hoveredLayer === layer.id ? layer.color : 'transparent'}`,\n              borderRadius: '8px',\n              transition: 'all 0.2s ease',\n              cursor: 'pointer'\n            }}\n          >\n            {/* Layer Header */}\n            <div\n              style={{\n                display: 'flex',\n                alignItems: 'center',\n                gap: '10px',\n                marginBottom: '10px'\n              }}\n            >\n              {/* Visibility Checkbox */}\n              <input\n                type=\"checkbox\"\n                checked={isLayerVisible(layer.id)}\n                onChange={() => handleToggle(layer.id)}\n                style={{\n                  width: '18px',\n                  height: '18px',\n                  cursor: 'pointer',\n                  accentColor: layer.color\n                }}\n              />\n\n              {/* Color Indicator */}\n              <div\n                style={{\n                  width: '16px',\n                  height: '16px',\n                  backgroundColor: layer.color,\n                  borderRadius: '3px',\n                  border: `2px solid ${darkMode ? '#555' : '#ddd'}`\n                }}\n              />\n\n              {/* Layer Info */}\n              <div style={{ flex: 1 }}>\n                <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>\n                  {layer.name}\n                </div>\n                <div\n                  style={{\n                    fontSize: '11px',\n                    color: darkMode ? '#aaa' : '#888',\n                    display: hoveredLayer === layer.id ? 'block' : 'none'\n                  }}\n                >\n                  {hoveredLayer === layer.id\n                    ? layer.helpText\n                    : layer.description}\n                </div>\n              </div>\n\n              {/* Year Badge */}\n              <div\n                style={{\n                  padding: '2px 8px',\n                  backgroundColor: layer.color,\n                  color: '#fff',\n                  borderRadius: '4px',\n                  fontSize: '11px',\n                  fontWeight: 'bold',\n                  minWidth: '50px',\n                  textAlign: 'center'\n                }}\n              >\n                {layer.year}\n              </div>\n            </div>\n\n            {/* Opacity Slider */}\n            {isLayerVisible(layer.id) && (\n              <div\n                style={{\n                  display: 'flex',\n                  alignItems: 'center',\n                  gap: '8px'\n                }}\n              >\n                <label style={{ fontSize: '11px', color: darkMode ? '#999' : '#666', minWidth: '60px' }}>\n                  透明度:\n                </label>\n                <input\n                  type=\"range\"\n                  min=\"0\"\n                  max=\"100\"\n                  value={Math.round(getOpacity(layer.id) * 100)}\n                  onChange={(e) => handleOpacityChange(layer.id, parseInt(e.target.value) / 100)}\n                  style={{\n                    flex: 1,\n                    height: '6px',\n                    borderRadius: '3px',\n                    outline: 'none',\n                    accentColor: layer.color,\n                    cursor: 'pointer'\n                  }}\n                />\n                <span style={{ fontSize: '11px', minWidth: '30px', textAlign: 'right' }}>\n                  {Math.round(getOpacity(layer.id) * 100)}%\n                </span>\n              </div>\n            )}\n          </div>\n        ))}\n\n        {/* Comparison Tips */}\n        <div\n          style={{\n            padding: '10px 12px',\n            backgroundColor: darkMode ? 'rgba(100, 100, 255, 0.1)' : '#e3f2fd',\n            border: `1px solid ${darkMode ? '#444' : '#bbdefb'}`,\n            borderRadius: '6px',\n            fontSize: '11px',\n            color: darkMode ? '#64b5f6' : '#1565c0'\n          }}\n        >\n          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 ドローン飛行申請での活用:</div>\n          <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>\n            <li>透明度50%で両データを重ね合わせ</li>\n            <li>隆起エリアの正確な座標を確認</li>\n            <li>海岸線の変化を確認</li>\n            <li>DID変更エリアを識別</li>\n          </ul>\n        </div>\n\n        {/* Status */}\n        <div\n          style={{\n            padding: '8px 12px',\n            backgroundColor: darkMode ? '#444' : '#fafafa',\n            borderRadius: '4px',\n            fontSize: '10px',\n            color: darkMode ? '#aaa' : '#666',\n            textAlign: 'center'\n          }}\n        >\n          {isLayerVisible(LAYER_CONFIG.ishikawa2020.id) &&\n          isLayerVisible(LAYER_CONFIG.noto2024.id)\n            ? '✅ 両レイヤーが表示されています'\n            : isLayerVisible(LAYER_CONFIG.ishikawa2020.id) ||\n                isLayerVisible(LAYER_CONFIG.noto2024.id)\n              ? '⚠️ 片方のレイヤーのみ表示中'\n              : '⏸️ レイヤーが非表示です'}\n        </div>\n      </div>\n\n      {/* Help Text */}\n      <div\n        style={{\n          padding: '8px 14px',\n          backgroundColor: darkMode ? '#1a1a1a' : '#f8f8f8',\n          borderTop: `1px solid ${darkMode ? '#444' : '#e0e0e0'}`,\n          fontSize: '10px',\n          color: darkMode ? '#888' : '#888',\n          lineHeight: '1.3',\n          flexShrink: 0\n        }}\n      >\n        💾 本パネルの設定はセッション中保持されます。\n        ブラウザを更新すると初期状態にリセットされます。\n      </div>\n    </div>\n  )\n}\n\nexport default IsikawaNotoComparisonPanel\n
+import { useState } from 'react'
+
+export interface IsikawaNotoComparisonPanelProps {
+  onLayerToggle: (layerId: string, visible: boolean) => void
+  onOpacityChange: (layerId: string, opacity: number) => void
+  visibleLayers: Set<string>
+  opacityLayers: Map<string, number>
+  darkMode?: boolean
+}
+
+const LAYER_CONFIG = {
+  ishikawa2020: {
+    id: 'did-17-ishikawa-2020',
+    name: '石川県 (2020年)',
+    year: 2020,
+    color: '#4444FF',
+    description: '2020年国勢調査DID（地震前基準データ）',
+    helpText: '青色で表示される2020年の人口集中地区'
+  },
+  noto2024: {
+    id: 'terrain-2024-noto',
+    name: '能登半島 (2024年)',
+    year: 2024,
+    color: '#FF4444',
+    description: '2024年能登半島地震後の地形データ',
+    helpText: '赤色で表示される2024年のデータ（隆起地域を反映）'
+  }
+}
+
+export function IsikawaNotoComparisonPanel({
+  onLayerToggle,
+  onOpacityChange,
+  visibleLayers,
+  opacityLayers,
+  darkMode = false
+}: IsikawaNotoComparisonPanelProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [hoveredLayer, setHoveredLayer] = useState<string | null>(null)
+
+  const isLayerVisible = (layerId: string) => visibleLayers.has(layerId)
+  const getOpacity = (layerId: string) => opacityLayers.get(layerId) ?? 0.5
+
+  const handleToggle = (layerId: string) => {
+    onLayerToggle(layerId, !isLayerVisible(layerId))
+  }
+
+  const handleOpacityChange = (layerId: string, opacity: number) => {
+    onOpacityChange(layerId, opacity)
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        title="石川県2020年 vs 能登2024年の地形比較"
+        style={{
+          position: 'fixed',
+          bottom: 80,
+          right: 20,
+          padding: '10px 16px',
+          backgroundColor: '#e17055',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontSize: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          zIndex: 999,
+          fontWeight: 'bold',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        📊 地形比較
+      </button>
+    )
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        width: '380px',
+        maxHeight: '70vh',
+        backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+        color: darkMode ? '#fff' : '#333',
+        borderRadius: '12px',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+        zIndex: 999,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        border: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: '14px 16px',
+          background: 'linear-gradient(135deg, #e17055 0%, #d63031 100%)',
+          color: '#fff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}
+      >
+        <div>
+          <h3 style={{ margin: '0 0 2px', fontSize: '14px', fontWeight: 'bold' }}>
+            📊 地形変化比較
+          </h3>
+          <p style={{ margin: 0, fontSize: '11px', opacity: 0.9 }}>
+            2024年能登地震による地形変化
+          </p>
+        </div>
+        <button
+          onClick={() => setIsOpen(false)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '18px',
+            padding: '0',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="閉じる"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Content */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        {/* Info Box */}
+        <div
+          style={{
+            padding: '10px 12px',
+            backgroundColor: darkMode ? 'rgba(225, 112, 85, 0.1)' : '#fff3e0',
+            border: `1px solid ${darkMode ? '#444' : '#ffe0b2'}`,
+            borderRadius: '6px',
+            fontSize: '12px',
+            color: darkMode ? '#ffb74d' : '#e65100',
+            lineHeight: '1.4'
+          }}
+        >
+          <strong>💡 使用方法:</strong> スライダーで透明度を調整し、2つの年度データを重ね合わせて地形変化を比較してください。
+        </div>
+
+        {/* Layer Controls */}
+        {[LAYER_CONFIG.ishikawa2020, LAYER_CONFIG.noto2024].map((layer) => (
+          <div
+            key={layer.id}
+            onMouseEnter={() => setHoveredLayer(layer.id)}
+            onMouseLeave={() => setHoveredLayer(null)}
+            style={{
+              padding: '12px',
+              backgroundColor: darkMode ? '#333' : '#f5f5f5',
+              border: `2px solid ${hoveredLayer === layer.id ? layer.color : 'transparent'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}
+          >
+            {/* Layer Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '10px'
+              }}
+            >
+              {/* Visibility Checkbox */}
+              <input
+                type="checkbox"
+                checked={isLayerVisible(layer.id)}
+                onChange={() => handleToggle(layer.id)}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer',
+                  accentColor: layer.color
+                }}
+              />
+
+              {/* Color Indicator */}
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  backgroundColor: layer.color,
+                  borderRadius: '3px',
+                  border: `2px solid ${darkMode ? '#555' : '#ddd'}`
+                }}
+              />
+
+              {/* Layer Info */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>
+                  {layer.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: darkMode ? '#aaa' : '#888',
+                    display: hoveredLayer === layer.id ? 'block' : 'none'
+                  }}
+                >
+                  {hoveredLayer === layer.id
+                    ? layer.helpText
+                    : layer.description}
+                </div>
+              </div>
+
+              {/* Year Badge */}
+              <div
+                style={{
+                  padding: '2px 8px',
+                  backgroundColor: layer.color,
+                  color: '#fff',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  minWidth: '50px',
+                  textAlign: 'center'
+                }}
+              >
+                {layer.year}
+              </div>
+            </div>
+
+            {/* Opacity Slider */}
+            {isLayerVisible(layer.id) && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <label style={{ fontSize: '11px', color: darkMode ? '#999' : '#666', minWidth: '60px' }}>
+                  透明度:
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round(getOpacity(layer.id) * 100)}
+                  onChange={(e) => handleOpacityChange(layer.id, parseInt(e.target.value) / 100)}
+                  style={{
+                    flex: 1,
+                    height: '6px',
+                    borderRadius: '3px',
+                    outline: 'none',
+                    accentColor: layer.color,
+                    cursor: 'pointer'
+                  }}
+                />
+                <span style={{ fontSize: '11px', minWidth: '30px', textAlign: 'right' }}>
+                  {Math.round(getOpacity(layer.id) * 100)}%
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Comparison Tips */}
+        <div
+          style={{
+            padding: '10px 12px',
+            backgroundColor: darkMode ? 'rgba(100, 100, 255, 0.1)' : '#e3f2fd',
+            border: `1px solid ${darkMode ? '#444' : '#bbdefb'}`,
+            borderRadius: '6px',
+            fontSize: '11px',
+            color: darkMode ? '#64b5f6' : '#1565c0'
+          }}
+        >
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 ドローン飛行申請での活用:</div>
+          <ul style={{ margin: '4px 0', paddingLeft: '16px' }}>
+            <li>透明度50%で両データを重ね合わせ</li>
+            <li>隆起エリアの正確な座標を確認</li>
+            <li>海岸線の変化を確認</li>
+            <li>DID変更エリアを識別</li>
+          </ul>
+        </div>
+
+        {/* Status */}
+        <div
+          style={{
+            padding: '8px 12px',
+            backgroundColor: darkMode ? '#444' : '#fafafa',
+            borderRadius: '4px',
+            fontSize: '10px',
+            color: darkMode ? '#aaa' : '#666',
+            textAlign: 'center'
+          }}
+        >
+          {isLayerVisible(LAYER_CONFIG.ishikawa2020.id) &&
+          isLayerVisible(LAYER_CONFIG.noto2024.id)
+            ? '✅ 両レイヤーが表示されています'
+            : isLayerVisible(LAYER_CONFIG.ishikawa2020.id) ||
+                isLayerVisible(LAYER_CONFIG.noto2024.id)
+              ? '⚠️ 片方のレイヤーのみ表示中'
+              : '⏸️ レイヤーが非表示です'}
+        </div>
+      </div>
+
+      {/* Help Text */}
+      <div
+        style={{
+          padding: '8px 14px',
+          backgroundColor: darkMode ? '#1a1a1a' : '#f8f8f8',
+          borderTop: `1px solid ${darkMode ? '#444' : '#e0e0e0'}`,
+          fontSize: '10px',
+          color: darkMode ? '#888' : '#888',
+          lineHeight: '1.3',
+          flexShrink: 0
+        }}
+      >
+        💾 本パネルの設定はセッション中保持されます。
+        ブラウザを更新すると初期状態にリセットされます。
+      </div>
+    </div>
+  )
+}
+
+export default IsikawaNotoComparisonPanel

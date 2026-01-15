@@ -29,7 +29,9 @@ import {
   getAllPrefectureLayerIds,
   searchAddress,
   getZoomBounds,
-  quickSearch,\n  ISHIKAWA_NOTO_COMPARISON_LAYERS\n} from './lib'
+  quickSearch,
+  ISHIKAWA_NOTO_COMPARISON_LAYERS
+} from './lib'
 import type { GeocodingResult } from './lib'
 import type { BaseMapKey, LayerConfig, LayerGroup, SearchIndexItem, LayerState, CustomLayer } from './lib'
 import { CustomLayerManager } from './components/CustomLayerManager'
@@ -859,6 +861,7 @@ function App() {
     if (!map || !mapLoaded) return
 
     async function initComparisonLayers() {
+      if (!map) return
       for (const layerConfig of ISHIKAWA_NOTO_COMPARISON_LAYERS) {
         if (map.getSource(layerConfig.id)) continue
 
@@ -912,7 +915,7 @@ function App() {
     }
 
     initComparisonLayers()
-  }, [mapLoaded])
+  }, [mapLoaded, comparisonLayerOpacity])
   // Load default layers on map load
   // ============================================
   useEffect(() => {

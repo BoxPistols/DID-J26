@@ -29,15 +29,12 @@ import {
   getAllPrefectureLayerIds,
   searchAddress,
   getZoomBounds,
-  quickSearch,
-  formatCoordinatesDMS
-} from './lib'
+  quickSearch,\n  ISHIKAWA_NOTO_COMPARISON_LAYERS\n} from './lib'
 import type { GeocodingResult } from './lib'
 import type { BaseMapKey, LayerConfig, LayerGroup, SearchIndexItem, LayerState, CustomLayer } from './lib'
 import { CustomLayerManager } from './components/CustomLayerManager'
 import { DrawingTools } from './components/DrawingTools'
 import { CoordinateDisplay } from './components/CoordinateDisplay'
-import { CoordinateInfoPanel } from './components/CoordinateInfoPanel'
 import { IsikawaNotoComparisonPanel } from './components/IsikawaNotoComparisonPanel'
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
@@ -131,8 +128,6 @@ function App() {
 
 
   // Coordinate Info Panel
-  const [showCoordinatePanel, setShowCoordinatePanel] = useState(false)
-  const [clickedCoordinates, setClickedCoordinates] = useState<{ lng: number; lat: number } | null>(null)
   // Sidebar Resizing
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(250) // 初期値を少し広く
@@ -700,6 +695,51 @@ function App() {
       }
     })
 
+    // Comparison layers click and hover handlers
+    ISHIKAWA_NOTO_COMPARISON_LAYERS.forEach(layerConfig => {
+      map.on('click', layerConfig.id, (e) => {
+        if (!e.features || e.features.length === 0) return
+
+        const feature = e.features[0]
+        const props = feature.properties || {}
+
+        const content = `
+          <div class="did-popup">
+            <div class="popup-header">
+              <span class="pref-name">${layerConfig.name}</span>
+              <span class="city-name">${layerConfig.year}年データ</span>
+            </div>
+            <div class="popup-stats">
+              <div class="stat-row">
+                <span class="stat-label">海抜高度</span>
+                <span class="stat-value">${props.elevation ?? 'N/A'} m</span>
+              </div>
+              ${props.change_meters ? `
+                <div class="stat-row">
+                  <span class="stat-label">地形変化</span>
+                  <span class="stat-value">${props.change_meters > 0 ? '+' : ''}${props.change_meters} m</span>
+                </div>
+              ` : ''}
+              <div class="stat-row">
+                <span class="stat-label">説明</span>
+                <span class="stat-value" style="font-size:10px;">${props.description || layerConfig.description}</span>
+              </div>
+            </div>
+          </div>
+        `
+
+        popupRef.current?.setLngLat(e.lngLat).setHTML(content).addTo(map)
+      })
+
+      map.on('mouseenter', layerConfig.id, () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+
+      map.on('mouseleave', layerConfig.id, () => {
+        map.getCanvas().style.cursor = ''
+      })
+    })
+
     mapRef.current = map
 
     return () => {
@@ -810,6 +850,69 @@ function App() {
   }, [mapLoaded, opacity])
 
   // ============================================
+
+  // ============================================
+  // Comparison Layers initialization
+  // ============================================
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    async function initComparisonLayers() {
+      for (const layerConfig of ISHIKAWA_NOTO_COMPARISON_LAYERS) {
+        if (map.getSource(layerConfig.id)) continue
+
+        try {
+          const geojson = await fetchGeoJSONWithCache(layerConfig.path)
+
+          map.addSource(layerConfig.id, {
+            type: 'geojson',
+            data: geojson
+          })
+
+          // Circle レイヤー（ポイントデータ用）
+          map.addLayer({
+            id: layerConfig.id,
+            type: 'circle',
+            source: layerConfig.id,
+            paint: {
+              'circle-radius': 6,
+              'circle-color': layerConfig.color,
+              'circle-opacity': comparisonLayerOpacity.get(layerConfig.id) ?? 0.5,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': layerConfig.color,
+              'circle-stroke-opacity': 0.8
+            },
+            layout: {
+              visibility: 'none'
+            }
+          })
+
+          // ラベルレイヤー（年度表示）
+          map.addLayer({
+            id: `${layerConfig.id}-label`,
+            type: 'symbol',
+            source: layerConfig.id,
+            layout: {
+              'text-field': `${layerConfig.year}`,
+              'text-size': 10,
+              'text-offset': [0, 1.5],
+              visibility: 'none'
+            },
+            paint: {
+              'text-color': layerConfig.color,
+              'text-halo-color': '#fff',
+              'text-halo-width': 1
+            }
+          })
+        } catch (error) {
+          console.error(`Failed to load comparison layer ${layerConfig.id}:`, error)
+        }
+      }
+    }
+
+    initComparisonLayers()
+  }, [mapLoaded])
   // Load default layers on map load
   // ============================================
   useEffect(() => {
@@ -1319,6 +1422,42 @@ function App() {
       map.removeLayer(`${layerId}-outline`)
     }
     if (map.getSource(layerId)) {
+
+
+  // ============================================
+  // Comparison Layer Visibility Control
+  // ============================================
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    ISHIKAWA_NOTO_COMPARISON_LAYERS.forEach(layerConfig => {
+      const isVisible = comparisonLayerVisibility.has(layerConfig.id)
+      const visibility = isVisible ? 'visible' : 'none'
+
+      if (map.getLayer(layerConfig.id)) {
+        map.setLayoutProperty(layerConfig.id, 'visibility', visibility)
+      }
+      if (map.getLayer(`${layerConfig.id}-label`)) {
+        map.setLayoutProperty(`${layerConfig.id}-label`, 'visibility', visibility)
+      }
+    })
+  }, [comparisonLayerVisibility, mapLoaded])
+
+  // ============================================
+  // Comparison Layer Opacity Control
+  // ============================================
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    comparisonLayerOpacity.forEach((opacity, layerId) => {
+      if (map.getLayer(layerId)) {
+        map.setPaintProperty(layerId, 'circle-opacity', opacity)
+        map.setPaintProperty(layerId, 'circle-stroke-opacity', opacity * 0.8)
+      }
+    })
+  }, [comparisonLayerOpacity, mapLoaded])
       map.removeSource(layerId)
     }
     setCustomLayerVisibility(prev => {

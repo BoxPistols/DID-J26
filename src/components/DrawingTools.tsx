@@ -9,14 +9,18 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import type maplibregl from 'maplibre-gl'
 import { createCirclePolygon } from '../lib/utils/geo'
 import { Modal } from './Modal'
+import { showToast } from '../utils/toast'
 
 // デバウンスユーティリティ
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-  let timeoutId: ReturnType<typeof setTimeout>
-  return ((...args: Parameters<T>) => {
-    clearTimeout(timeoutId)
+function debounce<Args extends unknown[]>(
+  fn: (...args: Args) => void,
+  delay: number
+): (...args: Args) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  return (...args: Args) => {
+    if (timeoutId !== null) clearTimeout(timeoutId)
     timeoutId = setTimeout(() => fn(...args), delay)
-  }) as T
+  }
 }
 
 // 描画モードの型定義
@@ -116,6 +120,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const drawModeRef = useRef<DrawMode>('none') // 描画モードをrefでも保持
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
   const isRestoringRef = useRef(false) // データ復元中フラグ
+  const isDisposedRef = useRef(false) // アンマウント/破棄フラグ（非同期の後処理を止める）
 
   // drawModeが変更されたらrefも更新
   useEffect(() => {
@@ -225,6 +230,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   useEffect(() => {
     if (!map || !mapLoaded) return
     if (drawRef.current) return
+
+    isDisposedRef.current = false
+    const safeSetTimeout = (fn: () => void, ms: number) =>
+      setTimeout(() => {
+        if (isDisposedRef.current) return
+        fn()
+      }, ms)
 
     const draw = new MapboxDraw({
       displayControlsDefault: false,
@@ -450,7 +462,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       // WP連続モードの場合は継続
       if (drawModeRef.current === 'point' && continuousModeRef.current) {
         // 連続モード: draw_pointモードを維持
-        setTimeout(() => {
+        safeSetTimeout(() => {
           draw.changeMode('draw_point')
         }, 50)
         return
@@ -461,7 +473,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         const newFeatureId = e.features[0].id
         setSelectedFeatureId(newFeatureId)
         // 作成後、選択モードに戻す
-        setTimeout(() => {
+        safeSetTimeout(() => {
           draw.changeMode('simple_select', { featureIds: [newFeatureId] })
         }, 100)
       }
@@ -487,7 +499,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       }
       // direct_selectモードの場合、頂点ラベルを更新して選択状態を反映
       if (draw.getMode() === 'direct_select') {
-        setTimeout(() => {
+        safeSetTimeout(() => {
           debouncedUpdateVertexLabels.current?.()
         }, 50)
       }
@@ -501,7 +513,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         map.getCanvas().style.cursor = e.mode === 'direct_select' ? 'move' : ''
         setIsEditing(e.mode === 'direct_select')
         // 選択/編集モードの場合のみ頂点ラベルを更新
-        setTimeout(() => {
+        safeSetTimeout(() => {
           debouncedUpdateVertexLabels.current?.()
         }, 50)
       } else {
@@ -523,7 +535,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       if (styleChangeTimeout) {
         clearTimeout(styleChangeTimeout)
       }
-      styleChangeTimeout = setTimeout(() => {
+      styleChangeTimeout = safeSetTimeout(() => {
         bringLabelsToFront()
         styleChangeTimeout = null
       }, 300)
@@ -541,7 +553,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           updateFeatures()
 
           // 復元完了後、フラグをリセット
-          setTimeout(() => {
+          safeSetTimeout(() => {
             isRestoringRef.current = false
           }, 500)
         } catch (error) {
@@ -560,13 +572,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
 
     if (styleLoaded) {
-      setTimeout(() => {
+      safeSetTimeout(() => {
         restoreData()
         ensureDrawLayersOnTop()
       }, 200)
     } else {
       map.once('styledata', () => {
-        setTimeout(() => {
+        safeSetTimeout(() => {
           restoreData()
           ensureDrawLayersOnTop()
         }, 200)
@@ -574,6 +586,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     }
 
     return () => {
+      isDisposedRef.current = true
       // イベントリスナーを削除
       if (map) {
         try {
@@ -587,27 +600,36 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           console.warn('Failed to remove event listeners:', e)
         }
 
+        if (styleChangeTimeout) {
+          clearTimeout(styleChangeTimeout)
+          styleChangeTimeout = null
+        }
+
         // 頂点ラベルレイヤーとソースを削除
-        if (map.getLayer('vertex-labels')) {
-          try {
-            map.removeLayer('vertex-labels')
-          } catch (e) {
-            console.warn('Failed to remove vertex labels layer:', e)
+        try {
+          if (map.getLayer('vertex-labels')) {
+            try {
+              map.removeLayer('vertex-labels')
+            } catch (e) {
+              console.warn('Failed to remove vertex labels layer:', e)
+            }
           }
-        }
-        if (map.getLayer('vertex-labels-background')) {
-          try {
-            map.removeLayer('vertex-labels-background')
-          } catch (e) {
-            console.warn('Failed to remove vertex labels background layer:', e)
+          if (map.getLayer('vertex-labels-background')) {
+            try {
+              map.removeLayer('vertex-labels-background')
+            } catch (e) {
+              console.warn('Failed to remove vertex labels background layer:', e)
+            }
           }
-        }
-        if (map.getSource('vertex-labels')) {
-          try {
-            map.removeSource('vertex-labels')
-          } catch (e) {
-            console.warn('Failed to remove vertex labels source:', e)
+          if (map.getSource('vertex-labels')) {
+            try {
+              map.removeSource('vertex-labels')
+            } catch (e) {
+              console.warn('Failed to remove vertex labels source:', e)
+            }
           }
+        } catch {
+          // map/style が既に破棄されている場合は無視
         }
 
         // Drawコントロールを削除（マップが有効な場合のみ）
@@ -671,9 +693,17 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // 頂点ラベルを更新（選択状態も反映）
   const updateVertexLabels = useCallback(() => {
-    if (!map || !drawRef.current) return
+    if (!map || !drawRef.current || isDisposedRef.current) return
 
-    const allFeatures = drawRef.current.getAll()
+    let allFeatures: GeoJSON.FeatureCollection
+    try {
+      allFeatures = drawRef.current.getAll()
+    } catch (error) {
+      // #region agent log (debug)
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:updateVertexLabels',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion agent log (debug)
+      return
+    }
     const labelFeatures: GeoJSON.Feature[] = []
 
     // 選択された頂点の座標を取得
@@ -797,9 +827,17 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // フィーチャー更新
   const updateFeatures = useCallback(() => {
-    if (!drawRef.current) return
+    if (!drawRef.current || isDisposedRef.current) return
 
-    const allFeatures = drawRef.current.getAll()
+    let allFeatures: GeoJSON.FeatureCollection
+    try {
+      allFeatures = drawRef.current.getAll()
+    } catch (error) {
+      // #region agent log (debug)
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:updateFeatures',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion agent log (debug)
+      return
+    }
     const features: DrawnFeature[] = allFeatures.features.map((f) => {
       let type: DrawnFeature['type'] = 'polygon'
       if (f.geometry.type === 'Point') type = 'point'
@@ -1128,7 +1166,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
     const center = getFeatureCenter(drawnFeature)
     if (!center) {
-      alert('座標の取得に失敗しました')
+      showToast('座標の取得に失敗しました', 'error')
       return
     }
 
@@ -1157,12 +1195,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         }
 
         updateFeatures()
+        showToast('標高データを更新しました', 'success')
       } else {
-        alert('標高データの取得に失敗しました')
+        showToast('標高データの取得に失敗しました', 'error')
       }
     } catch (error) {
       console.error('標高取得エラー:', error)
-      alert('標高の取得中にエラーが発生しました')
+      showToast('標高の取得中にエラーが発生しました', 'error')
     }
   }
 
@@ -1387,7 +1426,7 @@ ${kmlFeatures}
 
   // プレビュー表示
   const handleShowPreview = () => {
-    if (!drawRef.current) return
+    if (!drawRef.current || isDisposedRef.current) return
 
     // 空の名前があるかチェック
     const featuresWithEmptyNames = drawnFeatures.filter(f => isNameEmpty(f.name))
@@ -1400,7 +1439,15 @@ ${kmlFeatures}
       return
     }
 
-    const allFeatures = drawRef.current.getAll()
+    let allFeatures: GeoJSON.FeatureCollection
+    try {
+      allFeatures = drawRef.current.getAll()
+    } catch (error) {
+      // #region agent log (debug)
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:handleShowPreview',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion agent log (debug)
+      return
+    }
     let data = ''
 
     switch (exportFormat) {
@@ -1473,16 +1520,16 @@ ${kmlFeatures}
     }).join('\n\n')
 
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      alert('このブラウザではクリップボードへのコピーがサポートされていません')
+      showToast('このブラウザではクリップボードへのコピーがサポートされていません', 'error')
       return
     }
 
     try {
       await navigator.clipboard.writeText(coordText)
-      alert('座標をクリップボードにコピーしました')
+      showToast('座標をクリップボードにコピーしました', 'success')
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
-      alert('クリップボードへのコピーに失敗しました')
+      showToast('クリップボードへのコピーに失敗しました', 'error')
     }
   }
 

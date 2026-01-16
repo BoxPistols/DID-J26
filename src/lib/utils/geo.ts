@@ -185,9 +185,19 @@ export function formatCoordinates(lng: number, lat: number): string {
 export function formatCoordinatesDMS(lng: number, lat: number): string {
   const decimalToDMS = (decimal: number, isLat: boolean): string => {
     const abs = Math.abs(decimal)
-    const degrees = Math.floor(abs)
-    const minutes = Math.floor((abs - degrees) * 60)
-    const seconds = ((abs - degrees) * 60 - minutes) * 60
+    let degrees = Math.floor(abs)
+    let minutes = Math.floor((abs - degrees) * 60)
+    let seconds = ((abs - degrees) * 60 - minutes) * 60
+    
+    // 丸め処理による繰り上がり対応
+    if (parseFloat(seconds.toFixed(2)) >= 60) {
+      seconds = 0
+      minutes++
+      if (minutes >= 60) {
+        minutes = 0
+        degrees++
+      }
+    }
     
     const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : (decimal >= 0 ? 'E' : 'W')
     return `${degrees}°${minutes}'${seconds.toFixed(2)}"${dir}`

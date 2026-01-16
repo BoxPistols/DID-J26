@@ -3716,9 +3716,11 @@ function App() {
             const checked = isNotoUplift
               ? comparisonLayerVisibility.has('terrain-2024-noto')
               : isOverlayVisible(overlay.id)
-            const disabled = isNotoUplift ? true : false
+            const disabled = isNotoUplift ? baseMap !== 'osm' : false
             const tooltip = isNotoUplift
-              ? '能登半島隆起エリア（仮設置データ・試験的表示）'
+              ? disabled
+                ? '標準マップ（osm）のみ利用できます。'
+                : '2024年能登半島地震後の隆起を示す点サンプル（赤い点/ヒート）を表示します。'
               : 'description' in overlay &&
                   typeof overlay.description === 'string' &&
                   overlay.description.trim().length > 0

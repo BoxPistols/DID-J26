@@ -366,9 +366,12 @@ const parseCsvText = (text: string): GeoJSON.FeatureCollection => {
 }
 
 const normalizeImportedFeatures = (
-  fc: GeoJSON.FeatureCollection,
+  fc: GeoJSON.FeatureCollection | null | undefined,
   circlePoints: number
 ): GeoJSON.Feature[] => {
+  if (!fc || !Array.isArray(fc.features)) {
+    throw new Error('インポート形式が不正です')
+  }
   const normalized: GeoJSON.Feature[] = []
 
   const toLngLat = (value: unknown): [number, number] | null => {
@@ -568,6 +571,7 @@ export function DrawingTools({
   const [selectedCount, setSelectedCount] = useState(0)
   const [editingNameId, setEditingNameId] = useState<string | null>(null)
   const [editingNameValue, setEditingNameValue] = useState('')
+  const [editingNameError, setEditingNameError] = useState<string | null>(null)
   const [continuousMode, setContinuousMode] = useState(true) // WP連続配置モード
   const [checkedFeatureIds, setCheckedFeatureIds] = useState<Set<string>>(new Set()) // 複数選択用
   const [searchQuery, setSearchQuery] = useState('') // 検索クエリ
@@ -578,6 +582,8 @@ export function DrawingTools({
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
   const importInputRef = useRef<HTMLInputElement>(null)
   const nameClickTimerRef = useRef<number | null>(null)
+  const editingNameInputRef = useRef<HTMLInputElement>(null)
+  const editingNameOriginalRef = useRef<string>('')
   const modeStartFeatureIdsRef = useRef<Set<string>>(new Set()) // モード開始時点のフィーチャID（破棄用）
   const modeStartDrawModeRef = useRef<DrawMode>('none') // どのモード開始時に記録したか
   const isRestoringRef = useRef(false) // データ復元中フラグ
@@ -684,7 +690,7 @@ export function DrawingTools({
 
   // Draw初期化
   useEffect(() => {
-    if (drawnFeatures.length === 0 && activeTab !== 'draw') {
+    if (drawnFeatures.length === 0 && activeTab === 'manage') {
       setActiveTab('draw')
     }
   }, [drawnFeatures.length, activeTab])
@@ -1709,17 +1715,35 @@ export function DrawingTools({
     setSelectedFeatureId(feature.id)
     setEditingNameId(feature.id)
     setEditingNameValue(feature.name)
+    editingNameOriginalRef.current = feature.name
+    setEditingNameError(null)
   }
 
-  const handleNameEditCommit = () => {
+  const handleNameEditCommit = (reason: 'enter' | 'blur') => {
     if (!editingNameId) return
-    handleRenameFeature(editingNameId, editingNameValue)
+    const trimmed = editingNameValue.trim()
+    if (!trimmed) {
+      if (reason === 'blur') {
+        setEditingNameValue(editingNameOriginalRef.current)
+        setEditingNameError(null)
+        setEditingNameId(null)
+        return
+      }
+      setEditingNameError('名前を入力してください')
+      window.setTimeout(() => {
+        editingNameInputRef.current?.focus()
+      }, 0)
+      return
+    }
+    handleRenameFeature(editingNameId, trimmed)
+    setEditingNameError(null)
     setEditingNameId(null)
   }
 
   const handleNameEditCancel = () => {
     setEditingNameId(null)
-    setEditingNameValue('')
+    setEditingNameValue(editingNameOriginalRef.current)
+    setEditingNameError(null)
   }
 
   // エリアの中心座標を取得
@@ -2164,12 +2188,25 @@ ${kmlFeatures}
 
       if (!drawRef.current || isDisposedRef.current) return
 
+      const featureCollection: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: normalized
+      }
+
       isRestoringRef.current = true
-      drawRef.current.set({ type: 'FeatureCollection', features: normalized })
+      drawRef.current.deleteAll()
+      const addedIds = drawRef.current.add(featureCollection)
       updateFeatures()
       window.setTimeout(() => {
         isRestoringRef.current = false
       }, 300)
+
+      const firstId = Array.isArray(addedIds) ? addedIds[0] : addedIds
+      if (firstId) {
+        setSelectedFeatureId(String(firstId))
+      }
+      setCheckedFeatureIds(new Set())
+      setActiveTab('manage')
 
       showToast(`インポート完了: ${normalized.length}件`, 'success')
     } catch (error) {
@@ -2591,9 +2628,8 @@ ${kmlFeatures}
             )}
           </button>
           <button
-            onClick={() => drawnFeatures.length > 0 && setActiveTab('export')}
-            disabled={drawnFeatures.length === 0}
-            title={drawnFeatures.length === 0 ? 'データがありません' : ''}
+            onClick={() => setActiveTab('export')}
+            title={drawnFeatures.length === 0 ? 'インポートできます' : ''}
             style={{
               flex: 1,
               padding: '10px 6px',
@@ -2601,15 +2637,14 @@ ${kmlFeatures}
               border: 'none',
               borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
               color: activeTab === 'export' ? '#3388ff' : darkMode ? '#999' : '#666',
-              cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: drawnFeatures.length === 0 ? 0.5 : 1,
+              cursor: 'pointer',
               fontSize: '13px',
               fontWeight: activeTab === 'export' ? 600 : 400,
               transition: 'all 0.2s',
               marginBottom: '-2px'
             }}
           >
-            出力
+            入出力
           </button>
         </div>
 
@@ -3042,48 +3077,82 @@ ${kmlFeatures}
                           }}
                         />
                         {/* 名前（ダブルクリックで編集） */}
-                        {editingNameId === f.id ? (
-                          <input
-                            value={editingNameValue}
-                            onChange={(e) => setEditingNameValue(e.target.value)}
-                            onBlur={handleNameEditCommit}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                handleNameEditCommit()
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault()
-                                handleNameEditCancel()
-                              }
-                            }}
-                            autoFocus
-                            style={{
-                              flex: 1,
-                              minWidth: 0,
-                              padding: '3px 6px',
-                              border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                              borderRadius: '4px',
-                              backgroundColor: darkMode ? '#333' : '#fff',
-                              color: darkMode ? '#fff' : '#333',
-                              fontSize: '12px'
-                            }}
-                          />
-                        ) : (
-                          <span
-                            style={{
-                              flex: 1,
-                              cursor: 'pointer',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}
-                            onClick={() => handleNameClick(f)}
-                            onDoubleClick={() => handleNameDoubleClick(f)}
-                            title={`${f.name}（ダブルクリックで編集）`}
-                          >
-                            {f.name}
-                          </span>
-                        )}
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2px'
+                          }}
+                        >
+                          {editingNameId === f.id ? (
+                            <input
+                              ref={editingNameInputRef}
+                              value={editingNameValue}
+                              onChange={(e) => {
+                                const nextValue = e.target.value
+                                setEditingNameValue(nextValue)
+                                if (editingNameError && nextValue.trim().length > 0) {
+                                  setEditingNameError(null)
+                                }
+                              }}
+                              onBlur={() => handleNameEditCommit('blur')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleNameEditCommit('enter')
+                                } else if (e.key === 'Escape') {
+                                  e.preventDefault()
+                                  handleNameEditCancel()
+                                }
+                              }}
+                              autoFocus
+                              style={{
+                                width: '100%',
+                                padding: '3px 6px',
+                                border: editingNameError
+                                  ? '2px solid #f44336'
+                                  : `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                                borderRadius: '4px',
+                                backgroundColor: editingNameError
+                                  ? darkMode
+                                    ? '#3d2020'
+                                    : '#fff5f5'
+                                  : darkMode
+                                    ? '#333'
+                                    : '#fff',
+                                color: darkMode ? '#fff' : '#333',
+                                fontSize: '12px'
+                              }}
+                            />
+                          ) : (
+                            <span
+                              style={{
+                                cursor: 'pointer',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onClick={() => handleNameClick(f)}
+                              onDoubleClick={() => handleNameDoubleClick(f)}
+                              title={`${f.name}（ダブルクリックで編集）`}
+                            >
+                              {f.name}
+                            </span>
+                          )}
+                          {editingNameId === f.id && editingNameError && (
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#f44336',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {editingNameError}
+                            </div>
+                          )}
+                        </div>
                         {/* ZOOMボタン */}
                         <button
                           onClick={() => {
@@ -3340,97 +3409,6 @@ ${kmlFeatures}
                     </select>
                   </div>
                 )}
-
-              {/* 選択中のフィーチャー名変更 */}
-              {selectedFeatureId &&
-                (() => {
-                  const currentFeature = drawnFeatures.find((f) => f.id === selectedFeatureId)
-                  const currentName = currentFeature?.name || ''
-                  const hasEmptyName = isNameEmpty(currentName)
-
-                  // 頂点数を計算
-                  let vertexCount = 0
-                  if (currentFeature) {
-                    if (
-                      currentFeature.type === 'polygon' &&
-                      Array.isArray(currentFeature.coordinates) &&
-                      currentFeature.coordinates.length > 0
-                    ) {
-                      const outerRing = currentFeature.coordinates[0]
-                      if (Array.isArray(outerRing)) {
-                        vertexCount = outerRing.length - 1 // 最後は最初と同じ座標なので-1
-                      }
-                    } else if (
-                      currentFeature.type === 'line' &&
-                      Array.isArray(currentFeature.coordinates)
-                    ) {
-                      vertexCount = currentFeature.coordinates.length
-                    } else if (currentFeature.type === 'circle') {
-                      vertexCount = (currentFeature.properties?.circlePoints as number) || 24
-                    }
-                  }
-
-                  return (
-                    <div
-                      style={{
-                        marginBottom: '12px',
-                        padding: '8px',
-                        backgroundColor: darkMode ? '#333' : '#f0f7ff',
-                        borderRadius: '4px',
-                        border: `1px solid ${darkMode ? '#555' : '#2196f3'}`
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: '12px',
-                          color: darkMode ? '#64b5f6' : '#2196f3',
-                          display: 'block',
-                          marginBottom: '4px',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        名前
-                        {hasEmptyName && (
-                          <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '11px' }}>
-                            ※ 名前を入力してください
-                          </span>
-                        )}
-                        {vertexCount > 0 && (
-                          <span
-                            style={{
-                              color: darkMode ? '#aaa' : '#666',
-                              marginLeft: '8px',
-                              fontSize: '11px',
-                              fontWeight: 'normal'
-                            }}
-                          >
-                            ({vertexCount}点)
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="text"
-                        value={currentName}
-                        onChange={(e) => handleRenameFeature(selectedFeatureId, e.target.value)}
-                        placeholder="フィーチャー名を入力"
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          border: hasEmptyName ? '2px solid #f44336' : `1px solid ${borderColor}`,
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          backgroundColor: hasEmptyName
-                            ? darkMode
-                              ? '#3d2020'
-                              : '#fff5f5'
-                            : buttonBg,
-                          color: textColor,
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  )
-                })()}
 
               {/* 飛行高度設定 */}
               {selectedFeatureId &&

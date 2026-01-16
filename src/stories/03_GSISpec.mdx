@@ -15,10 +15,12 @@ import { Meta } from '@storybook/blocks'
 
 | サービス | URL | タイプ | 用途 |
 |---------|-----|--------|------|
-| 標準地図 | std/{z}/{x}/{y}.png | ラスタ | 汎用地図 |
-| 淡色地図 | pale/{z}/{x}/{y}.png | ラスタ | 軽い背景 |
-| 航空写真 | seamlessphoto/{z}/{x}/{y}.jpg | ラスタ | 詳細画像 |
-| Kokuarea | kokuarea/{z}/{x}/{y}.geojson | ベクタ | 空港空域 |
+| 標準地図 | std/zoom/x/y.png | ラスタ | 汎用地図 |
+| 淡色地図 | pale/zoom/x/y.png | ラスタ | 軽い背景 |
+| 航空写真 | seamlessphoto/zoom/x/y.jpg | ラスタ | 詳細画像 |
+| Kokuarea | kokuarea/zoom/x/y.geojson | ベクタ | 空港空域 |
+
+※ zoom = ズームレベル（0-18）、x = 経度インデックス、y = 緯度インデックス
 
 ## 3. Kokuarea フィーチャータイプ
 

@@ -417,7 +417,7 @@ function App() {
   const [mapZoom, setMapZoom] = useState<number | null>(null)
 
   // Enable coordinate display on map click
-  const [enableCoordinateDisplay, setEnableCoordinateDisplay] = useState(() => {
+  const [enableCoordinateDisplay, setEnableCoordinateDisplay] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('ui-settings')
       if (stored) {
@@ -680,6 +680,13 @@ function App() {
           break
         case 't':
           setShowTooltip((prev) => !prev)
+          break
+        case 'g':
+          setEnableCoordinateDisplay((prev) => {
+            const next = !prev
+            if (!next) setDisplayCoordinates(null)
+            return next
+          })
           break
         case 's':
           // サイドバートグル（左）
@@ -2768,19 +2775,62 @@ function App() {
       const map = mapRef.current
       if (!map || !mapLoaded) return
 
+      // NOTE: 既存ソースがあっても、欠けているサブレイヤー（Point/Line等）があれば追加する
       if (!map.getSource(layer.id)) {
         map.addSource(layer.id, { type: 'geojson', data: layer.data })
+      }
+
+      // Polygon fill
+      if (!map.getLayer(layer.id)) {
         map.addLayer({
           id: layer.id,
           type: 'fill',
           source: layer.id,
+          filter: ['==', '$type', 'Polygon'],
           paint: { 'fill-color': layer.color, 'fill-opacity': layer.opacity }
         })
+      }
+
+      // Polygon outline
+      if (!map.getLayer(`${layer.id}-outline`)) {
         map.addLayer({
           id: `${layer.id}-outline`,
           type: 'line',
           source: layer.id,
+          filter: ['==', '$type', 'Polygon'],
           paint: { 'line-color': layer.color, 'line-width': 2 }
+        })
+      }
+
+      // LineString (routes)
+      if (!map.getLayer(`${layer.id}-line`)) {
+        map.addLayer({
+          id: `${layer.id}-line`,
+          type: 'line',
+          source: layer.id,
+          filter: ['==', '$type', 'LineString'],
+          paint: {
+            'line-color': layer.color,
+            'line-width': 2,
+            'line-opacity': Math.min(1, layer.opacity + 0.2)
+          }
+        })
+      }
+
+      // Point (WP)
+      if (!map.getLayer(`${layer.id}-point`)) {
+        map.addLayer({
+          id: `${layer.id}-point`,
+          type: 'circle',
+          source: layer.id,
+          filter: ['==', '$type', 'Point'],
+          paint: {
+            'circle-color': layer.color,
+            'circle-radius': 5,
+            'circle-opacity': 0.95,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1
+          }
         })
       }
       setCustomLayerVisibility((prev) => new Set(prev).add(layer.id))
@@ -2799,10 +2849,12 @@ function App() {
     const map = mapRef.current
     if (!map) return
 
-    if (map.getLayer(layerId)) {
-      map.removeLayer(layerId)
-      map.removeLayer(`${layerId}-outline`)
-    }
+    const ids = [layerId, `${layerId}-outline`, `${layerId}-line`, `${layerId}-point`]
+    ids.forEach((id) => {
+      if (map.getLayer(id)) {
+        map.removeLayer(id)
+      }
+    })
     if (map.getSource(layerId)) {
       map.removeSource(layerId)
     }
@@ -2989,11 +3041,12 @@ function App() {
         }
       }
 
-      if (map.getLayer(layerId)) {
-        const visibility = visible ? 'visible' : 'none'
-        map.setLayoutProperty(layerId, 'visibility', visibility)
-        map.setLayoutProperty(`${layerId}-outline`, 'visibility', visibility)
-      }
+      const visibility = visible ? 'visible' : 'none'
+      ;[layerId, `${layerId}-outline`, `${layerId}-line`, `${layerId}-point`].forEach((id) => {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(id, 'visibility', visibility)
+        }
+      })
 
       setCustomLayerVisibility((prev) => {
         const next = new Set(prev)
@@ -3466,7 +3519,7 @@ function App() {
                 textOverflow: 'ellipsis'
               }}
             >
-              座標表示
+              座標表示 [G]
             </span>
           </label>
         </div>
@@ -4793,6 +4846,19 @@ function App() {
                         fontSize: '12px'
                       }}
                     >
+                      G
+                    </kbd>
+                    <span>座標表示</span>
+                    <kbd
+                      style={{
+                        backgroundColor: darkMode ? '#444' : '#eee',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        textAlign: 'center',
+                        fontFamily: 'monospace',
+                        fontSize: '12px'
+                      }}
+                    >
                       L
                     </kbd>
                     <span>ダークモード/ライトモード</span>
@@ -5085,7 +5151,10 @@ function App() {
                   >
                     <li style={{ marginBottom: '6px' }}>
                       <strong>座標フォーマット:</strong>{' '}
-                      地図をクリックすると10進数形式と度分秒（DMS）形式の両方が5秒間表示されます。
+                      地図をクリックすると10進数形式と度分秒（DMS）形式の両方が5秒間表示されます（ドラッグすると固定）。
+                    </li>
+                    <li style={{ marginBottom: '6px' }}>
+                      <strong>座標表示切替（G）:</strong> 座標表示のON/OFFを切り替えます。
                     </li>
                     <li style={{ marginBottom: '6px' }}>
                       <strong>ツールチップ表示（T）:</strong>{' '}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatCoordinates, formatCoordinatesDMS } from '../lib/utils/geo'
 
 export interface CoordinateDisplayProps {
@@ -20,20 +20,38 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(true)
   const panelRef = useRef<HTMLDivElement | null>(null)
+  const autoCloseTimerRef = useRef<number | null>(null)
+  const [autoCloseEnabled, setAutoCloseEnabled] = useState(true)
 
   type PanelPos = { left: number; top: number }
   const [pos, setPos] = useState<PanelPos | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null)
 
+  const clearAutoCloseTimer = useCallback(() => {
+    if (autoCloseTimerRef.current !== null) {
+      window.clearTimeout(autoCloseTimerRef.current)
+      autoCloseTimerRef.current = null
+    }
+  }, [])
+
+  const disableAutoClose = useCallback(() => {
+    setAutoCloseEnabled(false)
+  }, [])
+
   useEffect(() => {
+    if (!autoCloseEnabled) {
+      clearAutoCloseTimer()
+      return
+    }
+    clearAutoCloseTimer()
     // Auto-close after 5 seconds
-    const timer = setTimeout(() => {
+    autoCloseTimerRef.current = window.setTimeout(() => {
       setShowModal(false)
       onClose?.()
     }, 5000)
-    return () => clearTimeout(timer)
-  }, [onClose])
+    return () => clearAutoCloseTimer()
+  }, [autoCloseEnabled, clearAutoCloseTimer, onClose, lng, lat])
 
   if (!showModal) {
     return null
@@ -123,6 +141,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
       <div
         onPointerDown={(e) => {
           // クリック/タップでの選択は許可しつつ、ドラッグ開始
+          disableAutoClose()
           const el = panelRef.current
           if (!el) return
           const rect = el.getBoundingClientRect()

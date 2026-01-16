@@ -10,6 +10,7 @@ import type maplibregl from 'maplibre-gl'
 import { createCirclePolygon } from '../lib/utils/geo'
 import { Modal } from './Modal'
 import { showToast } from '../utils/toast'
+import { showConfirm } from '../utils/dialog'
 
 // デバウンスユーティリティ
 function debounce<Args extends unknown[]>(
@@ -44,6 +45,449 @@ const EXPORT_FORMAT_LABELS: Record<ExportFormat, string> = {
   kml: 'KML',
   csv: 'CSV',
   dms: 'NOTAM'
+}
+
+const IMPORT_ACCEPT = '.geojson,.json,.kml,.csv'
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isGeometryType = (t: unknown): t is GeoJSON.Geometry['type'] =>
+  t === 'Point' ||
+  t === 'MultiPoint' ||
+  t === 'LineString' ||
+  t === 'MultiLineString' ||
+  t === 'Polygon' ||
+  t === 'MultiPolygon' ||
+  t === 'GeometryCollection'
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+const ensureClosedRing = (ring: GeoJSON.Position[]): GeoJSON.Position[] => {
+  if (ring.length === 0) return ring
+  const first = ring[0]
+  const last = ring[ring.length - 1]
+  if (first[0] === last[0] && first[1] === last[1]) return ring
+  return [...ring, first]
+}
+
+const parseCsvLine = (line: string): string[] => {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i]
+    if (char === '"') {
+      const next = line[i + 1]
+      if (inQuotes && next === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+    if (char === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+      continue
+    }
+    current += char
+  }
+  result.push(current.trim())
+  return result
+}
+
+const normalizeGeoJSONInput = (parsed: unknown): GeoJSON.FeatureCollection => {
+  if (!isRecord(parsed)) {
+    throw new Error('GeoJSONの形式が不正です')
+  }
+  const typeValue = parsed.type
+  if (typeValue === 'FeatureCollection') {
+    const features = Array.isArray(parsed.features) ? (parsed.features as GeoJSON.Feature[]) : []
+    return { type: 'FeatureCollection', features }
+  }
+  if (typeValue === 'Feature') {
+    return { type: 'FeatureCollection', features: [parsed as GeoJSON.Feature] }
+  }
+  if (isGeometryType(typeValue)) {
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: parsed as GeoJSON.Geometry
+        }
+      ]
+    }
+  }
+  throw new Error('GeoJSONのタイプが不明です')
+}
+
+const parseGeoJSONText = (text: string): GeoJSON.FeatureCollection => {
+  const parsed = JSON.parse(text) as unknown
+  return normalizeGeoJSONInput(parsed)
+}
+
+const parseKmlText = (text: string): GeoJSON.FeatureCollection => {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(text, 'application/xml')
+  if (doc.getElementsByTagName('parsererror').length > 0) {
+    throw new Error('KMLの解析に失敗しました')
+  }
+
+  const features: GeoJSON.Feature[] = []
+  const placemarks = Array.from(doc.getElementsByTagName('Placemark'))
+  const parseCoords = (raw: string): Array<[number, number]> => {
+    const parts = raw.trim().split(/\s+/)
+    const coords: Array<[number, number]> = []
+    parts.forEach((token) => {
+      const values = token.split(',')
+      if (values.length < 2) return
+      const lng = toNumber(values[0])
+      const lat = toNumber(values[1])
+      if (lng === null || lat === null) return
+      coords.push([lng, lat])
+    })
+    return coords
+  }
+
+  placemarks.forEach((pm, index) => {
+    const nameValue = pm.getElementsByTagName('name')[0]?.textContent?.trim() ?? ''
+    const properties: Record<string, unknown> = {}
+    if (nameValue) properties.name = nameValue
+
+    const extended = pm.getElementsByTagName('ExtendedData')[0]
+    if (extended) {
+      const dataNodes = Array.from(extended.getElementsByTagName('Data'))
+      dataNodes.forEach((node) => {
+        const key = node.getAttribute('name')
+        if (!key) return
+        const value = node.getElementsByTagName('value')[0]?.textContent?.trim() ?? ''
+        const numeric = toNumber(value)
+        properties[key] = numeric ?? value
+      })
+    }
+
+    const points = Array.from(pm.getElementsByTagName('Point'))
+    const lines = Array.from(pm.getElementsByTagName('LineString'))
+    const polygons = Array.from(pm.getElementsByTagName('Polygon'))
+
+    const addFeature = (geometry: GeoJSON.Geometry, suffix: string) => {
+      const idBase = typeof pm.getAttribute('id') === 'string' ? pm.getAttribute('id') : undefined
+      const id = idBase ? `${idBase}-${suffix}` : undefined
+      features.push({
+        type: 'Feature',
+        id,
+        properties: { ...properties },
+        geometry
+      })
+    }
+
+    points.forEach((pointEl, pointIndex) => {
+      const raw = pointEl.getElementsByTagName('coordinates')[0]?.textContent ?? ''
+      const coords = parseCoords(raw)
+      if (coords.length === 0) return
+      addFeature(
+        {
+          type: 'Point',
+          coordinates: coords[0]
+        },
+        `point-${index}-${pointIndex}`
+      )
+    })
+
+    lines.forEach((lineEl, lineIndex) => {
+      const raw = lineEl.getElementsByTagName('coordinates')[0]?.textContent ?? ''
+      const coords = parseCoords(raw)
+      if (coords.length < 2) return
+      addFeature(
+        {
+          type: 'LineString',
+          coordinates: coords
+        },
+        `line-${index}-${lineIndex}`
+      )
+    })
+
+    polygons.forEach((polyEl, polyIndex) => {
+      const raw = polyEl.getElementsByTagName('coordinates')[0]?.textContent ?? ''
+      const coords = parseCoords(raw)
+      if (coords.length < 3) return
+      const ring = ensureClosedRing(coords)
+      addFeature(
+        {
+          type: 'Polygon',
+          coordinates: [ring]
+        },
+        `poly-${index}-${polyIndex}`
+      )
+    })
+  })
+
+  return { type: 'FeatureCollection', features }
+}
+
+const parseCsvText = (text: string): GeoJSON.FeatureCollection => {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+  if (lines.length === 0) {
+    throw new Error('CSVが空です')
+  }
+
+  const header = parseCsvLine(lines[0])
+  const hasHeader = header[0]?.toLowerCase() === 'type'
+  const dataLines = hasHeader ? lines.slice(1) : lines
+
+  type PointEntry = { coord: [number, number]; order?: number }
+  type Group = { name: string; points: PointEntry[]; maxAltitude?: number }
+
+  const lineGroups = new Map<string, Group>()
+  const polygonGroups = new Map<string, Group>()
+  const features: GeoJSON.Feature[] = []
+
+  const addGroupPoint = (
+    groups: Map<string, Group>,
+    name: string,
+    entry: PointEntry,
+    maxAlt: number | null
+  ) => {
+    const existing = groups.get(name)
+    if (!existing) {
+      groups.set(name, {
+        name,
+        points: [entry],
+        maxAltitude: maxAlt ?? undefined
+      })
+      return
+    }
+    existing.points.push(entry)
+    if (maxAlt !== null) {
+      existing.maxAltitude =
+        existing.maxAltitude !== undefined ? Math.max(existing.maxAltitude, maxAlt) : maxAlt
+    }
+  }
+
+  dataLines.forEach((line) => {
+    const cols = parseCsvLine(line)
+    if (cols.length < 4) return
+    const typeRaw = cols[0]?.toLowerCase() ?? ''
+    const nameRaw = cols[1]?.trim() || 'Unnamed'
+    const lat = toNumber(cols[2])
+    const lng = toNumber(cols[3])
+    const radiusM = toNumber(cols[4])
+    const maxAlt = toNumber(cols[5])
+    if (lat === null || lng === null) return
+
+    const typeKey = typeRaw.replace(/\s+/g, '')
+    const nameMatch = nameRaw.match(/^(.*)_([0-9]+)$/)
+    const baseName = nameMatch ? nameMatch[1] : nameRaw
+    const order = nameMatch ? Number.parseInt(nameMatch[2], 10) : undefined
+
+    if (typeKey === 'point') {
+      const props: Record<string, unknown> = { name: baseName }
+      if (maxAlt !== null) props.maxAltitude = maxAlt
+      if (radiusM !== null && radiusM > 0) {
+        props.isCircle = true
+        props.radiusKm = radiusM / 1000
+        props.center = [lng, lat]
+      }
+      features.push({
+        type: 'Feature',
+        properties: props,
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat]
+        }
+      })
+      return
+    }
+
+    if (typeKey === 'linepoint') {
+      addGroupPoint(lineGroups, baseName, { coord: [lng, lat], order }, maxAlt)
+      return
+    }
+
+    if (typeKey === 'polygonpoint') {
+      addGroupPoint(polygonGroups, baseName, { coord: [lng, lat], order }, maxAlt)
+    }
+  })
+
+  const buildGroupFeatures = (groups: Map<string, Group>, kind: 'line' | 'polygon') => {
+    groups.forEach((group) => {
+      const withOrder = group.points.some((p) => p.order !== undefined)
+      const sorted = withOrder
+        ? [...group.points].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        : group.points
+      const coords = sorted.map((p) => p.coord)
+      if (kind === 'line') {
+        if (coords.length < 2) return
+        const props: Record<string, unknown> = { name: group.name }
+        if (group.maxAltitude !== undefined) props.maxAltitude = group.maxAltitude
+        features.push({
+          type: 'Feature',
+          properties: props,
+          geometry: {
+            type: 'LineString',
+            coordinates: coords
+          }
+        })
+        return
+      }
+      if (coords.length < 3) return
+      const ring = ensureClosedRing(coords)
+      const props: Record<string, unknown> = { name: group.name }
+      if (group.maxAltitude !== undefined) props.maxAltitude = group.maxAltitude
+      features.push({
+        type: 'Feature',
+        properties: props,
+        geometry: {
+          type: 'Polygon',
+          coordinates: [ring]
+        }
+      })
+    })
+  }
+
+  buildGroupFeatures(lineGroups, 'line')
+  buildGroupFeatures(polygonGroups, 'polygon')
+
+  return { type: 'FeatureCollection', features }
+}
+
+const normalizeImportedFeatures = (
+  fc: GeoJSON.FeatureCollection,
+  circlePoints: number
+): GeoJSON.Feature[] => {
+  const normalized: GeoJSON.Feature[] = []
+
+  const toLngLat = (value: unknown): [number, number] | null => {
+    if (!Array.isArray(value) || value.length < 2) return null
+    const lng = toNumber(value[0])
+    const lat = toNumber(value[1])
+    if (lng === null || lat === null) return null
+    return [lng, lat]
+  }
+
+  const getCircleSpec = (
+    properties: Record<string, unknown>,
+    geometry: GeoJSON.Geometry
+  ): { center: [number, number]; radiusKm: number } | null => {
+    const radiusMValue = toNumber(properties.radiusM)
+    const radiusKmValue = toNumber(properties.radiusKm)
+    const radiusM = radiusMValue ?? (radiusKmValue !== null ? radiusKmValue * 1000 : null)
+    if (radiusM === null || radiusM <= 0) return null
+
+    const centerProp = toLngLat(properties.center)
+    let center = centerProp
+    if (!center && geometry.type === 'Point') {
+      center = toLngLat(geometry.coordinates)
+    }
+    if (!center) return null
+    return { center, radiusKm: radiusM / 1000 }
+  }
+
+  const pushFeature = (
+    geometry: GeoJSON.Geometry,
+    properties: Record<string, unknown>,
+    id: GeoJSON.Feature['id'],
+    suffix?: string
+  ) => {
+    const nextId =
+      suffix && (typeof id === 'string' || typeof id === 'number') ? `${id}-${suffix}` : id
+
+    if (geometry.type === 'Polygon') {
+      const rings = geometry.coordinates.map((ring) => ensureClosedRing(ring))
+      normalized.push({
+        type: 'Feature',
+        id: nextId,
+        properties,
+        geometry: { type: 'Polygon', coordinates: rings }
+      })
+      return
+    }
+
+    normalized.push({ type: 'Feature', id: nextId, properties, geometry })
+  }
+
+  const handleGeometry = (
+    geometry: GeoJSON.Geometry,
+    properties: Record<string, unknown>,
+    id: GeoJSON.Feature['id'],
+    suffix?: string
+  ) => {
+    const circleSpec = getCircleSpec(properties, geometry)
+    if (circleSpec) {
+      const circleProps: Record<string, unknown> = {
+        ...properties,
+        isCircle: true,
+        radiusKm: circleSpec.radiusKm,
+        center: circleSpec.center,
+        circlePoints
+      }
+      delete circleProps.type
+      delete circleProps.radiusM
+      const circlePolygon = createCirclePolygon(
+        circleSpec.center,
+        circleSpec.radiusKm,
+        circlePoints
+      )
+      pushFeature(circlePolygon, circleProps, id, suffix)
+      return
+    }
+
+    if (
+      geometry.type === 'Point' ||
+      geometry.type === 'LineString' ||
+      geometry.type === 'Polygon'
+    ) {
+      pushFeature(geometry, properties, id, suffix)
+      return
+    }
+    if (geometry.type === 'MultiPoint') {
+      geometry.coordinates.forEach((coord, index) => {
+        pushFeature({ type: 'Point', coordinates: coord }, properties, id, `pt-${index}`)
+      })
+      return
+    }
+    if (geometry.type === 'MultiLineString') {
+      geometry.coordinates.forEach((coords, index) => {
+        pushFeature({ type: 'LineString', coordinates: coords }, properties, id, `line-${index}`)
+      })
+      return
+    }
+    if (geometry.type === 'MultiPolygon') {
+      geometry.coordinates.forEach((coords, index) => {
+        pushFeature({ type: 'Polygon', coordinates: coords }, properties, id, `poly-${index}`)
+      })
+      return
+    }
+    if (geometry.type === 'GeometryCollection') {
+      geometry.geometries.forEach((g, index) => {
+        handleGeometry(g, properties, id, `geom-${index}`)
+      })
+    }
+  }
+
+  fc.features.forEach((feature) => {
+    if (!feature || feature.type !== 'Feature' || !feature.geometry) return
+    const props = isRecord(feature.properties)
+      ? (feature.properties as Record<string, unknown>)
+      : {}
+    handleGeometry(feature.geometry, props, feature.id)
+  })
+
+  return normalized
 }
 
 // 描画されたフィーチャーの型
@@ -117,10 +561,13 @@ export function DrawingTools({
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<string>('')
   const [exportFormat, setExportFormat] = useState<ExportFormat>('geojson')
+  const [isImporting, setIsImporting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([])
   const [selectedCount, setSelectedCount] = useState(0)
+  const [editingNameId, setEditingNameId] = useState<string | null>(null)
+  const [editingNameValue, setEditingNameValue] = useState('')
   const [continuousMode, setContinuousMode] = useState(true) // WP連続配置モード
   const [checkedFeatureIds, setCheckedFeatureIds] = useState<Set<string>>(new Set()) // 複数選択用
   const [searchQuery, setSearchQuery] = useState('') // 検索クエリ
@@ -129,6 +576,8 @@ export function DrawingTools({
   ) // タイプフィルタ
   const drawModeRef = useRef<DrawMode>('none') // 描画モードをrefでも保持
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
+  const importInputRef = useRef<HTMLInputElement>(null)
+  const nameClickTimerRef = useRef<number | null>(null)
   const modeStartFeatureIdsRef = useRef<Set<string>>(new Set()) // モード開始時点のフィーチャID（破棄用）
   const modeStartDrawModeRef = useRef<DrawMode>('none') // どのモード開始時に記録したか
   const isRestoringRef = useRef(false) // データ復元中フラグ
@@ -1239,6 +1688,40 @@ export function DrawingTools({
     updateFeatures()
   }
 
+  const clearNameClickTimer = () => {
+    if (nameClickTimerRef.current !== null) {
+      window.clearTimeout(nameClickTimerRef.current)
+      nameClickTimerRef.current = null
+    }
+  }
+
+  const handleNameClick = (feature: DrawnFeature) => {
+    clearNameClickTimer()
+    nameClickTimerRef.current = window.setTimeout(() => {
+      setSelectedFeatureId(feature.id)
+      zoomToFeature(feature)
+      nameClickTimerRef.current = null
+    }, 200)
+  }
+
+  const handleNameDoubleClick = (feature: DrawnFeature) => {
+    clearNameClickTimer()
+    setSelectedFeatureId(feature.id)
+    setEditingNameId(feature.id)
+    setEditingNameValue(feature.name)
+  }
+
+  const handleNameEditCommit = () => {
+    if (!editingNameId) return
+    handleRenameFeature(editingNameId, editingNameValue)
+    setEditingNameId(null)
+  }
+
+  const handleNameEditCancel = () => {
+    setEditingNameId(null)
+    setEditingNameValue('')
+  }
+
   // エリアの中心座標を取得
   const getFeatureCenter = (feature: DrawnFeature): [number, number] | null => {
     if (feature.type === 'circle' && feature.center) {
@@ -1626,6 +2109,79 @@ ${kmlFeatures}
     a.click()
     URL.revokeObjectURL(url)
     setShowPreview(false)
+  }
+
+  const handleImportClick = () => {
+    if (isImporting) return
+    importInputRef.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImporting(true)
+    try {
+      const text = await file.text()
+      const fileName = file.name.toLowerCase()
+      const trimmed = text.trim()
+
+      let format: 'geojson' | 'kml' | 'csv'
+      if (fileName.endsWith('.kml')) {
+        format = 'kml'
+      } else if (fileName.endsWith('.csv')) {
+        format = 'csv'
+      } else if (fileName.endsWith('.geojson') || fileName.endsWith('.json')) {
+        format = 'geojson'
+      } else if (trimmed.startsWith('<')) {
+        format = 'kml'
+      } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        format = 'geojson'
+      } else {
+        format = 'csv'
+      }
+
+      const fc =
+        format === 'kml'
+          ? parseKmlText(text)
+          : format === 'csv'
+            ? parseCsvText(text)
+            : parseGeoJSONText(text)
+
+      const normalized = normalizeImportedFeatures(fc, circlePoints)
+      if (normalized.length === 0) {
+        showToast('インポートできるデータが見つかりません', 'error')
+        return
+      }
+
+      if (drawnFeatures.length > 0) {
+        const ok = await showConfirm('既存の描画データを置き換えますか？', {
+          title: 'インポート',
+          confirmText: '置き換える',
+          cancelText: 'キャンセル'
+        })
+        if (!ok) return
+      }
+
+      if (!drawRef.current || isDisposedRef.current) return
+
+      isRestoringRef.current = true
+      drawRef.current.set({ type: 'FeatureCollection', features: normalized })
+      updateFeatures()
+      window.setTimeout(() => {
+        isRestoringRef.current = false
+      }, 300)
+
+      showToast(`インポート完了: ${normalized.length}件`, 'success')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '不明なエラー'
+      console.error('Failed to import drawing data:', error)
+      showToast(`インポートに失敗しました: ${message}`, 'error')
+    } finally {
+      setIsImporting(false)
+      if (importInputRef.current) {
+        importInputRef.current.value = ''
+      }
+    }
   }
 
   // 座標をテキスト形式でコピー
@@ -2485,23 +3041,49 @@ ${kmlFeatures}
                             flexShrink: 0
                           }}
                         />
-                        {/* 名前（クリックでズーム） */}
-                        <span
-                          style={{
-                            flex: 1,
-                            cursor: 'pointer',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          onClick={() => {
-                            setSelectedFeatureId(f.id)
-                            zoomToFeature(f)
-                          }}
-                          title={f.name}
-                        >
-                          {f.name}
-                        </span>
+                        {/* 名前（ダブルクリックで編集） */}
+                        {editingNameId === f.id ? (
+                          <input
+                            value={editingNameValue}
+                            onChange={(e) => setEditingNameValue(e.target.value)}
+                            onBlur={handleNameEditCommit}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleNameEditCommit()
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault()
+                                handleNameEditCancel()
+                              }
+                            }}
+                            autoFocus
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: '3px 6px',
+                              border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                              borderRadius: '4px',
+                              backgroundColor: darkMode ? '#333' : '#fff',
+                              color: darkMode ? '#fff' : '#333',
+                              fontSize: '12px'
+                            }}
+                          />
+                        ) : (
+                          <span
+                            style={{
+                              flex: 1,
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            onClick={() => handleNameClick(f)}
+                            onDoubleClick={() => handleNameDoubleClick(f)}
+                            title={`${f.name}（ダブルクリックで編集）`}
+                          >
+                            {f.name}
+                          </span>
+                        )}
                         {/* ZOOMボタン */}
                         <button
                           onClick={() => {
@@ -3273,6 +3855,62 @@ ${kmlFeatures}
                     全て削除
                   </button>
                 )}
+              </div>
+              <div
+                style={{
+                  marginBottom: '12px',
+                  padding: '10px',
+                  backgroundColor: darkMode ? '#2b2336' : '#f3e5f5',
+                  borderRadius: '6px',
+                  border: `1px solid ${borderColor}`
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: '12px',
+                    color: darkMode ? '#ce93d8' : '#6a1b9a',
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600
+                  }}
+                >
+                  インポート（GeoJSON/KML/CSV）
+                </label>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                  <button
+                    onClick={handleImportClick}
+                    disabled={isImporting}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: isImporting ? buttonBg : '#7e57c2',
+                      color: isImporting ? (darkMode ? '#666' : '#999') : '#fff',
+                      border: `1px solid ${isImporting ? borderColor : '#7e57c2'}`,
+                      borderRadius: '6px',
+                      cursor: isImporting ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 700
+                    }}
+                  >
+                    {isImporting ? 'インポート中...' : 'インポート（GeoJSON/KML/CSV）'}
+                  </button>
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      color: darkMode ? '#bbb' : '#666',
+                      lineHeight: 1.5
+                    }}
+                  >
+                    描画データとして読み込みます（既存データがある場合は置き換え確認）
+                  </div>
+                </div>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept={IMPORT_ACCEPT}
+                  onChange={handleImportFile}
+                  style={{ display: 'none' }}
+                />
               </div>
             </>
           )}

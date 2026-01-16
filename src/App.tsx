@@ -2767,7 +2767,7 @@ function App() {
               onChange={() => toggleRestriction('ZONE_IDS.MANNED_AIRCRAFT_LANDING')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.manned, borderRadius: '2px' }} />
-            <span>(見本)有人機発着エリア</span>
+            <span>(見本)有人機発着エリア [V]</span>
           </label>
 
           {/* Remote ID */}
@@ -2778,7 +2778,7 @@ function App() {
               onChange={() => toggleRestriction('ZONE_IDS.REMOTE_ID_ZONE')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: RESTRICTION_COLORS.remote_id, borderRadius: '2px' }} />
-            <span>(見本)リモートID特定区域</span>
+            <span>(見本)リモートID特定区域 [I]</span>
           </label>
 
           {/* Heliports */}
@@ -2800,7 +2800,7 @@ function App() {
               onChange={() => toggleRestriction('radio-interference')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: '#9B59B6', borderRadius: '2px' }} />
-            <span>電波干渉区域</span>
+            <span>電波干渉区域 [F]</span>
           </label>
 
           {/* Manned Aircraft Zones */}
@@ -2811,7 +2811,7 @@ function App() {
               onChange={() => toggleRestriction('manned-aircraft-zones')}
             />
             <span style={{ width: '14px', height: '14px', backgroundColor: '#3498DB', borderRadius: '2px' }} />
-            <span>有人機発着区域</span>
+            <span>有人機発着区域 [U]</span>
           </label>
 
           {/* No-fly law section */}
@@ -3090,7 +3090,7 @@ function App() {
               checked={isOverlayVisible('wind-field')}
               onChange={() => toggleOverlay({ id: 'wind-field', name: '(見本)風向・風量' })}
             />
-            <span>(見本)風向・風量</span>
+            <span>(見本)風向・風量 [W]</span>
           </label>
         </div>
 
@@ -3103,7 +3103,7 @@ function App() {
               checked={isOverlayVisible('lte-coverage')}
               onChange={() => toggleOverlay({ id: 'lte-coverage', name: '(見本)LTE' })}
             />
-            <span>(見本)LTE</span>
+            <span>(見本)LTE [C]</span>
           </label>
         </div>
       </aside>

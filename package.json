@@ -1,7 +1,7 @@
 {
-  "name": "did-map",
+  "name": "did-airspace-map",
   "version": "1.0.0",
-  "description": "日本の人口集中地区（DID）及び関連地理データをインタラクティブに表示する地図ライブラリ",
+  "description": "日本の人口集中地区（DID）・空港周辺空域・飛行禁止区域をインタラクティブに表示するドローン飛行計画ツール",
   "type": "module",
   "main": "./dist/lib/index.js",
   "module": "./dist/lib/index.js",

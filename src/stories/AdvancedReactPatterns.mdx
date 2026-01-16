@@ -1,0 +1,616 @@
+{/* AdvancedReactPatterns.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/高度なReactパターン" />
+
+# 高度なReactパターン
+
+複雑な状態管理、レンダリング最適化、堅牢なコンポーネント構築のための高度なReactパターン。大規模な地図アプリケーションでパフォーマンスとコード保守性を維持するために不可欠です。
+
+---
+
+## 1. useCallback でメモ化された関数
+
+`useCallback` は関数の再作成を防ぎます。これはメモ化された子コンポーネントにコールバックを渡すときに重要です。
+
+### なぜ useCallback が重要なのか
+
+親コンポーネントが毎回新しい関数を子コンポーネントに渡す場合、`React.memo` は関数参照が変わったため子コンポーネントの再レンダリングを防ぎません。
+
+```typescript
+import { useCallback, useState } from 'react'
+
+// 悪い例: 毎回新しい関数を作成
+const MapController = () => {
+  const [layers, setLayers] = useState([])
+  
+  const handleAddLayer = (layer) => {
+    setLayers([...layers, layer])
+  }
+  
+  // handleAddLayer は毎回異なる関数
+  // 子コンポーネントは props が同じでも再レンダリング
+  return <LayerManager onAddLayer={handleAddLayer} />
+}
+
+// 良い例: 関数を作成し、依存関係を追跡
+const MapController = () => {
+  const [layers, setLayers] = useState([])
+  
+  const handleAddLayer = useCallback((layer) => {
+    setLayers(prev => [...prev, layer])
+  }, []) // 空の配列 = 関数は二度と再作成されない
+  
+  return <LayerManager onAddLayer={handleAddLayer} />
+}
+```
+
+### このプロジェクトでの実例
+
+**DrawingTools.tsx**（754行目）の `updateVertexLabels` は `useCallback` を使用：
+
+```typescript
+const updateVertexLabels = useCallback(() => {
+  // 高額なキャンバス再描画操作
+  // 関数の識別値が再レンダリング中も安定
+  // 不要な実行を防止
+}, [])
+```
+
+### 依存関係ルール
+
+```typescript
+// 依存関係は重要:
+const calculateDistance = useCallback((point) => {
+  return Math.sqrt(point.x ** 2 + point.y ** 2)
+}, []) // 純粋関数 - 依存関係不要
+
+const filterByDistance = useCallback((points, threshold) => {
+  return points.filter(p => calculateDistance(p) < threshold)
+}, [calculateDistance, threshold]) // 外部依存を追加
+
+// 注意: 依存関係が多いと useCallback の効果が減少
+const expensiveOperation = useCallback(() => {
+  // [a, b, c, d, e] のいずれかが変わるたびに再作成
+  // 依存関係が頻繁に変わる場合、useCallback は逆効果
+}, [a, b, c, d, e])
+```
+
+---
+
+## 2. useMemo で高額な計算をメモ化
+
+高額な計算をメモ化して、毎回の再計算を避けます。
+
+### useMemo を使用する場合
+
+```typescript
+import { useMemo } from 'react'
+
+// マップ境界に基づいて表示されるタイルを計算 - O(4^z) 操作
+const VisibleTileRenderer = ({ bounds, zoomLevel }) => {
+  const visibleTiles = useMemo(() => {
+    // getVisibleTileXYZs は高額な計算！
+    // bounds/zoom が実際に変わるときだけ再計算
+    return getVisibleTileXYZs(bounds, zoomLevel)
+  }, [bounds, zoomLevel])
+  
+  return visibleTiles.map(tile => (
+    <Tile key={`${tile.z}-${tile.x}-${tile.y}`} {...tile} />
+  ))
+}
+```
+
+### パフォーマンスコスト vs メリット
+
+```typescript
+// 良い例: 複雑なオブジェクト作成
+const expensiveObject = useMemo(() => {
+  // O(n^2) アルゴリズム
+  return array.flatMap(item =>
+    array.filter(other => calculateDistance(item, other) < THRESHOLD)
+  )
+}, [array])
+
+// 悪い例: シンプルなプリミティブ
+const name = useMemo(() => {
+  // useMemo のコスト > メリット（単純な文字列操作）
+  return firstName + ' ' + lastName
+}, [firstName, lastName])
+
+// 良い例: フィルター済み・ソート済みリスト
+const sortedAirports = useMemo(() => {
+  return [...airports]
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 10)
+}, [airports])
+```
+
+---
+
+## 3. useRef で永続的な値を保持
+
+`useRef` は再レンダリングを発生させずに、複数のレンダリング間で値を保持します。
+
+### MapLibre インスタンス管理
+
+```typescript
+import { useRef, useEffect } from 'react'
+import maplibregl from 'maplibre-gl'
+
+const MapContainer = () => {
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    // マップインスタンスを一度だけ作成
+    mapRef.current = new maplibregl.Map({
+      container: containerRef.current,
+      style: 'https://...',
+      center: [137.0, 36.5],
+      zoom: 5
+    })
+    
+    // クリーンアップ
+    return () => {
+      mapRef.current?.remove()
+    }
+  }, []) // 空の配列 - マウント時に一度だけ実行
+  
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+}
+```
+
+### 前の値を追跡
+
+```typescript
+import { useRef, useEffect } from 'react'
+
+const ZoomTracker = ({ zoom }) => {
+  const previousZoomRef = useRef<number>(zoom)
+  
+  useEffect(() => {
+    if (zoom !== previousZoomRef.current) {
+      console.log(`ズームが ${previousZoomRef.current} から ${zoom} に変更`)
+      previousZoomRef.current = zoom
+    }
+  }, [zoom])
+  
+  return <div>現在のズーム: {zoom}</div>
+}
+```
+
+### ミュータブルなインスタンス値
+
+```typescript
+// レンダリングしない状態は ref で
+const RequestTracker = () => {
+  const activeRequestsRef = useRef(new Set<string>())
+  
+  const trackRequest = (id: string) => {
+    activeRequestsRef.current.add(id)
+    // 再レンダリングを発生させない
+  }
+  
+  const completeRequest = (id: string) => {
+    activeRequestsRef.current.delete(id)
+    // 再レンダリングを発生させない
+  }
+  
+  return (
+    <div>実行中のリクエスト: {activeRequestsRef.current.size}</div>
+  )
+}
+```
+
+---
+
+## 4. useReducer で複雑な状態管理
+
+状態更新が前の状態に依存する場合や、複数の関連した状態変数がある場合、`useReducer` は `useState` より多くの制御を提供します。
+
+### 図形描画機能の状態管理
+
+```typescript
+import { useReducer } from 'react'
+
+type DrawingState = {
+  features: Feature[]
+  selectedFeatures: Set<string>
+  mode: 'draw' | 'select' | 'edit'
+  isDirty: boolean
+}
+
+type DrawingAction =
+  | { type: 'ADD_FEATURE'; feature: Feature }
+  | { type: 'DELETE_FEATURE'; featureId: string }
+  | { type: 'SELECT_FEATURE'; featureId: string; multiSelect: boolean }
+  | { type: 'CHANGE_MODE'; mode: DrawingState['mode'] }
+  | { type: 'RESET' }
+
+function drawingReducer(state: DrawingState, action: DrawingAction): DrawingState {
+  switch (action.type) {
+    case 'ADD_FEATURE':
+      return {
+        ...state,
+        features: [...state.features, action.feature],
+        isDirty: true
+      }
+    
+    case 'DELETE_FEATURE':
+      return {
+        ...state,
+        features: state.features.filter(f => f.id !== action.featureId),
+        selectedFeatures: new Set(
+          [...state.selectedFeatures].filter(id => id !== action.featureId)
+        ),
+        isDirty: true
+      }
+    
+    case 'SELECT_FEATURE': {
+      const newSelected = new Set(state.selectedFeatures)
+      if (action.multiSelect) {
+        if (newSelected.has(action.featureId)) {
+          newSelected.delete(action.featureId)
+        } else {
+          newSelected.add(action.featureId)
+        }
+      } else {
+        newSelected.clear()
+        newSelected.add(action.featureId)
+      }
+      return { ...state, selectedFeatures: newSelected }
+    }
+    
+    case 'CHANGE_MODE':
+      return { ...state, mode: action.mode }
+    
+    case 'RESET':
+      return {
+        features: [],
+        selectedFeatures: new Set(),
+        mode: 'draw',
+        isDirty: false
+      }
+    
+    default:
+      return state
+  }
+}
+
+// 使用
+const DrawingComponent = () => {
+  const [state, dispatch] = useReducer(drawingReducer, {
+    features: [],
+    selectedFeatures: new Set(),
+    mode: 'draw',
+    isDirty: false
+  })
+  
+  const handleAddFeature = (feature: Feature) => {
+    dispatch({ type: 'ADD_FEATURE', feature })
+  }
+  
+  const handleSelectFeature = (featureId: string, multiSelect: boolean) => {
+    dispatch({ type: 'SELECT_FEATURE', featureId, multiSelect })
+  }
+  
+  const handleDelete = (featureId: string) => {
+    dispatch({ type: 'DELETE_FEATURE', featureId })
+  }
+  
+  return (
+    <div>
+      <button onClick={() => dispatch({ type: 'RESET' })}>すべてクリア</button>
+      <p>選択: {state.selectedFeatures.size}</p>
+    </div>
+  )
+}
+```
+
+### useState との比較
+
+```typescript
+// useState: 更新ロジックが散在
+const BadStateManagement = () => {
+  const [features, setFeatures] = useState([])
+  const [selected, setSelected] = useState(new Set())
+  const [isDirty, setIsDirty] = useState(false)
+  
+  // 複数の場所で関連状態を更新
+  const deleteFeature = (id) => {
+    setFeatures(prev => prev.filter(f => f.id !== id))
+    setSelected(prev => new Set([...prev].filter(s => s !== id)))
+    setIsDirty(true)
+  }
+}
+
+// useReducer: 集中化されたテスト可能なロジック
+const GoodStateManagement = () => {
+  const [state, dispatch] = useReducer(drawingReducer, initialState)
+  
+  // 単一の dispatch 呼び出し
+  const deleteFeature = (id) => {
+    dispatch({ type: 'DELETE_FEATURE', featureId: id })
+  }
+}
+```
+
+---
+
+## 5. React.memo でコンポーネント最適化
+
+`React.memo` は props が変わらないときの再レンダリングを防ぎます。
+
+### 基本的な使用
+
+```typescript
+import { memo } from 'react'
+
+// memo なし: 親が再レンダリングされるたびに再レンダリング
+const TileOverlay = (props) => {
+  console.log('TileOverlay レンダリング')
+  return <div className="tile">{props.id}</div>
+}
+
+// memo あり: props が変わるときだけ再レンダリング
+const TileOverlayMemo = memo(function TileOverlay(props: TileProps) {
+  console.log('TileOverlay レンダリング')
+  return <div className="tile">{props.id}</div>
+})
+
+// 親コンポーネント
+const MapTileGrid = () => {
+  const tiles = useMemo(() => getTiles(), [])
+  
+  return tiles.map(tile => 
+    // tile オブジェクト参照が変わるときだけ再レンダリング
+    <TileOverlayMemo key={tile.key} {...tile} />
+  )
+}
+```
+
+### カスタム比較
+
+```typescript
+// デフォルト: すべての props を浅く比較
+const memoComponent = memo(MyComponent)
+
+// カスタム: 比較ロジックを定義
+const customMemo = memo(
+  MyComponent,
+  (prevProps, nextProps) => {
+    // props が同じ場合 true を返す（再レンダリング不要）
+    // props が異なる場合 false を返す（再レンダリング必要）
+    return (
+      prevProps.id === nextProps.id &&
+      prevProps.active === nextProps.active
+      // 他の props は無視
+    )
+  }
+)
+
+// 実例: スタイル変更は無視するが、データ変更は検出
+const GeoJsonFeatureLayer = memo(
+  ({ feature, style, opacity }) => {
+    return <div>{feature.properties.name}</div>
+  },
+  (prev, next) => {
+    // feature 変更のみ検出、style は無視
+    return JSON.stringify(prev.feature) === JSON.stringify(next.feature)
+  }
+)
+```
+
+### memo が役立つ vs 有害な場合
+
+```typescript
+// 役立つ: 高額な子コンポーネント
+const memo = memo(ExpensiveChart) // 価値がある
+
+// 有害: シンプルなコンポーネント
+const memo = memo(SmallLabel) // オーバーヘッド > メリット
+
+// 注意: props が常に変わる
+const Parent = () => {
+  const style = { color: 'red' } // 毎回新しいオブジェクト！
+  return <MemoChild style={style} /> // memo は無効
+}
+
+// より良い:
+const Parent = () => {
+  const style = useMemo(() => ({ color: 'red' }), [])
+  return <MemoChild style={style} />
+}
+```
+
+---
+
+## 6. Error Boundaries で優雅なエラー処理
+
+Error Boundaries はレンダリングエラーをキャッチしてフォールバック UI を表示します。
+
+### 基本的な Error Boundary
+
+```typescript
+import { Component, ReactNode, ErrorInfo } from 'react'
+
+interface ErrorBoundaryProps {
+  children: ReactNode
+  fallback?: ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error: Error | null
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error Boundary がエラーをキャッチ:', error, errorInfo.componentStack)
+    // Sentry などのエラー追跡サービスに送信
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <div className="error-container">
+            <h2>エラーが発生しました</h2>
+            <p>{this.state.error?.message}</p>
+          </div>
+        )
+      )
+    }
+    
+    return this.props.children
+  }
+}
+
+// 使用
+<ErrorBoundary fallback={<MapLoadingError />}>
+  <MapComponent />
+</ErrorBoundary>
+```
+
+### 戦略的な配置
+
+```typescript
+// リスク性の高いコンポーネントを個別に wrap
+<ErrorBoundary fallback={<RestrictionZonesError />}>
+  <RestrictionZonesLayer />
+</ErrorBoundary>
+
+<ErrorBoundary fallback={<WeatherOverlayError />}>
+  <WeatherRadarOverlay />
+</ErrorBoundary>
+
+// vs アプリ全体を wrap（キャッチ性が低く、復旧が難しい）
+<ErrorBoundary>
+  <App />
+</ErrorBoundary>
+```
+
+---
+
+## 7. Context API でクロスコンポーネント状態共有
+
+Context API は多くのレベルを通した props drilling を避けます。
+
+### マップ状態 Context
+
+```typescript
+import { createContext, useContext, ReactNode, useState, useMemo } from 'react'
+
+type MapContextType = {
+  center: [number, number]
+  zoom: number
+  baseMap: BaseMapKey
+  setCenter: (center: [number, number]) => void
+  setZoom: (zoom: number) => void
+  setBaseMap: (baseMap: BaseMapKey) => void
+}
+
+const MapContext = createContext<MapContextType | undefined>(undefined)
+
+// Provider コンポーネント
+export const MapProvider = ({ children }: { children: ReactNode }) => {
+  const [center, setCenter] = useState<[number, number]>([137.0, 36.5])
+  const [zoom, setZoom] = useState(5)
+  const [baseMap, setBaseMap] = useState<BaseMapKey>('osm')
+  
+  // consumer の不要な再レンダリングを防ぐため memoize
+  const value = useMemo(() => ({
+    center,
+    zoom,
+    baseMap,
+    setCenter,
+    setZoom,
+    setBaseMap
+  }), [center, zoom, baseMap])
+  
+  return (
+    <MapContext.Provider value={value}>
+      {children}
+    </MapContext.Provider>
+  )
+}
+
+// Context を使用するカスタムフック
+export const useMapContext = () => {
+  const context = useContext(MapContext)
+  if (!context) {
+    throw new Error('useMapContext は MapProvider の内部で使用してください')
+  }
+  return context
+}
+
+// コンポーネントでの使用
+const ZoomControl = () => {
+  const { zoom, setZoom } = useMapContext()
+  
+  return (
+    <div className="zoom-controls">
+      <button onClick={() => setZoom(zoom + 1)}>+</button>
+      <span>{zoom.toFixed(1)}</span>
+      <button onClick={() => setZoom(zoom - 1)}>-</button>
+    </div>
+  )
+}
+
+const BaseMapSelector = () => {
+  const { baseMap, setBaseMap } = useMapContext()
+  
+  return (
+    <select value={baseMap} onChange={e => setBaseMap(e.target.value as BaseMapKey)}>
+      <option value="osm">標準</option>
+      <option value="gsi">地理院</option>
+      <option value="pale">淡色</option>
+      <option value="photo">航空写真</option>
+    </select>
+  )
+}
+```
+
+### 複数 Context パターン
+
+```typescript
+// 関心事を異なる Context に分離
+const MapContext = createContext<MapState | undefined>(undefined)
+const LayerContext = createContext<LayerState | undefined>(undefined)
+const RestrictionContext = createContext<RestrictionState | undefined>(undefined)
+
+export const MapProvider = ({ children }) => (
+  <MapContext.Provider value={mapState}>
+    <LayerContext.Provider value={layerState}>
+      <RestrictionContext.Provider value={restrictionState}>
+        {children}
+      </RestrictionContext.Provider>
+    </LayerContext.Provider>
+  </MapContext.Provider>
+)
+```
+
+---
+
+## 最適化チェックリスト
+
+- メモ化された子コンポーネントに関数を渡すときは `useCallback` を使用
+- 高額な計算には `useMemo` を使用
+- MapLibre インスタンスと非レンダリング状態は `useRef` で管理
+- 複雑な関連状態には `useReducer` を使用
+- 高額なコンポーネントを `React.memo` でラップ
+- 優雅な失敗のため `ErrorBoundary` を使用
+- 多くのレベルを越えた状態共有には `Context` を使用
+- すべての最適化を測定：アプリケーション特有の場合は役に立たないことも

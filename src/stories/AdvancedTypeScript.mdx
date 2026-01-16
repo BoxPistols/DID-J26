@@ -1,0 +1,504 @@
+{/* AdvancedTypeScript.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/高度なTypeScript" />
+
+# 高度なTypeScriptパターン
+
+型安全で表現力豊かなアプリケーションを構築するための高度なTypeScriptパターン。これらのテクニックはコンパイル時にエラーを検出し、コードを自己記述的にします。
+
+---
+
+## 1. 条件付き型（Conditional Types）
+
+条件に基づいて型を選択し、動的で柔軟な型推論を実現します。
+
+### 基本的な構文
+
+```typescript
+// シンプルな条件: T extends U ? X : Y
+type IsString<T> = T extends string ? true : false
+
+type A = IsString<'hello'>  // true
+type B = IsString<42>       // false
+type C = IsString<string>   // true
+```
+
+### Promise の戻り値型を抽出
+
+```typescript
+// Promise が解決する型を抽出
+type Awaited<T> = T extends Promise<infer U> ? U : T
+
+// このプロジェクトでの使用
+const fetchAirports: Promise<Airport[]> = // ...
+type AirportArray = Awaited<typeof fetchAirports> // Airport[]
+
+const fetchWeather: Promise<WeatherData> = // ...
+type Weather = Awaited<typeof fetchWeather> // WeatherData
+
+// Promise以外の値はそのまま通す
+type StringAwaited = Awaited<string> // string
+```
+
+### 型安全な API レスポンスハンドリング
+
+```typescript
+// 条件付き型を使用したレスポンス型
+type ApiResponse<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E }
+
+// レスポンスからデータを条件付きで抽出
+type ResponseData<R> = R extends ApiResponse<infer T> ? T : never
+type ResponseError<R> = R extends ApiResponse<any, infer E> ? E : never
+
+// 使用例
+const airportResponse: ApiResponse<Airport[]> = // ...
+type AirportData = ResponseData<typeof airportResponse> // Airport[]
+
+// 型安全なハンドラー
+function handleResponse<T>(response: ApiResponse<T>) {
+  if (response.success) {
+    // TypeScript は response.data が存在することを知っている
+    console.log(response.data)
+  } else {
+    // TypeScript は response.error が存在することを知っている
+    console.error(response.error)
+  }
+}
+```
+
+### 高度な例：再帰的な条件付き型
+
+```typescript
+// ネストされた配列を深くフラット化
+type Flatten<T> = T extends Array<infer U>
+  ? U extends Array<any>
+    ? Flatten<U>
+    : U
+  : T
+
+type NestedAirports = Flatten<Airport[][][]> // Airport
+type SingleNumber = Flatten<number> // number
+```
+
+---
+
+## 2. マップ型（Mapped Types）
+
+既存の型を変換して新しい型を作成します。
+
+### readonly バージョンの作成
+
+```typescript
+// 組み込み型: Readonly<T>
+type Readonly<T> = {
+  readonly [K in keyof T]: T[K]
+}
+
+// 使用例
+type MutableBaseMap = {
+  name: string
+  style: StyleSpecification
+}
+
+type ReadonlyBaseMap = Readonly<MutableBaseMap>
+// 結果:
+// {
+//   readonly name: string
+//   readonly style: StyleSpecification
+// }
+```
+
+### すべてのプロパティをオプション化
+
+```typescript
+// 組み込み型: Partial<T>
+type Partial<T> = {
+  [K in keyof T]?: T[K]
+}
+
+// フォーム入力での使用
+type BaseMapInput = Partial<BaseMap>
+
+const updateBaseMap = (updates: BaseMapInput) => {
+  // BaseMap の任意のサブセットを指定できる
+}
+
+updateBaseMap({ name: '淡色' }) // OK
+updateBaseMap({ name: '淡色', style: styleSpec }) // OK
+updateBaseMap({}) // OK
+```
+
+### Getter 関数を作成
+
+```typescript
+// プロパティを Getter メソッドに変換
+// (マップ型キー操作の例)
+type Getters<T> = {
+  [K in keyof T]: T[K] extends any 
+    ? () => T[K]
+    : never
+}
+
+// 使用例
+type BaseMapGetters = Getters<BaseMap>
+// 結果:
+// {
+//   style: () => string | StyleSpecification
+//   name: () => string
+// }
+
+// Getter の実装
+const baseMapGetters: BaseMapGetters = {
+  style: () => currentStyle,
+  name: () => currentName
+}
+```
+
+### Union 型を Object に変換
+
+```typescript
+// Discriminated union をオブジェクトに変換
+type BaseMapKey = 'osm' | 'gsi' | 'pale' | 'photo'
+
+type BaseMapFactory = {
+  [K in BaseMapKey]: () => BaseMap
+}
+
+const baseMapFactory: BaseMapFactory = {
+  osm: () => ({ name: '標準', style: osmStyle }),
+  gsi: () => ({ name: '地理院', style: gsiStyle }),
+  pale: () => ({ name: '淡色', style: paleStyle }),
+  photo: () => ({ name: '航空写真', style: photoStyle })
+}
+
+// 使用
+const selectedMap = baseMapFactory.gsi() // 完全に型付けされている
+```
+
+---
+
+## 3. 型ガード（Type Guards）
+
+型を絞り込んで、型安全な条件分岐を実現します。
+
+### 基本的な型ガード
+
+```typescript
+// 型述語関数
+function isGeoOverlay(overlay: Overlay): overlay is GeoOverlay {
+  return 'tiles' in overlay || 'geojson' in overlay
+}
+
+function isWeatherOverlay(overlay: Overlay): overlay is WeatherOverlay {
+  return 'dynamic' in overlay && overlay.dynamic === true
+}
+
+// 使用
+function processOverlay(overlay: Overlay) {
+  if (isGeoOverlay(overlay)) {
+    // TypeScript は GeoOverlay であることを知っている
+    loadTiles(overlay.tiles)
+  } else if (isWeatherOverlay(overlay)) {
+    // TypeScript は WeatherOverlay であることを知っている
+    startWeatherUpdates(overlay.updateInterval)
+  }
+}
+```
+
+### 網羅性チェック
+
+```typescript
+type OverlayType = 'geo' | 'weather' | 'signal'
+
+function getOverlayProcessor(overlayType: OverlayType) {
+  switch (overlayType) {
+    case 'geo':
+      return processGeoOverlay
+    case 'weather':
+      return processWeatherOverlay
+    case 'signal':
+      return processSignalOverlay
+    default:
+      // ケースを忘れた場合、コンパイル時にエラーになる
+      const _exhaustive: never = overlayType
+      return _exhaustive
+  }
+}
+```
+
+### プロパティ型チェック
+
+```typescript
+// オブジェクトが特定プロパティを持つか確認
+function hasValidCoordinates(obj: any): obj is { lat: number; lng: number } {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof obj.lat === 'number' &&
+    typeof obj.lng === 'number'
+  )
+}
+
+const location = JSON.parse(locationString)
+if (hasValidCoordinates(location)) {
+  // TypeScript は location が lat/lng を持つことを保証している
+  console.log(location.lat, location.lng)
+}
+```
+
+---
+
+## 4. ジェネリック制約（Generics with Constraints）
+
+型パラメータが特定の要件を満たすことを保証します。
+
+### インターフェース制約
+
+```typescript
+// 型パラメータが特定プロパティを持つことを要求
+interface GeoJsonFeature {
+  type: 'Feature'
+  properties: Record<string, unknown>
+  geometry: Geometry
+}
+
+function processFeature<T extends GeoJsonFeature>(feature: T): T {
+  if (!feature.properties) {
+    throw new Error('Feature は properties を持つ必要があります')
+  }
+  return feature
+}
+
+// 動作: 制約を満たす
+processFeature({
+  type: 'Feature',
+  properties: { name: 'Tokyo' },
+  geometry: { type: 'Point', coordinates: [139.7, 35.6] }
+})
+
+// エラー: 制約を満たさない
+processFeature({ type: 'FeatureCollection', features: [] })
+```
+
+### 配列制約
+
+```typescript
+// 配列アイテムの型制約
+function getFirstElement<T extends readonly unknown[]>(arr: T): T[0] {
+  return arr[0]
+}
+
+const first = getFirstElement([1, 2, 3]) // number
+const firstCity = getFirstElement(['Tokyo', 'Osaka']) // string
+
+// エラー: 配列ではない
+getFirstElement('string')
+```
+
+### サービスファクトリパターン
+
+```typescript
+interface Service {
+  initialize(): Promise<void>
+  destroy(): void
+}
+
+function createService<T extends Service>(ServiceClass: new () => T): T {
+  return new ServiceClass()
+}
+
+const rainViewerService = createService(RainViewerService)
+const openWeatherService = createService(OpenWeatherService)
+
+// エラー: Service を実装していない
+createService(NotAService)
+```
+
+### 複数制約
+
+```typescript
+// 型パラメータは Service と { name: string } の両方を満たす必要がある
+function createNamedService<T extends Service & { name: string }>(
+  ServiceClass: new () => T
+): T {
+  const instance = new ServiceClass()
+  console.log(`Creating ${instance.name}`)
+  return instance
+}
+```
+
+---
+
+## 5. ユーティリティ型（Utility Types）
+
+一般的な型変換のための組み込み型。
+
+### オブジェクトプロパティ操作
+
+```typescript
+// Omit: 指定プロパティを除外
+type BaseMapWithoutStyle = Omit<BaseMap, 'style'>
+// { name: string }
+
+// Pick: 指定プロパティのみを含める
+type BaseMapNameOnly = Pick<BaseMap, 'name'>
+// { name: string }
+
+// Record: 特定キーを持つオブジェクト型を作成
+type BaseMapRecord = Record<BaseMapKey, BaseMap>
+// { osm: BaseMap; gsi: BaseMap; pale: BaseMap; photo: BaseMap }
+
+// Exclude: Union から特定型を削除
+type NonErrorResponse = Exclude<
+  ApiResponse<Airport>,
+  { success: false }
+>
+// { success: true; data: Airport[] }
+```
+
+### 関数型
+
+```typescript
+// ReturnType: 関数の戻り値型を抽出
+const fetchAirports = async () => {
+  return [{ id: 1, name: 'Tokyo' }]
+}
+type AirportFetchReturn = ReturnType<typeof fetchAirports>
+// Promise<{ id: number; name: string }[]>
+
+// Parameters: 関数パラメータの型を抽出
+type FetchParams = Parameters<typeof fetchAirports>
+// []（パラメータなし）
+
+// ConstructorParameters: コンストラクタパラメータを抽出
+type MapConstructorParams = ConstructorParameters<typeof maplibregl.Map>
+
+// オブジェクトから関数型のみ抽出
+type ServiceMethods<T> = {
+  [K in keyof T]: T[K] extends (...args: any[]) => any ? T[K] : never
+}
+```
+
+### 高度な変換
+
+```typescript
+// すべてのプロパティを必須化
+type Required<T> = {
+  [K in keyof T]-?: T[K]
+}
+
+// null と undefined を除外
+type NonNullable<T> = T extends null | undefined ? never : T
+
+// 特定の値型を持つキーのみを抽出
+type StringPropertiesOnly<T> = {
+  [K in keyof T]: T[K] extends string ? K : never
+}[keyof T]
+
+type BaseMapStringProps = StringPropertiesOnly<BaseMap> // 'name'
+```
+
+---
+
+## 6. 実践例：型安全な API レスポンスハンドラー
+
+複数の高度な TypeScript パターンを組み合わせた例：
+
+```typescript
+// ステップ1: 基本型を定義
+interface Success<T> {
+  success: true
+  data: T
+  timestamp: string
+}
+
+interface Failure<E = string> {
+  success: false
+  error: E
+  code: number
+}
+
+type ApiResponse<T, E = string> = Success<T> | Failure<E>
+
+// ステップ2: ユーティリティ型を作成
+type ResponseSuccess<T> = Extract<T, { success: true }>
+type ResponseFailure<T> = Extract<T, { success: false }>
+type ResponseData<T> = T extends ApiResponse<infer U> ? U : never
+
+// ステップ3: 制約付きジェネリックハンドラーを作成
+interface ResponseHandler<R extends ApiResponse<any>> {
+  onSuccess(data: ResponseData<R>): void
+  onError(error: ResponseFailure<R>): void
+}
+
+// ステップ4: ハンドラーファクトリを実装
+function createHandler<T, E>(
+  onSuccess: (data: T) => void,
+  onError: (error: E) => void
+): ResponseHandler<ApiResponse<T, E>> {
+  return {
+    onSuccess,
+    onError: (failure) => onError(failure.error)
+  }
+}
+
+// ステップ5: 完全な型安全性で使用
+const airportHandler = createHandler<Airport[], string>(
+  (airports) => {
+    // airports は Airport[] 型
+    console.log(`${airports.length} 個の空港をロードしました`)
+  },
+  (error) => {
+    // error は string 型
+    console.error(`エラー: ${error}`)
+  }
+)
+
+// 完全に型安全で自己記述的
+```
+
+---
+
+## このプロジェクトでの利点
+
+これらのパターンは一般的なエラーを防ぎます：
+
+```typescript
+// 高度な型がない場合: ランタイムエラー
+const overlay = getOverlay('unknown')
+if (overlay.tiles) {
+  loadTiles(overlay.tiles) // tiles が undefined かもしれない！
+}
+
+// 型ガードを使用: コンパイル時のエラー防止
+function loadOverlay(overlay: Overlay) {
+  if (isGeoOverlay(overlay)) {
+    loadTiles(overlay.tiles) // TypeScript が tiles の存在を保証
+  }
+}
+
+// ジェネリックなし: あちこちで型キャスト
+const response = await fetch(url)
+const data = (await response.json()) as Airport[]
+loadAirports(data)
+
+// ジェネリック使用: 型安全で柔軟
+const response = await fetch<Airport[]>(url)
+const data = response.data // 自動的に型付け
+loadAirports(data)
+```
+
+---
+
+## まとめ
+
+- **条件付き型**を使用して、動的に型を変換する
+- **マップ型**を使用して、既存の型を変換する
+- **型ガード**を使用して、ランタイムチェックで型を絞り込む
+- **ジェネリック制約**を使用して、柔軟で型安全な抽象化を構築する
+- **ユーティリティ型**を使用して、反復を避ける
+
+詳細情報：[TypeScript ハンドブック: 型からの型](https://www.typescriptlang.org/ja/docs/handbook/2/types-from-types.html)

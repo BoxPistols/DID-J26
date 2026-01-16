@@ -1,0 +1,1037 @@
+{/* FrontendGuideForBeginners.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/Frontend Guide for Beginners" />
+
+# フロントエンド入門ガイド
+
+DIDinJapanプロジェクトで学ぶ、React + TypeScriptの実践的な開発技法
+
+---
+
+## 第1章：React の基礎
+
+基本的なコンポーネント、Props、状態管理を学びます
+
+### 1.1 コンポーネントとは？
+
+Reactの最小単位が「コンポーネント」です。UIを再利用可能な部品に分割します。
+
+```typescript
+// シンプルなコンポーネント例
+function Welcome() {
+  return <h1>ようこそ</h1>
+}
+```
+
+このプロジェクトではこんな感じ：
+
+```typescript
+// src/components/MapContainer.tsx
+export function MapContainer() {
+  return (
+    <div className="map-container">
+      <div id="map" />
+    </div>
+  )
+}
+```
+
+**重要な概念**
+- コンポーネントは関数で作成（関数コンポーネント）
+- 返り値はJSX（HTML的な書き方）
+- 再利用可能で組み合わせて使える
+
+---
+
+### 1.2 Props（プロパティ）- コンポーネント間のデータ受け渡し
+
+親コンポーネントから子コンポーネントにデータを渡します。
+
+```typescript
+// 子コンポーネント
+interface ButtonProps {
+  label: string
+  onClick: () => void
+}
+
+function CustomButton({ label, onClick }: ButtonProps) {
+  return <button onClick={onClick}>{label}</button>
+}
+
+// 親コンポーネント
+function App() {
+  return (
+    <CustomButton 
+      label="飛行可能判定" 
+      onClick={() => console.log('チェック開始')}
+    />
+  )
+}
+```
+
+**このプロジェクトでの実例**
+
+```typescript
+// src/components/Dialog.tsx
+interface DialogProps {
+  isOpen: boolean
+  title: string
+  onClose: () => void
+  children: React.ReactNode
+}
+
+export function Dialog({ isOpen, title, onClose, children }: DialogProps) {
+  if (!isOpen) return null
+  
+  return (
+    <div className="dialog-overlay">
+      <div className="dialog">
+        <h2>{title}</h2>
+        {children}
+        <button onClick={onClose}>閉じる</button>
+      </div>
+    </div>
+  )
+}
+```
+
+**Propsの流れ**
+```
+親コンポーネント
+  ↓ (Props を渡す)
+子コンポーネント
+  ↓ (Props を受け取る)
+レンダリング
+```
+
+---
+
+### 1.3 useState - コンポーネントの状態管理
+
+コンポーネントが「覚える」べき情報（状態）を管理します。
+
+**基本形**
+```typescript
+const [状態, 更新関数] = useState(初期値)
+```
+
+**実例：トグルボタン**
+
+```typescript
+import { useState } from 'react'
+
+function ToggleButton() {
+  // isOpen が現在の状態、setIsOpen で更新
+  const [isOpen, setIsOpen] = useState(false)
+  
+  return (
+    <div>
+      <p>状態：{isOpen ? 'オン' : 'オフ'}</p>
+      <button onClick={() => setIsOpen(!isOpen)}>
+        切り替え
+      </button>
+    </div>
+  )
+}
+```
+
+**このプロジェクトでの実例**
+
+```typescript
+// src/App.tsx - 複数の状態を管理
+export function App() {
+  const [showDialog, setShowDialog] = useState(false)
+  const [selectedLayer, setSelectedLayer] = useState<string | null>(null)
+  const [mapZoom, setMapZoom] = useState(5)
+  
+  return (
+    <div>
+      {/* 複数の状態が連動する */}
+      <Button onClick={() => setShowDialog(true)}>
+        ヘルプを表示
+      </Button>
+      
+      <Dialog isOpen={showDialog} onClose={() => setShowDialog(false)}>
+        <p>ドローン飛行に関する情報...</p>
+      </Dialog>
+    </div>
+  )
+}
+```
+
+**状態を更新するときの注意**
+
+```typescript
+// ❌ 間違い：直接変更しない
+state.count = state.count + 1
+
+// ✅ 正解：新しい値を渡す
+setState(state.count + 1)
+
+// オブジェクトの場合も同じ
+// ❌ 間違い
+state.user.name = '新しい名前'
+
+// ✅ 正解：スプレッド演算子で新しいオブジェクトを作成
+setState({ ...state, user: { ...state.user, name: '新しい名前' } })
+```
+
+---
+
+### 1.4 useEffect - 副作用の処理
+
+コンポーネントが描画された後に実行する処理（API呼び出し、イベントリスナー設定など）。
+
+**基本形**
+```typescript
+useEffect(() => {
+  // 副作用の処理
+  return () => {
+    // クリーンアップ（オプション）
+  }
+}, [依存配列])
+```
+
+**実例：ページ読み込み時にデータ取得**
+
+```typescript
+import { useEffect, useState } from 'react'
+
+function AirportList() {
+  const [airports, setAirports] = useState([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    // コンポーネント描画後に実行
+    async function fetchAirports() {
+      try {
+        const data = await AirportService.getAll()
+        setAirports(data)
+      } catch (error) {
+        console.error('データ取得失敗', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchAirports()
+  }, []) // 空配列 = マウント時に1回だけ実行
+  
+  if (loading) return <p>読み込み中...</p>
+  
+  return (
+    <ul>
+      {airports.map(airport => (
+        <li key={airport.id}>{airport.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+**このプロジェクトでの実例：MapLibreの初期化**
+
+```typescript
+// src/App.tsx
+export function App() {
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  
+  useEffect(() => {
+    if (!mapContainer.current) return
+    
+    // MapLibreを初期化（1回のみ）
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: {...},
+      center: [137, 36.5],
+      zoom: 5
+    })
+    
+    // クリーンアップ：コンポーネント削除時にMapを破棄
+    return () => {
+      map.current?.remove()
+    }
+  }, []) // 初期化は1回だけ
+  
+  return <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+}
+```
+
+**依存配列の重要性**
+
+```typescript
+// 依存配列なし = 毎回実行（危険！無限ループの原因）
+useEffect(() => {
+  setCount(count + 1) // ❌ 毎回実行 → 無限ループ
+})
+
+// 空配列 = マウント時のみ実行（初期化に使う）
+useEffect(() => {
+  initializeMap() // ✅ 1回だけ実行
+}, [])
+
+// 依存配列あり = その値が変わったときだけ実行
+useEffect(() => {
+  searchAirports(location) // ✅ location が変わったときだけ実行
+}, [location])
+```
+
+---
+
+## 第2章：TypeScript の基礎
+
+### 2.1 型とは？
+
+JavaScriptに「型」という概念を追加して、バグを減らします。
+
+```typescript
+// ❌ JavaScriptの危険な例
+const user = { name: 'John' }
+console.log(user.age) // undefined（予期しない）
+user.age = 25 // 動的に追加可能
+
+// ✅ TypeScriptで安全に
+interface User {
+  name: string
+  age: number
+}
+
+const user: User = { name: 'John', age: 25 }
+console.log(user.age) // OK: 25
+user.name = 123 // ❌ エラー：numberは型と合わない
+```
+
+**よく使う基本型**
+
+```typescript
+// プリミティブ型
+const text: string = 'テキスト'
+const number: number = 42
+const flag: boolean = true
+
+// 複数の型を許可
+let value: string | number = 'テキスト'
+value = 123 // OK
+
+// 任意の型（避けるべき）
+let anything: any = 'なんでもOK'
+anything = 123
+anything.doSomething() // TypeScriptが保護してくれない
+
+// 配列
+const numbers: number[] = [1, 2, 3]
+const strings: Array<string> = ['a', 'b', 'c']
+
+// タプル（固定長、各要素が異なる型）
+const coordinate: [number, number] = [139.7673, 35.6812]
+```
+
+---
+
+### 2.2 Interface - オブジェクトの型定義
+
+複数のプロパティを持つオブジェクトの型を定義します。
+
+```typescript
+// 基本的な定義
+interface Airport {
+  id: string
+  name: string
+  coordinates: [number, number]
+  elevation: number
+}
+
+// 使用
+const narita: Airport = {
+  id: 'narita',
+  name: '成田国際空港',
+  coordinates: [140.3929, 35.7719],
+  elevation: 10
+}
+
+// ❌ 型の違反を検出
+const invalid: Airport = {
+  id: 'test',
+  name: 'テスト',
+  coordinates: [139, 35],
+  // elevation がない → エラー！
+}
+```
+
+**このプロジェクトでの実例**
+
+```typescript
+// src/lib/services/airports.ts
+export interface Airport {
+  id: string                          // 空港識別子
+  name: string                        // 日本語名
+  nameEn: string                      // 英語名
+  type: 'international' | 'domestic' | 'military' | 'heliport'
+  coordinates: [number, number]       // [経度, 緯度]
+  elevation: number                   // 標高（メートル）
+  runways: number                     // 滑走路数
+  restrictionRadius: number           // 飛行制限半径（km）
+  isDesignatedUnderLaw: boolean       // 小型無人機等飛行禁止法対象
+}
+
+// コンポーネントで使用
+interface AirportCardProps {
+  airport: Airport
+  onSelect: (airport: Airport) => void
+}
+
+function AirportCard({ airport, onSelect }: AirportCardProps) {
+  return (
+    <div onClick={() => onSelect(airport)}>
+      <h3>{airport.name}</h3>
+      <p>タイプ: {airport.type}</p>
+      <p>制限半径: {airport.restrictionRadius}km</p>
+    </div>
+  )
+}
+```
+
+**Union型 - 複数の型から選択**
+
+```typescript
+// RestrictionType は複数の種類のどれか
+type RestrictionType = 'airport' | 'did' | 'no_fly_red' | 'no_fly_yellow'
+
+// 使用時は型チェック可能
+function getRestrictionColor(type: RestrictionType): string {
+  switch (type) {
+    case 'airport':
+      return '#90EE90'
+    case 'did':
+      return '#FFB6C1'
+    case 'no_fly_red':
+      return '#FF0000'
+    case 'no_fly_yellow':
+      return '#FFFF00'
+  }
+}
+```
+
+---
+
+### 2.3 Generics - 再利用可能な型
+
+型をパラメータとして渡して、柔軟なコンポーネント・関数を作成します。
+
+```typescript
+// Generic を使わない場合：型ごとに関数が必要
+function getFirstAirport(arr: Airport[]): Airport {
+  return arr[0]
+}
+
+function getFirstString(arr: string[]): string {
+  return arr[0]
+}
+
+// Generic を使った場合：1つの関数で複数の型に対応
+function getFirst<T>(arr: T[]): T {
+  return arr[0]
+}
+
+// 使用
+const firstAirport = getFirst<Airport>(airports)
+const firstName = getFirst<string>(names)
+```
+
+**このプロジェクトでの実例**
+
+```typescript
+// API レスポンスの汎用化
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  timestamp: number
+}
+
+// 使用例
+async function fetchAirports(): Promise<ApiResponse<Airport[]>> {
+  try {
+    const data = await fetch('/api/airports')
+    return {
+      success: true,
+      data: await data.json(),
+      timestamp: Date.now()
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      timestamp: Date.now()
+    }
+  }
+}
+
+// 別の型でも同じインターフェース
+async function fetchWeather(): Promise<ApiResponse<WeatherData>> {
+  // 同じ構造、異なる返値の型
+}
+```
+
+---
+
+## 第3章：非同期処理とAPI連携
+
+### 3.1 Promise - 非同期処理の基本
+
+```typescript
+// Promise の3つの状態
+// 1. pending（処理中）
+// 2. fulfilled（成功）
+// 3. rejected（失敗）
+
+const promise = new Promise<number>((resolve, reject) => {
+  setTimeout(() => {
+    resolve(42) // 成功
+    // reject(new Error('エラー')) // 失敗
+  }, 1000)
+})
+
+// 使用
+promise
+  .then(result => console.log('成功:', result))
+  .catch(error => console.error('失敗:', error))
+```
+
+---
+
+### 3.2 async/await - Promise を簡潔に書く
+
+```typescript
+// Promise チェーン（読みにくい）
+function fetchUserData() {
+  return fetch('/api/user')
+    .then(response => response.json())
+    .then(user => {
+      return fetch(`/api/airports?near=${user.location}`)
+        .then(response => response.json())
+        .then(airports => ({ user, airports }))
+    })
+    .catch(error => console.error('エラー:', error))
+}
+
+// async/await（読みやすい）
+async function fetchUserData() {
+  try {
+    const userResponse = await fetch('/api/user')
+    const user = await userResponse.json()
+    
+    const airportResponse = await fetch(`/api/airports?near=${user.location}`)
+    const airports = await airportResponse.json()
+    
+    return { user, airports }
+  } catch (error) {
+    console.error('エラー:', error)
+  }
+}
+```
+
+**このプロジェクトでの実例**
+
+```typescript
+// src/lib/services/noFlyZones.ts
+export class NoFlyZoneService {
+  static async getAll(): Promise<NoFlyZone[]> {
+    try {
+      const response = await fetch('/data/no_fly_zones.geojson')
+      if (!response.ok) throw new Error('データ取得失敗')
+      const data = await response.json()
+      return this.parseGeoJSON(data)
+    } catch (error) {
+      console.error('No-Fly Zone取得エラー:', error)
+      return []
+    }
+  }
+}
+
+// コンポーネントでの使用
+function RestrictionsMap() {
+  const [zones, setZones] = useState<NoFlyZone[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await NoFlyZoneService.getAll()
+        setZones(data)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+  
+  if (loading) return <p>読み込み中...</p>
+  return <MapLayer zones={zones} />
+}
+```
+
+---
+
+### 3.3 複数の非同期処理を並列実行
+
+```typescript
+// 順序実行（遅い：3秒かかる）
+async function slowApproach() {
+  const airports = await AirportService.getAll()      // 1秒
+  const zones = await NoFlyZoneService.getAll()       // 1秒
+  const weather = await WeatherService.fetchWeather() // 1秒
+}
+
+// 並列実行（速い：1秒で完了）
+async function fastApproach() {
+  const [airports, zones, weather] = await Promise.all([
+    AirportService.getAll(),
+    NoFlyZoneService.getAll(),
+    WeatherService.fetchWeather()
+  ])
+}
+
+// 実装例
+function AppInitializer() {
+  useEffect(() => {
+    async function initializeApp() {
+      const [airports, zones, weather] = await Promise.all([
+        AirportService.getAll(),
+        NoFlyZoneService.getAll(),
+        WeatherService.fetchWeather(35.6762, 139.6503)
+      ])
+      
+      setAppData({ airports, zones, weather })
+    }
+    
+    initializeApp()
+  }, [])
+}
+```
+
+---
+
+## 第4章：このプロジェクトの実装パターン
+
+### 4.1 MapLibre GL との連携パターン
+
+```typescript
+import maplibregl from 'maplibre-gl'
+import { useEffect, useRef } from 'react'
+
+function MapComponent() {
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  const [isMapReady, setIsMapReady] = useState(false)
+  
+  // Map の初期化（マウント時に1回）
+  useEffect(() => {
+    if (!mapContainer.current) return
+    
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://...',
+      center: [137, 36.5],
+      zoom: 5
+    })
+    
+    map.current.on('load', () => {
+      setIsMapReady(true)
+      addLayers() // Map 準備完了後に実行
+    })
+    
+    return () => map.current?.remove()
+  }, [])
+  
+  // Map が準備完了後に実行
+  useEffect(() => {
+    if (!isMapReady || !map.current) return
+    
+    // この時点で map に対する操作が可能
+    addRestrictionsLayer()
+  }, [isMapReady])
+  
+  return <div ref={mapContainer} style={{ width: '100%', height: '600px' }} />
+}
+```
+
+**重要なポイント**
+- Map の初期化は useEffect の依存配列が空
+- レイヤーの追加は isMapReady が true になった後
+- クリーンアップで map.remove() を呼び出す
+
+---
+
+### 4.2 複数の状態を管理する場合
+
+```typescript
+function DroneMapApp() {
+  // レイヤー表示/非表示
+  const [visibleLayers, setVisibleLayers] = useState<string[]>([])
+  
+  // 選択中の空港
+  const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null)
+  
+  // ダイアログ表示状態
+  const [showDialog, setShowDialog] = useState(false)
+  
+  // レイヤー透明度
+  const [layerOpacity, setLayerOpacity] = useState(0.5)
+  
+  // 状態が複雑になったら useReducer の検討も
+  // interface AppState {
+  //   visibleLayers: string[]
+  //   selectedAirport: Airport | null
+  //   showDialog: boolean
+  //   layerOpacity: number
+  // }
+  
+  // const [state, dispatch] = useReducer(appReducer, initialState)
+}
+```
+
+---
+
+### 4.3 Context を使った状態の共有
+
+複数のコンポーネント間で共通の状態を共有する場合：
+
+```typescript
+// 1. Context を作成
+interface MapContextType {
+  map: maplibregl.Map | null
+  selectedZone: NoFlyZone | null
+  setSelectedZone: (zone: NoFlyZone | null) => void
+}
+
+const MapContext = createContext<MapContextType>({
+  map: null,
+  selectedZone: null,
+  setSelectedZone: () => {}
+})
+
+// 2. Provider コンポーネントを作成
+export function MapProvider({ children }: { children: React.ReactNode }) {
+  const [map, setMap] = useState<maplibregl.Map | null>(null)
+  const [selectedZone, setSelectedZone] = useState<NoFlyZone | null>(null)
+  
+  return (
+    <MapContext.Provider value={{ map, selectedZone, setSelectedZone }}>
+      {children}
+    </MapContext.Provider>
+  )
+}
+
+// 3. 子コンポーネントで使用
+function ZoneList() {
+  const { selectedZone, setSelectedZone } = useContext(MapContext)
+  
+  return (
+    <div>
+      {zones.map(zone => (
+        <button
+          key={zone.id}
+          onClick={() => setSelectedZone(zone)}
+          style={{ backgroundColor: selectedZone?.id === zone.id ? 'blue' : 'gray' }}
+        >
+          {zone.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+```
+
+---
+
+## 第5章：デバッグとパフォーマンス最適化
+
+### 5.1 一般的なバグと対処方法
+
+**バグ1：無限ループ（useEffect で状態を更新）**
+
+```typescript
+// ❌ 無限ループ
+useEffect(() => {
+  setCount(count + 1) // count が変わる → useEffect が実行 → count が変わる...
+}, [count]) // count が依存配列にある
+
+// ✅ 修正：初期化時のみ実行
+useEffect(() => {
+  setCount(0) // マウント時に1回だけ
+}, [])
+```
+
+**バグ2：Stale Closure（古い値を使ってしまう）**
+
+```typescript
+// ❌ 古い location を参照
+function SearchAirports() {
+  const [location, setLocation] = useState('')
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      console.log(location) // location が古い可能性
+    }, 1000)
+    
+    return () => clearTimeout(timer)
+  }, []) // location を依存配列に含めない
+}
+
+// ✅ 修正：依存配列に含める
+useEffect(() => {
+  const timer = setTimeout(() => {
+    console.log(location) // 最新の location を参照
+  }, 1000)
+  
+  return () => clearTimeout(timer)
+}, [location]) // location を含める
+```
+
+---
+
+### 5.2 パフォーマンス最適化
+
+**問題1：不要なレンダリング**
+
+```typescript
+// ❌ 親コンポーネントが再レンダリング → 子コンポーネントも再レンダリング
+function Parent() {
+  const [count, setCount] = useState(0)
+  
+  return (
+    <div>
+      <button onClick={() => setCount(count + 1)}>
+        Count: {count}
+      </button>
+      <ExpensiveChild /> {/* count と関係ないのに再レンダリング */}
+    </div>
+  )
+}
+
+// ✅ 修正1：React.memo でラップ
+const ExpensiveChild = React.memo(() => {
+  return <div>重い処理...</div>
+})
+
+// ✅ 修正2：状態を下に移動
+function Parent() {
+  return (
+    <div>
+      <Counter />
+      <ExpensiveChild />
+    </div>
+  )
+}
+
+function Counter() {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount(count + 1)}>Count: {count}</button>
+}
+```
+
+**問題2：毎回新しい関数を作成**
+
+```typescript
+// ❌ マップレイヤーをクリックするたびに新しい関数を作成
+function MapWithHandler() {
+  const handleClick = () => { // 毎回新しい関数
+    console.log('clicked')
+  }
+  
+  useEffect(() => {
+    map.on('click', 'layer', handleClick)
+  }, []) // handleClick が依存配列にない（バグ！）
+}
+
+// ✅ 修正：useCallback でメモ化
+function MapWithHandler() {
+  const handleClick = useCallback(() => {
+    console.log('clicked')
+  }, []) // 依存配列が空 = この関数は毎回同じ
+  
+  useEffect(() => {
+    map.on('click', 'layer', handleClick)
+    return () => map.off('click', 'layer', handleClick)
+  }, [handleClick])
+}
+```
+
+---
+
+## 第6章：実践演習
+
+### 演習1：シンプルなリスト表示
+
+```typescript
+// 要件：
+// 1. 空港リストを表示
+// 2. 検索ボックスで名前をフィルタリング
+// 3. 選択時にダイアログで詳細を表示
+
+import { useState, useMemo } from 'react'
+
+function AirportSearchApp() {
+  const [airports, setAirports] = useState<Airport[]>([])
+  const [searchText, setSearchText] = useState('')
+  const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null)
+  
+  // 初期化時にデータ取得
+  useEffect(() => {
+    async function load() {
+      const data = await AirportService.getAll()
+      setAirports(data)
+    }
+    load()
+  }, [])
+  
+  // 検索結果をメモ化（searchText が変わったときだけ再計算）
+  const filteredAirports = useMemo(() => {
+    return airports.filter(airport =>
+      airport.name.includes(searchText) ||
+      airport.nameEn.toLowerCase().includes(searchText.toLowerCase())
+    )
+  }, [airports, searchText])
+  
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="空港を検索..."
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+      
+      <ul>
+        {filteredAirports.map(airport => (
+          <li key={airport.id} onClick={() => setSelectedAirport(airport)}>
+            {airport.name}
+          </li>
+        ))}
+      </ul>
+      
+      {selectedAirport && (
+        <div className="modal">
+          <h2>{selectedAirport.name}</h2>
+          <p>座標: {selectedAirport.coordinates}</p>
+          <p>標高: {selectedAirport.elevation}m</p>
+          <button onClick={() => setSelectedAirport(null)}>閉じる</button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### 演習2：地図との連携
+
+```typescript
+// 要件：
+// 1. 地図を表示
+// 2. ボタンで制限区域レイヤーをON/OFF
+// 3. 選択した区域をハイライト
+
+function RestrictedAreasMap() {
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<maplibregl.Map | null>(null)
+  const [isMapReady, setIsMapReady] = useState(false)
+  const [showRedZones, setShowRedZones] = useState(true)
+  const [showYellowZones, setShowYellowZones] = useState(true)
+  
+  // Map 初期化
+  useEffect(() => {
+    if (!mapContainer.current) return
+    
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://...',
+      center: [137, 36.5],
+      zoom: 5
+    })
+    
+    map.current.on('load', () => setIsMapReady(true))
+    
+    return () => map.current?.remove()
+  }, [])
+  
+  // レイヤーの追加
+  useEffect(() => {
+    if (!isMapReady || !map.current) return
+    
+    // Red zones レイヤーを追加
+    map.current.addSource('red-zones', {
+      type: 'geojson',
+      data: redZonesGeoJSON
+    })
+    
+    map.current.addLayer({
+      id: 'red-zones-layer',
+      type: 'fill',
+      source: 'red-zones',
+      paint: { 'fill-color': '#FF0000', 'fill-opacity': 0.3 }
+    })
+  }, [isMapReady])
+  
+  // 表示/非表示の切り替え
+  useEffect(() => {
+    if (!isMapReady || !map.current) return
+    
+    map.current.setLayoutProperty(
+      'red-zones-layer',
+      'visibility',
+      showRedZones ? 'visible' : 'none'
+    )
+  }, [showRedZones, isMapReady])
+  
+  return (
+    <div>
+      <label>
+        <input
+          type="checkbox"
+          checked={showRedZones}
+          onChange={(e) => setShowRedZones(e.target.checked)}
+        />
+        Red Zones を表示
+      </label>
+      
+      <div ref={mapContainer} style={{ width: '100%', height: '600px' }} />
+    </div>
+  )
+}
+```
+
+---
+
+## まとめ
+
+### 学習のステップ
+
+1. 基礎を理解 (これまでのセクション)
+   - React のコンセプト（コンポーネント、Props、State）
+   - TypeScript の型システム
+   - 非同期処理
+
+2. 実装パターンを学ぶ (このプロジェクトのコード)
+   - MapLibre との連携
+   - 複数の状態管理
+   - ベストプラクティス
+
+3. **実装する** (こういった機能を自分で作る)
+   - 簡単な機能から始める
+   - エラーが出たらデバッグで学ぶ
+   - パフォーマンスを意識する
+
+### 次のステップ
+
+- **カスタムフック**を学ぶ：よく使うロジックを再利用可能にする
+- **テスト**を学ぶ：バグを早期に検出する
+- **状態管理ライブラリ**を学ぶ：複雑な状態を管理する
+
+### 参考リソース
+
+- [React公式ドキュメント](https://react.dev)
+- [TypeScript公式ハンドブック](https://www.typescriptlang.org/docs/)
+- [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/)

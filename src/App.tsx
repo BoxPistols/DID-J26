@@ -55,6 +55,7 @@ import { CoordinateDisplay } from './components/CoordinateDisplay'
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
+import { toast } from './utils/toast'
 
 // ============================================
 // Zone ID Constants
@@ -345,6 +346,9 @@ function App() {
   const [displayCoordinates, setDisplayCoordinates] = useState<{ lng: number; lat: number } | null>(
     null
   )
+
+  // Zoom level (always-visible UI)
+  const [mapZoom, setMapZoom] = useState<number | null>(null)
 
   // Enable coordinate display on map click
   const [enableCoordinateDisplay, setEnableCoordinateDisplay] = useState(() => {
@@ -841,6 +845,18 @@ function App() {
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
+    // Keep current zoom in React state (for always-visible Zoom UI)
+    setMapZoom(map.getZoom())
+    let zoomRafId: number | null = null
+    const handleZoomForUi = () => {
+      if (zoomRafId !== null) return
+      zoomRafId = window.requestAnimationFrame(() => {
+        zoomRafId = null
+        setMapZoom(map.getZoom())
+      })
+    }
+    map.on('zoom', handleZoomForUi)
+
     popupRef.current = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
@@ -1101,6 +1117,8 @@ function App() {
     mapRef.current = map
 
     return () => {
+      map.off('zoom', handleZoomForUi)
+      if (zoomRafId !== null) window.cancelAnimationFrame(zoomRafId)
       map.remove()
       mapRef.current = null
     }
@@ -2123,7 +2141,9 @@ function App() {
   const KOKUAREA_SOURCE_ID = 'airport-airspace-kokuarea'
   const KOKUAREA_LAYER_PREFIX = 'airport-airspace-kokuarea'
   const KOKUAREA_MAX_TILES = 96
-  const KOKUAREA_MIN_ZOOM = 9
+  // NOTE: GSI kokuarea は現状 z=8 のみ実在（z<8 / z>8 は404になるケースが多い）
+  const KOKUAREA_TILE_ZOOM = 8
+  const KOKUAREA_MIN_MAP_ZOOM = 8
   const KOKUAREA_FETCH_CONCURRENCY = 6
 
   const kokuareaRef = useRef<{
@@ -2134,6 +2154,7 @@ function App() {
     updateSeq: number
     detach: (() => void) | null
     lastKeysSig: string | null
+    lastToastAt: number
   }>({
     enabled: false,
     tileTemplate: null,
@@ -2141,25 +2162,45 @@ function App() {
     inflight: new Map(),
     updateSeq: 0,
     detach: null,
-    lastKeysSig: null
+    lastKeysSig: null,
+    lastToastAt: 0
   })
 
   const emptyKokuareaFC = (): KokuareaFC => ({ type: 'FeatureCollection', features: [] })
+
+  const safeKokuProps = (v: unknown): Record<string, unknown> => {
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>
+    return {}
+  }
+
+  const normalizeKokuareaFCInPlace = (fc: KokuareaFC): KokuareaFC => {
+    for (const f of fc.features ?? []) {
+      const props = safeKokuProps(f.properties)
+      const { kind, label } = classifyKokuareaSurface(props)
+      ;(f as GeoJSON.Feature).properties = {
+        ...props,
+        __koku_kind: kind,
+        __koku_label: label
+      } satisfies KokuareaFeatureProperties
+    }
+    return fc
+  }
 
   const computeKokuareaZoomAndTiles = (
     map: maplibregl.Map
   ): { z: number; keys: string[]; xyzs: Array<{ z: number; x: number; y: number }>; tooMany: boolean } => {
     const bounds = map.getBounds()
-    let z = Math.max(KOKUAREA_MIN_ZOOM, Math.min(14, Math.floor(map.getZoom())))
-    let xyzs = getVisibleTileXYZs(bounds, z)
-
-    while (xyzs.length > KOKUAREA_MAX_TILES && z > KOKUAREA_MIN_ZOOM) {
-      z -= 1
-      xyzs = getVisibleTileXYZs(bounds, z)
+    const zoom = map.getZoom()
+    if (zoom < KOKUAREA_MIN_MAP_ZOOM) {
+      return { z: KOKUAREA_TILE_ZOOM, keys: [], xyzs: [], tooMany: true }
     }
+
+    const z = KOKUAREA_TILE_ZOOM
+    const xyzs = getVisibleTileXYZs(bounds, z)
 
     if (xyzs.length > KOKUAREA_MAX_TILES) {
       // 広域表示すぎるとタイル数が爆発して重くなるため、一定以上は描画しない
+      toast.info('表示範囲が広すぎます。ズームインすると空港など周辺空域が表示されます')
       return { z, keys: [], xyzs: [], tooMany: true }
     }
 
@@ -2178,25 +2219,6 @@ function App() {
       })
     }
 
-    // NOTE: タイル毎にpropertiesを加工すると重いので、MapLibreの式でnameから分類する
-    const nameExpr: any = ['coalesce', ['get', 'name'], '']
-    const has = (s: string): any => ['>=', ['index-of', s, nameExpr], 0]
-    const filterForKind = (kind: keyof typeof KOKUAREA_STYLE): any => {
-      switch (kind) {
-        case 'approach':
-          return ['any', has('進入表面'), has('延長進入表面')]
-        case 'transitional':
-          return has('転移表面')
-        case 'horizontal':
-          // 外側水平表面も水平表面扱い
-          return ['any', has('外側水平表面'), has('水平表面')]
-        case 'conical':
-          return has('円錐表面')
-        default:
-          return ['all', ['!', filterForKind('approach')], ['!', filterForKind('transitional')], ['!', filterForKind('horizontal')], ['!', filterForKind('conical')]]
-      }
-    }
-
     ;(Object.keys(KOKUAREA_STYLE) as Array<keyof typeof KOKUAREA_STYLE>).forEach((kind) => {
       const style = KOKUAREA_STYLE[kind]
       const fillId = `${KOKUAREA_LAYER_PREFIX}-${kind}`
@@ -2207,7 +2229,7 @@ function App() {
           id: fillId,
           type: 'fill',
           source: KOKUAREA_SOURCE_ID,
-          filter: filterForKind(kind),
+          filter: ['==', ['get', '__koku_kind'], kind],
           paint: { 'fill-color': style.fillColor, 'fill-opacity': style.fillOpacity }
         })
       }
@@ -2217,7 +2239,7 @@ function App() {
           id: lineId,
           type: 'line',
           source: KOKUAREA_SOURCE_ID,
-          filter: filterForKind(kind),
+          filter: ['==', ['get', '__koku_kind'], kind],
           paint: { 'line-color': style.lineColor, 'line-width': style.lineWidth }
         })
       }
@@ -2242,7 +2264,8 @@ function App() {
   ): Promise<KokuareaFC> => {
     const url = fillKokuareaTileUrl(tileTemplate, z, x, y)
     try {
-      return await fetchGeoJSONWithCache<KokuareaFC>(url)
+      const raw = await fetchGeoJSONWithCache<KokuareaFC>(url)
+      return normalizeKokuareaFCInPlace(raw)
     } catch (e) {
       // NOTE: GSIタイルは空タイルで404を返すケースがあるため、404は「空」として扱う
       const msg = e instanceof Error ? e.message : String(e)
@@ -2280,7 +2303,20 @@ function App() {
     const seq = ++state.updateSeq
     const { keys, xyzs, tooMany } = computeKokuareaZoomAndTiles(map)
 
+    const maybeToast = (message: string): void => {
+      const now = Date.now()
+      if (now - state.lastToastAt < 1500) return
+      state.lastToastAt = now
+      toast.info(message)
+    }
+
     if (tooMany) {
+      const zoom = map.getZoom()
+      if (zoom < KOKUAREA_MIN_MAP_ZOOM) {
+        maybeToast(`空港など周辺空域はズーム${KOKUAREA_MIN_MAP_ZOOM}+で表示します（現在 Z ${zoom.toFixed(1)}）`)
+      } else {
+        maybeToast('表示範囲が広すぎます。ズームインすると空港など周辺空域が表示されます')
+      }
       state.tiles.clear()
       state.inflight.clear()
       state.lastKeysSig = 'tooMany'
@@ -3253,7 +3289,7 @@ function App() {
 
           {/* Airport airspace */}
           <label
-            title="空港周辺の一定範囲内：無人機飛行は許可が必要 [A]"
+            title="空港周辺の一定範囲内：無人機飛行は許可が必要 [A]（表示はズーム8+）"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -3277,6 +3313,19 @@ function App() {
             />
             <span>空港など周辺空域 [A]</span>
           </label>
+          {!isRestrictionVisible('airport-airspace') && (mapZoom ?? 0) < 8 && (
+            <div
+              style={{
+                marginTop: '-4px',
+                marginBottom: '6px',
+                paddingLeft: '22px',
+                fontSize: '10px',
+                color: darkMode ? '#888' : '#777'
+              }}
+            >
+              ズーム8+で表示（現在 Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
+            </div>
+          )}
 
           {/* DID */}
           <label
@@ -4039,6 +4088,31 @@ function App() {
       >
         ?
       </button>
+
+      {/* Zoom Level (always visible) */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 10,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          padding: '6px 8px',
+          minWidth: 52,
+          textAlign: 'center',
+          backgroundColor: darkMode ? '#333' : '#fff',
+          color: darkMode ? '#fff' : '#333',
+          borderRadius: '4px',
+          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          zIndex: 1200,
+          fontSize: '12px',
+          fontWeight: 700,
+          userSelect: 'none',
+          pointerEvents: 'none'
+        }}
+        title="現在のズームレベル"
+      >
+        Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}
+      </div>
 
       {/* Help Modal */}
       {showHelp && (

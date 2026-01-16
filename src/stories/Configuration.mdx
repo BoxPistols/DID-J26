@@ -23,12 +23,37 @@ const availableMaps = {
 
 ### ベースマップ設定
 
-| ID | 名称 | ソース |
-|----|------|--------|
-| osm | OpenStreetMap | openstreetmap.org |
-| gsi | 国土地理院標準 | cyberjapandata.gsi.go.jp |
-| pale | 国土地理院淡色 | cyberjapandata.gsi.go.jp |
-| photo | 航空写真 | cyberjapandata.gsi.go.jp |
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>名称</th>
+      <th>ソース</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>osm</td>
+      <td>OpenStreetMap</td>
+      <td>openstreetmap.org</td>
+    </tr>
+    <tr>
+      <td>gsi</td>
+      <td>国土地理院標準</td>
+      <td>cyberjapandata.gsi.go.jp</td>
+    </tr>
+    <tr>
+      <td>pale</td>
+      <td>国土地理院淡色</td>
+      <td>cyberjapandata.gsi.go.jp</td>
+    </tr>
+    <tr>
+      <td>photo</td>
+      <td>航空写真</td>
+      <td>cyberjapandata.gsi.go.jp</td>
+    </tr>
+  </tbody>
+</table>
 
 ### 使用例
 
@@ -78,15 +103,60 @@ const colors = {
 
 ### カラーマップ
 
-| 区分 | 色 | Hex | 説明 |
-|------|-----|-----|------|
-| 空港周辺空域 | 🟢 | #90EE90 | 航空法による制限 |
-| DID | 🩷 | #FFB6C1 | 人口集中地区 |
-| 緊急用務空域 | 🟠 | #FFA500 | 災害時等の緊急空域 |
-| 有人機発着 | 🔵 | #87CEEB | ヘリポート等 |
-| リモートID特定区域 | 🟣 | #DDA0DD | リモートID免除区域 |
-| 飛行禁止（赤） | 🔴 | #FF0000 | 完全飛行禁止 |
-| 注意区域（黄） | 🟡 | #FFFF00 | 要許可・注意 |
+<table>
+  <thead>
+    <tr>
+      <th>区分</th>
+      <th>色</th>
+      <th>Hex</th>
+      <th>説明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>空港周辺空域</td>
+      <td style={{backgroundColor: '#90EE90', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#90EE90</td>
+      <td>航空法による制限</td>
+    </tr>
+    <tr>
+      <td>DID</td>
+      <td style={{backgroundColor: '#FFB6C1', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#FFB6C1</td>
+      <td>人口集中地区</td>
+    </tr>
+    <tr>
+      <td>緊急用務空域</td>
+      <td style={{backgroundColor: '#FFA500', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#FFA500</td>
+      <td>災害時等の緊急空域</td>
+    </tr>
+    <tr>
+      <td>有人機発着</td>
+      <td style={{backgroundColor: '#87CEEB', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#87CEEB</td>
+      <td>ヘリポート等</td>
+    </tr>
+    <tr>
+      <td>リモートID特定区域</td>
+      <td style={{backgroundColor: '#DDA0DD', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#DDA0DD</td>
+      <td>リモートID免除区域</td>
+    </tr>
+    <tr>
+      <td>飛行禁止（赤）</td>
+      <td style={{backgroundColor: '#FF0000', width: '40px', height: '30px', borderRadius: '4px'}}></td>
+      <td>#FF0000</td>
+      <td>完全飛行禁止</td>
+    </tr>
+    <tr>
+      <td>注意区域（黄）</td>
+      <td style={{backgroundColor: '#FFFF00', width: '40px', height: '30px', borderRadius: '4px', border: '1px solid #ccc'}}></td>
+      <td>#FFFF00</td>
+      <td>要許可・注意</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -107,11 +177,32 @@ const overlays = {
 
 ### オーバーレイ設定
 
-| ID | 名称 | 用途 |
-|----|------|------|
-| hillshade | 陰影起伏図 | 地形の立体感を表現 |
-| elevation | 標高図 | 標高による色分け |
-| slope | 傾斜量図 | 傾斜の急峻さを表現 |
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>名称</th>
+      <th>用途</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>hillshade</td>
+      <td>陰影起伏図</td>
+      <td>地形の立体感を表現</td>
+    </tr>
+    <tr>
+      <td>elevation</td>
+      <td>標高図</td>
+      <td>標高による色分け</td>
+    </tr>
+    <tr>
+      <td>slope</td>
+      <td>傾斜量図</td>
+      <td>傾斜の急峻さを表現</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -156,6 +247,383 @@ interface DIDLayerConfig {
 
 ---
 
+## 設定詳細とベストプラクティス
+
+### パフォーマンス最適化
+
+#### 1. レイヤー読み込み最適化
+
+多数のレイヤーを同時に表示すると、レンダリングパフォーマンスが低下します。
+
+```typescript
+// ❌ 非効率：全てのレイヤーを常に表示
+const allLayers = [airport, did, emergency, manned, noFlyRed, noFlyYellow]
+allLayers.forEach(layer => {
+  map.addLayer(layer)
+})
+
+// ✅ 効率的：必要なレイヤーのみ表示
+const essentialLayers = [noFlyRed, noFlyYellow]
+essentialLayers.forEach(layer => {
+  map.addLayer(layer)
+})
+
+// ✅ さらに効率的：ズームレベルに応じて表示
+map.addLayer({
+  id: 'did-layer',
+  ...DID_LAYER,
+  layout: {
+    visibility: map.getZoom() > 10 ? 'visible' : 'none'
+  }
+})
+
+map.on('zoom', () => {
+  map.setLayoutProperty(
+    'did-layer',
+    'visibility',
+    map.getZoom() > 10 ? 'visible' : 'none'
+  )
+})
+```
+
+#### 2. タイルキャッシング戦略
+
+```typescript
+class TileCache {
+  private cache = new Map<string, Blob>()
+  private maxSize = 50 // MBsで管理
+  private currentSize = 0
+
+  async cacheTile(url: string): Promise<Blob> {
+    if (this.cache.has(url)) {
+      return this.cache.get(url)!
+    }
+
+    const response = await fetch(url)
+    const blob = await response.blob()
+    
+    // キャッシュサイズ超過時は古いエントリを削除
+    if (this.currentSize + blob.size > this.maxSize * 1024 * 1024) {
+      const oldestKey = this.cache.keys().next().value
+      const oldBlob = this.cache.get(oldestKey)!
+      this.currentSize -= oldBlob.size
+      this.cache.delete(oldestKey)
+    }
+
+    this.cache.set(url, blob)
+    this.currentSize += blob.size
+    return blob
+  }
+
+  clear() {
+    this.cache.clear()
+    this.currentSize = 0
+  }
+}
+```
+
+#### 3. メモリ使用量の監視
+
+```typescript
+async function monitorMemoryUsage() {
+  if (!performance.memory) return
+
+  const used = performance.memory.usedJSHeapSize / 1048576 // MB
+  const limit = performance.memory.jsHeapSizeLimit / 1048576 // MB
+  const percentage = (used / limit) * 100
+
+  console.log(`メモリ使用量: ${used.toFixed(1)}MB / ${limit.toFixed(1)}MB (${percentage.toFixed(1)}%)`)
+
+  // 80%以上使用時は警告
+  if (percentage > 80) {
+    console.warn('メモリ使用率が高いため、いくつかのレイヤーを非表示にしてください')
+  }
+}
+
+// 定期的に監視
+setInterval(monitorMemoryUsage, 5000)
+```
+
+### 動的設定パターン
+
+#### 1. 環境別設定
+
+```typescript
+const CONFIG = {
+  development: {
+    baseMap: BASE_MAPS.osm,  // 軽量
+    overlays: [],             // オーバーレイなし
+    restrictions: [noFlyRed], // 最小限の制限
+    logLevel: 'debug'
+  },
+  staging: {
+    baseMap: BASE_MAPS.gsi,
+    overlays: ['hillshade'],
+    restrictions: [noFlyRed, noFlyYellow],
+    logLevel: 'info'
+  },
+  production: {
+    baseMap: BASE_MAPS.photo,
+    overlays: ['hillshade', 'elevation'],
+    restrictions: [airport, did, emergency, manned, noFlyRed, noFlyYellow],
+    logLevel: 'warn'
+  }
+}
+
+const env = process.env.NODE_ENV as keyof typeof CONFIG
+const config = CONFIG[env] || CONFIG.production
+```
+
+#### 2. ユーザー設定の保存と復元
+
+```typescript
+interface UserPreferences {
+  baseMap: string
+  visibleLayers: string[]
+  layerOpacities: Record<string, number>
+  colorScheme: 'light' | 'dark'
+}
+
+class PreferenceManager {
+  private readonly STORAGE_KEY = 'user-preferences'
+
+  save(prefs: UserPreferences) {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(prefs))
+  }
+
+  load(): UserPreferences | null {
+    const stored = localStorage.getItem(this.STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
+  }
+
+  clear() {
+    localStorage.removeItem(this.STORAGE_KEY)
+  }
+}
+
+// 使用例
+const prefMgr = new PreferenceManager()
+const saved = prefMgr.load()
+if (saved) {
+  // 保存された設定を復元
+  changeBaseMap(saved.baseMap)
+  saved.visibleLayers.forEach(layerId => {
+    map.setLayoutProperty(layerId, 'visibility', 'visible')
+  })
+}
+```
+
+#### 3. 動的レイヤーフィルタリング
+
+```typescript
+function filterLayersByBounds(bounds: maplibregl.LngLatBounds) {
+  const layers = [airport, did, noFlyRed, noFlyYellow]
+  
+  return layers.filter(layer => {
+    // 各レイヤーの境界ボックスを確認
+    const layerBounds = getLayerBounds(layer)
+    return bounds.intersects(layerBounds)
+  })
+}
+
+// ユーザーが地図をドラッグ・ズームしたときに呼び出し
+map.on('moveend', () => {
+  const bounds = map.getBounds()
+  const visibleLayers = filterLayersByBounds(bounds)
+  
+  // 不要なレイヤーを非表示
+  allLayers.forEach(layer => {
+    const shouldShow = visibleLayers.includes(layer)
+    map.setLayoutProperty(
+      layer.id,
+      'visibility',
+      shouldShow ? 'visible' : 'none'
+    )
+  })
+})
+```
+
+### 制限エリアのカスタマイズ
+
+#### 1. カラースキーム定義
+
+```typescript
+type ColorScheme = 'default' | 'high-contrast' | 'colorblind-safe'
+
+const RESTRICTION_COLORS: Record<ColorScheme, Record<RestrictionType, string>> = {
+  default: {
+    airport: '#90EE90',
+    did: '#FFB6C1',
+    emergency: '#FFA500',
+    manned: '#87CEEB',
+    remote_id: '#DDA0DD',
+    no_fly_red: '#FF0000',
+    no_fly_yellow: '#FFFF00'
+  },
+  'high-contrast': {
+    airport: '#00AA00',
+    did: '#FF0000',
+    emergency: '#FFAA00',
+    manned: '#0000FF',
+    remote_id: '#FF00FF',
+    no_fly_red: '#AA0000',
+    no_fly_yellow: '#AAAA00'
+  },
+  'colorblind-safe': {
+    airport: '#332288',      // 青
+    did: '#E66101',          // オレンジ
+    emergency: '#FDB462',    // 薄いオレンジ
+    manned: '#1B9E77',       // 緑
+    remote_id: '#B35806',    // 茶
+    no_fly_red: '#D95F02',   // 赤オレンジ
+    no_fly_yellow: '#7FC97F' // 薄緑
+  }
+}
+
+function applyColorScheme(scheme: ColorScheme) {
+  const colors = RESTRICTION_COLORS[scheme]
+  Object.entries(colors).forEach(([type, color]) => {
+    const layerId = `restriction-${type}`
+    if (map.getLayer(layerId)) {
+      map.setPaintProperty(layerId, 'fill-color', color)
+    }
+  })
+}
+```
+
+#### 2. 不透明度ピッカー
+
+```typescript
+class OpacityControl {
+  private container: HTMLElement
+  private layers: string[]
+
+  constructor(layers: string[]) {
+    this.layers = layers
+    this.container = document.createElement('div')
+    this.setupUI()
+  }
+
+  private setupUI() {
+    this.layers.forEach(layerId => {
+      const label = document.createElement('label')
+      label.innerHTML = `${layerId}: <span>50%</span>`
+      
+      const slider = document.createElement('input')
+      slider.type = 'range'
+      slider.min = '0'
+      slider.max = '100'
+      slider.value = '50'
+      
+      slider.addEventListener('input', (e) => {
+        const opacity = parseInt((e.target as HTMLInputElement).value) / 100
+        map.setPaintProperty(layerId, 'fill-opacity', opacity)
+        label.querySelector('span')!.textContent = 
+          `${Math.round(opacity * 100)}%`
+      })
+      
+      label.appendChild(slider)
+      this.container.appendChild(label)
+    })
+  }
+
+  getElement(): HTMLElement {
+    return this.container
+  }
+}
+
+// MapLibreに追加
+const opacityControl = new OpacityControl([
+  'no-fly-red',
+  'no-fly-yellow',
+  'airport'
+])
+map.addControl(
+  { getElement: () => opacityControl.getElement() } as maplibregl.IControl,
+  'top-right'
+)
+```
+
+### 統合設定例
+
+```typescript
+interface AppConfiguration {
+  map: {
+    baseMap: string
+    initialZoom: number
+    initialCenter: [number, number]
+  }
+  restrictions: {
+    enabled: RestrictionType[]
+    defaultOpacity: number
+    colors: Record<RestrictionType, string>
+  }
+  overlays: {
+    terrain: boolean
+    hillshade: boolean
+    elevation: boolean
+  }
+  weather: {
+    enabled: boolean
+    updateInterval: number // ミリ秒
+    providers: ('rainviewer' | 'openweather' | 'windy')[]
+  }
+  performance: {
+    maxLayers: number
+    cacheSize: number
+    renderTimeout: number
+  }
+}
+
+const defaultConfig: AppConfiguration = {
+  map: {
+    baseMap: 'gsi',
+    initialZoom: 5,
+    initialCenter: [137.0, 36.5]
+  },
+  restrictions: {
+    enabled: ['no_fly_red', 'no_fly_yellow', 'airport'],
+    defaultOpacity: 0.5,
+    colors: RESTRICTION_COLORS.default
+  },
+  overlays: {
+    terrain: true,
+    hillshade: false,
+    elevation: false
+  },
+  weather: {
+    enabled: true,
+    updateInterval: 10 * 60 * 1000, // 10分
+    providers: ['rainviewer']
+  },
+  performance: {
+    maxLayers: 10,
+    cacheSize: 50,
+    renderTimeout: 1000
+  }
+}
+
+// アプリケーションで使用
+function initializeApp(userConfig?: Partial<AppConfiguration>) {
+  const config = { ...defaultConfig, ...userConfig }
+  
+  // ベースマップを設定
+  const baseMapConfig = BASE_MAPS[config.map.baseMap as keyof typeof BASE_MAPS]
+  
+  // 制限エリアを初期化
+  config.restrictions.enabled.forEach(type => {
+    addRestrictionLayer(type, config.restrictions.colors[type])
+  })
+  
+  // 気象レイヤーを初期化
+  if (config.weather.enabled) {
+    setupWeatherLayers(config.weather)
+  }
+  
+  return config
+}
+```
+
 ## TypeScript型定義
 
 ### RestrictionType
@@ -180,6 +648,7 @@ interface BaseMapConfig {
   url: string
   attribution: string
   maxZoom: number
+  tileSize?: number
 }
 ```
 
@@ -193,5 +662,12 @@ interface LayerConfig {
   visible: boolean
   opacity: number
   color?: string
+  source?: {
+    type: 'raster' | 'geojson' | 'vector'
+    tiles?: string[]
+    data?: GeoJSON.FeatureCollection
+  }
+  paint?: maplibregl.LayerSpecification['paint']
+  layout?: maplibregl.LayerSpecification['layout']
 }
 ```

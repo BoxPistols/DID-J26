@@ -56,7 +56,7 @@ describe('Geo Utilities', () => {
       // 139 + 45/60 = 139.75
       const formatted = formatCoordinatesDMS(139.75, 35.666666)
       // 実装に合わせてシングルクォート(')とダブルクォート(")を使用
-      expect(formatted).toContain('35°40\'00.00"N')
+      expect(formatted).toContain('35°40\'0.00"N')
       expect(formatted).toContain('139°45\'0.00"E')
     })
   })

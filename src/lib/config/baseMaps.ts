@@ -13,7 +13,7 @@ export const BASE_MAPS: Record<BaseMapKey, { name: string; style: string | mapli
     style: 'https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json'
   },
   gsi: {
-    name: '地理院地図',
+    name: '地理院',
     style: {
       version: 8 as const,
       glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
@@ -29,7 +29,7 @@ export const BASE_MAPS: Record<BaseMapKey, { name: string; style: string | mapli
     }
   },
   pale: {
-    name: '淡色地図',
+    name: '淡色',
     style: {
       version: 8 as const,
       glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',

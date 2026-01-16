@@ -9,6 +9,7 @@ import {
   GEO_OVERLAYS,
   RESTRICTION_COLORS,
   getAllRestrictionZones,
+  AirportService,
   KOKUAREA_STYLE,
   fillKokuareaTileUrl,
   getVisibleTileXYZs,
@@ -56,6 +57,7 @@ import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
+import { getAppTheme } from './styles/theme'
 
 // ============================================
 // Zone ID Constants
@@ -126,7 +128,8 @@ function App() {
       const names = parsed.filter((v): v is string => typeof v === 'string' && v.length > 0)
       const allowed = new Set(LAYER_GROUPS.map((g) => g.name))
       const filtered = names.filter((n) => allowed.has(n))
-      return new Set<string>(filtered.length > 0 ? filtered : ['関東'])
+      // 保存値が空（= 全部閉じた）場合も尊重する
+      return new Set<string>(filtered)
     } catch {
       return new Set<string>(['関東'])
     }
@@ -177,7 +180,7 @@ function App() {
   // Coordinate Info Panel
   // Sidebar Resizing
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(250) // 初期値を少し広く
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(220) // 初期幅は少し狭め（右余白の無駄を削減）
   const [isResizingLeft, setIsResizingLeft] = useState(false)
   const [isResizingRight, setIsResizingRight] = useState(false)
 
@@ -335,6 +338,8 @@ function App() {
     }
     return false
   })
+
+  const theme = getAppTheme(darkMode)
 
   // 3D mode
   const [is3DMode, setIs3DMode] = useState(false)
@@ -2140,6 +2145,9 @@ function App() {
 
   const KOKUAREA_SOURCE_ID = 'airport-airspace-kokuarea'
   const KOKUAREA_LAYER_PREFIX = 'airport-airspace-kokuarea'
+  const AIRPORT_OVERVIEW_SOURCE_ID = 'airport-airspace-overview'
+  const AIRPORT_OVERVIEW_LAYER_ID = 'airport-airspace-overview'
+  const AIRPORT_OVERVIEW_LABELS_ID = 'airport-airspace-overview-labels'
   const KOKUAREA_MAX_TILES = 96
   // NOTE: GSI kokuarea は現状 z=8 のみ実在（z<8 / z>8 は404になるケースが多い）
   const KOKUAREA_TILE_ZOOM = 8
@@ -2188,7 +2196,12 @@ function App() {
 
   const computeKokuareaZoomAndTiles = (
     map: maplibregl.Map
-  ): { z: number; keys: string[]; xyzs: Array<{ z: number; x: number; y: number }>; tooMany: boolean } => {
+  ): {
+    z: number
+    keys: string[]
+    xyzs: Array<{ z: number; x: number; y: number }>
+    tooMany: boolean
+  } => {
     const bounds = map.getBounds()
     const zoom = map.getZoom()
     if (zoom < KOKUAREA_MIN_MAP_ZOOM) {
@@ -2200,7 +2213,9 @@ function App() {
 
     if (xyzs.length > KOKUAREA_MAX_TILES) {
       // 広域表示すぎるとタイル数が爆発して重くなるため、一定以上は描画しない
-      toast.info('表示範囲が広すぎます。ズームインすると空港など周辺空域が表示されます')
+      toast.info(
+        '表示範囲が広すぎます。現在は空港位置を簡易表示します。ズームインすると空港など周辺空域が表示されます'
+      )
       return { z, keys: [], xyzs: [], tooMany: true }
     }
 
@@ -2254,6 +2269,83 @@ function App() {
       if (map.getLayer(fillId)) map.removeLayer(fillId)
     })
     if (map.getSource(KOKUAREA_SOURCE_ID)) map.removeSource(KOKUAREA_SOURCE_ID)
+  }
+
+  const ensureAirportOverviewLayers = (map: maplibregl.Map): void => {
+    if (!map.getSource(AIRPORT_OVERVIEW_SOURCE_ID)) {
+      const markers = AirportService.generateMarkers()
+      map.addSource(AIRPORT_OVERVIEW_SOURCE_ID, {
+        type: 'geojson',
+        data: markers
+      })
+    }
+
+    if (!map.getLayer(AIRPORT_OVERVIEW_LAYER_ID)) {
+      map.addLayer({
+        id: AIRPORT_OVERVIEW_LAYER_ID,
+        type: 'circle',
+        source: AIRPORT_OVERVIEW_SOURCE_ID,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2, 6, 4, 8, 6],
+          'circle-color': [
+            'match',
+            ['get', 'type'],
+            'international',
+            '#2ECC71',
+            'domestic',
+            '#27AE60',
+            'military',
+            '#E74C3C',
+            'heliport',
+            '#F39C12',
+            /* default */ '#2ECC71'
+          ],
+          'circle-opacity': 0.85,
+          'circle-stroke-color': '#1f1f1f',
+          'circle-stroke-width': 1
+        },
+        layout: { visibility: 'none' }
+      })
+    }
+
+    if (!map.getLayer(AIRPORT_OVERVIEW_LABELS_ID)) {
+      map.addLayer({
+        id: AIRPORT_OVERVIEW_LABELS_ID,
+        type: 'symbol',
+        source: AIRPORT_OVERVIEW_SOURCE_ID,
+        layout: {
+          // ズームがある程度まで近づくまではラベルを出さない（全国俯瞰での可読性確保）
+          'text-field': ['step', ['zoom'], '', 6, ['get', 'name']],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 8, 12],
+          'text-offset': [0, 1.1],
+          'text-anchor': 'top',
+          'text-allow-overlap': false,
+          'text-ignore-placement': false,
+          visibility: 'none'
+        },
+        paint: {
+          'text-color': '#222',
+          'text-halo-color': '#fff',
+          'text-halo-width': 1.25
+        }
+      })
+    }
+  }
+
+  const setAirportOverviewVisibility = (map: maplibregl.Map, visible: boolean): void => {
+    const v = visible ? 'visible' : 'none'
+    if (map.getLayer(AIRPORT_OVERVIEW_LAYER_ID)) {
+      map.setLayoutProperty(AIRPORT_OVERVIEW_LAYER_ID, 'visibility', v)
+    }
+    if (map.getLayer(AIRPORT_OVERVIEW_LABELS_ID)) {
+      map.setLayoutProperty(AIRPORT_OVERVIEW_LABELS_ID, 'visibility', v)
+    }
+  }
+
+  const removeAirportOverviewLayers = (map: maplibregl.Map): void => {
+    if (map.getLayer(AIRPORT_OVERVIEW_LABELS_ID)) map.removeLayer(AIRPORT_OVERVIEW_LABELS_ID)
+    if (map.getLayer(AIRPORT_OVERVIEW_LAYER_ID)) map.removeLayer(AIRPORT_OVERVIEW_LAYER_ID)
+    if (map.getSource(AIRPORT_OVERVIEW_SOURCE_ID)) map.removeSource(AIRPORT_OVERVIEW_SOURCE_ID)
   }
 
   const fetchKokuareaTile = async (
@@ -2311,11 +2403,19 @@ function App() {
     }
 
     if (tooMany) {
+      // タイル表示できない（ズーム不足 or 広域すぎ）場合は、全国俯瞰用の点表示を出す
+      ensureAirportOverviewLayers(map)
+      setAirportOverviewVisibility(map, true)
+
       const zoom = map.getZoom()
       if (zoom < KOKUAREA_MIN_MAP_ZOOM) {
-        maybeToast(`空港など周辺空域はズーム${KOKUAREA_MIN_MAP_ZOOM}+で表示します（現在 Z ${zoom.toFixed(1)}）`)
+        maybeToast(
+          `空港など周辺空域はズーム${KOKUAREA_MIN_MAP_ZOOM}+で詳細表示します（現在は簡易表示: Z ${zoom.toFixed(1)}）`
+        )
       } else {
-        maybeToast('表示範囲が広すぎます。ズームインすると空港など周辺空域が表示されます')
+        maybeToast(
+          '表示範囲が広すぎます。現在は空港位置を簡易表示します。ズームインすると空域が表示されます'
+        )
       }
       state.tiles.clear()
       state.inflight.clear()
@@ -2323,11 +2423,17 @@ function App() {
       const src = map.getSource(KOKUAREA_SOURCE_ID)
       if (src && 'setData' in src) {
         ;(src as maplibregl.GeoJSONSource).setData(
-          emptyKokuareaFC() as GeoJSON.FeatureCollection<GeoJSON.Geometry, KokuareaFeatureProperties>
+          emptyKokuareaFC() as GeoJSON.FeatureCollection<
+            GeoJSON.Geometry,
+            KokuareaFeatureProperties
+          >
         )
       }
       return
     }
+
+    // タイル表示可能なら、全国俯瞰用の点表示は消す（重複・ノイズ防止）
+    setAirportOverviewVisibility(map, false)
 
     // 使わなくなったタイルを捨てる（メモリ・feature数を抑制）
     const keep = new Set(keys)
@@ -2343,24 +2449,24 @@ function App() {
     }
 
     await asyncPool(KOKUAREA_FETCH_CONCURRENCY, toFetch, async (t) => {
-        const key = `${t.z}/${t.x}/${t.y}`
-        const inflight = state.inflight.get(key)
-        if (inflight) {
-          const fc = await inflight
-          state.tiles.set(key, fc)
-          return
-        }
-        const tileTemplate = state.tileTemplate
-        if (!tileTemplate) return
-        const p = fetchKokuareaTile(tileTemplate, t.z, t.x, t.y)
-        state.inflight.set(key, p)
-        try {
-          const fc = await p
-          state.tiles.set(key, fc)
-        } finally {
-          state.inflight.delete(key)
-        }
-      })
+      const key = `${t.z}/${t.x}/${t.y}`
+      const inflight = state.inflight.get(key)
+      if (inflight) {
+        const fc = await inflight
+        state.tiles.set(key, fc)
+        return
+      }
+      const tileTemplate = state.tileTemplate
+      if (!tileTemplate) return
+      const p = fetchKokuareaTile(tileTemplate, t.z, t.x, t.y)
+      state.inflight.set(key, p)
+      try {
+        const fc = await p
+        state.tiles.set(key, fc)
+      } finally {
+        state.inflight.delete(key)
+      }
+    })
 
     // 途中でOFFになった場合など、古い更新を破棄
     if (kokuareaRef.current.updateSeq !== seq) return
@@ -2390,6 +2496,8 @@ function App() {
     state.tileTemplate = tileTemplate
 
     ensureKokuareaLayers(map)
+    ensureAirportOverviewLayers(map)
+    setAirportOverviewVisibility(map, map.getZoom() < KOKUAREA_MIN_MAP_ZOOM)
 
     // 既存listenerがあれば張り直し
     state.detach?.()
@@ -2417,6 +2525,7 @@ function App() {
     state.detach?.()
     state.detach = null
     removeKokuareaLayers(map)
+    removeAirportOverviewLayers(map)
   }
 
   const toggleRestriction = async (restrictionId: string) => {
@@ -2932,8 +3041,8 @@ function App() {
           top: 80,
           width: 20,
           height: 40,
-          background: darkMode ? 'rgba(30,30,40,0.9)' : 'rgba(255,255,255,0.9)',
-          color: darkMode ? '#aaa' : '#666',
+          background: theme.colors.panelBg,
+          color: theme.colors.textMuted,
           border: 'none',
           borderRadius: '0 4px 4px 0',
           cursor: 'pointer',
@@ -2959,13 +3068,13 @@ function App() {
           bottom: 0,
           width: `${leftSidebarWidth}px`,
           padding: '12px',
-          backgroundColor: darkMode ? 'rgba(30,30,40,0.95)' : 'rgba(255,255,255,0.95)',
-          color: darkMode ? '#fff' : '#333',
+          backgroundColor: theme.colors.panelBg,
+          color: theme.colors.text,
           overflowY: 'auto',
           overflowX: 'hidden',
           zIndex: 10,
           transition: isResizingLeft ? 'none' : 'left 0.3s ease',
-          boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows.panel,
           fontSize: '14px'
         }}
       >
@@ -2997,10 +3106,10 @@ function App() {
             margin: '0 0 16px',
             fontSize: '16px',
             fontWeight: 700,
-            color: darkMode ? '#fff' : '#333'
+            color: theme.colors.text
           }}
         >
-          DID Map
+          DID & Airspace in Japan
         </h1>
 
         {/* Search */}
@@ -3137,25 +3246,44 @@ function App() {
         </div>
 
         {/* Base map selector */}
-        <div style={{ marginBottom: '12px' }} title="マップの背景地図スタイルを変更します">
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            {(Object.keys(BASE_MAPS) as BaseMapKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => handleBaseMapChange(key)}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '12px',
-                  backgroundColor: baseMap === key ? '#4a90d9' : darkMode ? '#444' : '#f0f0f0',
-                  color: baseMap === key ? '#fff' : darkMode ? '#fff' : '#333',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer'
-                }}
-              >
-                {BASE_MAPS[key].name}
-              </button>
-            ))}
+        <div
+          style={{ marginBottom: '12px' }}
+          title="マップの背景地図スタイルを変更します（Mで切替）"
+        >
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '6px',
+                flexWrap: 'nowrap',
+                alignItems: 'center',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: '2px',
+                flex: '1 1 auto'
+              }}
+            >
+              {(Object.keys(BASE_MAPS) as BaseMapKey[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => handleBaseMapChange(key)}
+                  style={{
+                    flex: '0 0 auto',
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    backgroundColor: baseMap === key ? '#4a90d9' : theme.colors.buttonBg,
+                    color: baseMap === key ? '#fff' : theme.colors.text,
+                    border: `1px solid ${baseMap === key ? '#4a90d9' : theme.colors.borderStrong}`,
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {BASE_MAPS[key].name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -3178,27 +3306,55 @@ function App() {
           />
         </div>
 
-        {/* Tooltip toggle */}
+        {/* Tooltip / Coordinate toggles (横並び) */}
         <div
-          style={{ marginBottom: '12px' }}
-          title="マップ上にマウスをホバーした時に、DID情報や制限区域の詳細をポップアップ表示します"
+          style={{
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <label
+            title="マップ上にマウスをホバーした時に、DID情報や制限区域の詳細をポップアップ表示します"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              minWidth: 0,
+              flex: '0 0 auto'
+            }}
+          >
             <input
               type="checkbox"
               checked={showTooltip}
               onChange={(e) => setShowTooltip(e.target.checked)}
             />
-            <span style={{ fontSize: '14px' }}>ツールチップ表示 [T]</span>
+            <span
+              style={{
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              ツールチップ [T]
+            </span>
           </label>
-        </div>
 
-        {/* Coordinate Display toggle */}
-        <div
-          style={{ marginBottom: '12px' }}
-          title="マップをクリックした時に、クリック位置の緯度経度を10進数と度分秒形式で表示します"
-        >
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <label
+            title="マップをクリックした時に、クリック位置の緯度経度を10進数と度分秒形式で表示します"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              minWidth: 0,
+              flex: '0 0 auto'
+            }}
+          >
             <input
               type="checkbox"
               checked={enableCoordinateDisplay}
@@ -3208,7 +3364,16 @@ function App() {
                 if (!next) setDisplayCoordinates(null)
               }}
             />
-            <span style={{ fontSize: '14px' }}>座標表示</span>
+            <span
+              style={{
+                fontSize: '13px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              座標表示
+            </span>
           </label>
         </div>
 
@@ -3289,7 +3454,7 @@ function App() {
 
           {/* Airport airspace */}
           <label
-            title="空港周辺の一定範囲内：無人機飛行は許可が必要 [A]（表示はズーム8+）"
+            title="空港周辺の一定範囲内：無人機飛行は許可が必要 [A]（ズーム8+で詳細、ズーム8未満は位置を簡易表示）"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -3313,7 +3478,7 @@ function App() {
             />
             <span>空港など周辺空域 [A]</span>
           </label>
-          {!isRestrictionVisible('airport-airspace') && (mapZoom ?? 0) < 8 && (
+          {isRestrictionVisible('airport-airspace') && (mapZoom ?? 0) < 8 && (
             <div
               style={{
                 marginTop: '-4px',
@@ -3323,7 +3488,11 @@ function App() {
                 color: darkMode ? '#888' : '#777'
               }}
             >
-              ズーム8+で表示（現在 Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
+              ズーム8未満は空港位置を点で簡易表示（現在 Z{' '}
+              {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
+              <div style={{ marginTop: '2px' }}>
+                点の色：緑=民間空港（国際/国内） / 赤=軍用基地 / 橙=ヘリポート
+              </div>
             </div>
           )}
 
@@ -3957,6 +4126,19 @@ function App() {
             （仮設置）
           </div>
         </div>
+
+        <div
+          style={{
+            marginTop: '14px',
+            paddingTop: '10px',
+            borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+            fontSize: '10px',
+            color: darkMode ? '#888' : '#777',
+            lineHeight: 1.4
+          }}
+        >
+          ※「*」は仮設置データを示します。
+        </div>
       </aside>
 
       {/* Map Container */}
@@ -3982,13 +4164,13 @@ function App() {
           padding: '6px',
           width: 29,
           height: 29,
-          backgroundColor: darkMode ? '#333' : '#fff',
-          color: darkMode ? '#fff' : '#333',
+          backgroundColor: theme.colors.buttonBg,
+          color: theme.colors.text,
           border: 'none',
           borderRadius: '4px',
           cursor: 'pointer',
           fontSize: '14px',
-          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows.outline,
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
@@ -4043,14 +4225,14 @@ function App() {
           padding: '6px',
           width: 29,
           height: 29,
-          backgroundColor: is3DMode ? '#3388ff' : darkMode ? '#333' : '#fff',
-          color: is3DMode ? '#fff' : darkMode ? '#fff' : '#333',
+          backgroundColor: is3DMode ? theme.colors.buttonBgActive : theme.colors.buttonBg,
+          color: is3DMode ? '#fff' : theme.colors.text,
           border: 'none',
           borderRadius: '4px',
           cursor: 'pointer',
           fontSize: '11px',
           fontWeight: 'bold',
-          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows.outline,
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
@@ -4071,14 +4253,14 @@ function App() {
           padding: '6px',
           width: 29,
           height: 29,
-          backgroundColor: darkMode ? '#333' : '#fff',
-          color: darkMode ? '#fff' : '#333',
+          backgroundColor: theme.colors.buttonBg,
+          color: theme.colors.text,
           border: 'none',
           borderRadius: '4px',
           cursor: 'pointer',
           fontSize: '14px',
           fontWeight: 'bold',
-          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows.outline,
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
@@ -4099,10 +4281,10 @@ function App() {
           padding: '6px 8px',
           minWidth: 52,
           textAlign: 'center',
-          backgroundColor: darkMode ? '#333' : '#fff',
-          color: darkMode ? '#fff' : '#333',
+          backgroundColor: theme.colors.buttonBg,
+          color: theme.colors.text,
           borderRadius: '4px',
-          boxShadow: '0 0 0 2px rgba(0,0,0,0.1)',
+          boxShadow: theme.shadows.outline,
           zIndex: 1200,
           fontSize: '12px',
           fontWeight: 700,
@@ -4829,22 +5011,22 @@ function App() {
             {/* フッター */}
             <div
               style={{
-                marginTop: '20px',
-                paddingTop: '12px',
+                margin: '24px',
+                paddingTop: '16px',
                 borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`,
                 fontSize: '12px',
                 color: darkMode ? '#888' : '#666'
               }}
             >
-              <p style={{ margin: '0 0 6px' }}>
+              <p>
                 <strong>データソース：</strong>
                 DIDデータは政府統計の総合窓口(e-Stat)より。禁止区域は参考データです。飛行前は必ずDIPSで最新情報を確認してください。
               </p>
-              <p style={{ margin: '0 0 4px' }}>
+              <p>
                 <strong>* 仮設置データ：</strong>
                 ヘリポート、有人機発着エリア/区域、電波干渉区域、緊急用務空域、リモートID特定区域、風向・風量、LTEは参考データまたは試験的表示です。
               </p>
-              <p style={{ margin: '0' }}>
+              <p>
                 <strong>* 未実装：</strong>
                 レッドゾーン、イエローゾーンは国土交通省DIPSシステムからの実装が予定されており、現在は利用できません。飛行前は必ずDIPSで公式情報を確認してください。
               </p>

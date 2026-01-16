@@ -2813,6 +2813,23 @@ function App() {
     })
   }, [])
 
+  const handleCustomLayerFocus = useCallback(
+    (layerId: string) => {
+      const map = mapRef.current
+      if (!map || !mapLoaded) return
+
+      const layers = getCustomLayers()
+      const layer = layers.find((l) => l.id === layerId)
+      if (!layer) return
+
+      const bounds = getGeoJSONBounds(layer.data)
+      if (!bounds) return
+
+      map.fitBounds(bounds, { padding: 60, maxZoom: 14 })
+    },
+    [mapLoaded]
+  )
+
   // ============================================
   // Comparison Layer Visibility Control
   // ============================================
@@ -3345,7 +3362,6 @@ function App() {
                 <button
                   key={key}
                   onClick={() => handleBaseMapChange(key)}
-                  className={styles.baseMapButton}
                   style={{
                     flex: '0 0 auto',
                     padding: '4px 8px',
@@ -4228,6 +4244,7 @@ function App() {
         onLayerAdded={handleCustomLayerAdded}
         onLayerRemoved={handleCustomLayerRemoved}
         onLayerToggle={handleCustomLayerToggle}
+        onLayerFocus={handleCustomLayerFocus}
         visibleLayers={customLayerVisibility}
       />
 

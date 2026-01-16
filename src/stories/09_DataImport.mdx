@@ -1,0 +1,209 @@
+{/* DataImport.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/09_データインポートプロセス" />
+
+# データインポートプロセス
+
+国土地理院データと外部データの取り込み、処理、管理方法。
+
+## 1. データソースの種類
+
+### GSI ラスタタイル（画像）
+
+```
+用途: 背景地図
+形式: PNG / JPEG
+取得: HTTP リクエスト（自動）
+例: https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png
+```
+
+### GSI ベクタタイル（地理データ）
+
+```
+用途: 制限空域
+形式: GeoJSON
+取得: HTTP リクエスト（手動）
+例: https://cyberjapandata.gsi.go.jp/xyz/kokuarea/{z}/{x}/{y}.geojson
+```
+
+## 2. GSI データの取得フロー
+
+```typescript
+const map = new maplibregl.Map({
+  style: {
+    sources: {
+      gsi: {
+        type: 'raster',
+        tiles: ['https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'],
+        tileSize: 256
+      }
+    }
+  }
+})
+```
+
+## 3. ベクタタイルの手動取得
+
+```typescript
+async function loadKokuareaTiles(bounds, zoom) {
+  const tiles = getVisibleTileXYZs(bounds, zoom)
+  const features = []
+
+  for (const tile of tiles) {
+    try {
+      const url = `https://cyberjapandata.gsi.go.jp/xyz/kokuarea/${tile.z}/${tile.x}/${tile.y}.geojson`
+      const response = await fetch(url)
+      const geojson = await response.json()
+      features.push(...(geojson.features || []))
+    } catch (error) {
+      console.warn('Failed to load tile:', error)
+    }
+  }
+
+  return { type: 'FeatureCollection', features }
+}
+```
+
+## 4. キャッシング戦略
+
+```typescript
+class TileCache {
+  private cache = new Map()
+
+  async getTile(url) {
+    if (this.cache.has(url)) {
+      return this.cache.get(url)
+    }
+
+    const stored = localStorage.getItem(`tile_${url}`)
+    if (stored) {
+      const data = JSON.parse(stored)
+      if (!this.isExpired(data)) {
+        return data.content
+      }
+    }
+    return null
+  }
+
+  async setTile(url, data, ttl = 24 * 60 * 60 * 1000) {
+    this.cache.set(url, data)
+    localStorage.setItem(`tile_${url}`, JSON.stringify({
+      content: data,
+      timestamp: Date.now(),
+      ttl
+    }))
+  }
+
+  isExpired(data) {
+    return Date.now() - data.timestamp > data.ttl
+  }
+}
+```
+
+## 5. GeoJSON データの正規化
+
+```typescript
+function normalizeGeoJSON(geojson) {
+  if (!geojson || !geojson.features) {
+    return { type: 'FeatureCollection', features: [] }
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features: geojson.features
+      .filter(f => f.geometry && f.geometry.coordinates)
+      .map(f => ({
+        ...f,
+        properties: f.properties || {},
+        id: f.id || Math.random().toString(36).substr(2, 9)
+      }))
+  }
+}
+```
+
+## 6. ユーザーアップロード処理
+
+```typescript
+async function processUploadedFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase()
+
+  try {
+    let features = []
+
+    if (ext === 'geojson') {
+      const text = await file.text()
+      features = JSON.parse(text).features || []
+    } else if (ext === 'kml') {
+      features = await parseKML(await file.text())
+    } else if (ext === 'gpx') {
+      features = await parseGPX(await file.text())
+    }
+
+    return {
+      success: true,
+      featureCount: features.length,
+      features: normalizeGeoJSON({ features })
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+```
+
+## 7. エラーハンドリング
+
+```typescript
+async function fetchWithRetry(url, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      if (attempt === maxRetries) throw error
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)))
+    }
+  }
+}
+```
+
+## 8. バッチ処理
+
+```typescript
+async function processFeaturesInBatches(features, processor, batchSize = 100) {
+  const results = []
+
+  for (let i = 0; i < features.length; i += batchSize) {
+    const batch = features.slice(i, i + batchSize)
+    const processed = await Promise.all(batch.map(processor))
+    results.push(...processed)
+    await new Promise(r => setTimeout(r, 0))
+  }
+
+  return results
+}
+```
+
+## 9. ベストプラクティス
+
+```
+取得段階:
+✓ ネットワーク接続確認
+✓ タイムアウト設定
+✓ リトライロジック
+✓ キャッシュ戦略
+
+処理段階:
+✓ データ正規化
+✓ スキーマ検証
+✓ エラーハンドリング
+✓ 品質チェック
+
+統合段階:
+✓ パフォーマンステスト
+✓ メモリ監視
+✓ UX確認
+✓ 属性表記確認
+```
+

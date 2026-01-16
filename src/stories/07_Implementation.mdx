@@ -1,0 +1,157 @@
+{/* Implementation.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/07_実装例" />
+
+# 実装例
+
+React、TypeScript、GSI を組み合わせた実装例。
+
+## 1. 飛行経路プランナー
+
+```typescript
+import { useReducer } from 'react'
+
+type FlightPlanState = {
+  waypoints: Array<[number, number]>
+  isValid: boolean
+}
+
+type FlightPlanAction =
+  | { type: 'ADD_WAYPOINT'; coord: [number, number] }
+  | { type: 'VALIDATE' }
+  | { type: 'RESET' }
+
+function flightPlanReducer(state, action) {
+  switch (action.type) {
+    case 'ADD_WAYPOINT':
+      return { ...state, waypoints: [...state.waypoints, action.coord] }
+    case 'VALIDATE':
+      return { ...state, isValid: state.waypoints.length >= 2 }
+    case 'RESET':
+      return { waypoints: [], isValid: false }
+    default:
+      return state
+  }
+}
+```
+
+## 2. カスタムフック：useGSITiles
+
+```typescript
+import { useCallback, useEffect, useState } from 'react'
+
+export function useGSITiles(bounds, zoom, tileTemplate) {
+  const [tiles, setTiles] = useState({ features: [] })
+  const [loading, setLoading] = useState(false)
+
+  const loadTiles = useCallback(async () => {
+    setLoading(true)
+    const visibleTiles = getVisibleTileXYZs(bounds, zoom)
+    const allFeatures = []
+
+    for (const tile of visibleTiles) {
+      try {
+        const url = tileTemplate
+          .replace('{z}', tile.z)
+          .replace('{x}', tile.x)
+          .replace('{y}', tile.y)
+
+        const response = await fetch(url)
+        const geojson = await response.json()
+        allFeatures.push(...(geojson.features || []))
+      } catch (err) {
+        console.warn('Failed to load tile:', err)
+      }
+    }
+
+    setTiles({ features: allFeatures })
+    setLoading(false)
+  }, [bounds, zoom, tileTemplate])
+
+  useEffect(() => {
+    loadTiles()
+  }, [loadTiles])
+
+  return { tiles, loading }
+}
+```
+
+## 3. 型安全なレイヤー管理
+
+```typescript
+interface LayerConfig {
+  id: string
+  name: string
+  kind: 'raster' | 'vector'
+  opacity?: number
+}
+
+class LayerManager {
+  private layers = new Map()
+
+  addLayer(config: LayerConfig) {
+    this.layers.set(config.id, config)
+  }
+
+  getLayer(id: string) {
+    return this.layers.get(id)
+  }
+}
+```
+
+## 4. エラー復旧パターン
+
+```typescript
+class ResilientTileLoader {
+  private cache = new Map()
+
+  async loadTilesWithFallback(url, fallbackData = null) {
+    if (this.cache.has(url)) {
+      return this.cache.get(url)
+    }
+
+    try {
+      const response = await fetch(url)
+      const data = await response.json()
+      this.cache.set(url, data)
+      return data
+    } catch (error) {
+      return fallbackData || { features: [] }
+    }
+  }
+}
+```
+
+## 5. パフォーマンス監視
+
+```typescript
+class PerformanceMonitor {
+  private metrics = new Map()
+
+  markStart(label) {
+    performance.mark(`${label}-start`)
+  }
+
+  markEnd(label) {
+    performance.mark(`${label}-end`)
+    performance.measure(label, `${label}-start`, `${label}-end`)
+    const measure = performance.getEntriesByName(label)[0]
+
+    if (!this.metrics.has(label)) {
+      this.metrics.set(label, [])
+    }
+    this.metrics.get(label).push(measure.duration)
+  }
+
+  getStats(label) {
+    const values = this.metrics.get(label) || []
+    return {
+      avg: values.reduce((a, b) => a + b, 0) / values.length,
+      max: Math.max(...values),
+      min: Math.min(...values)
+    }
+  }
+}
+```
+

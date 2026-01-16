@@ -1,0 +1,33 @@
+{/* GSISpec.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/03_国土地理院の仕様" />
+
+# 国土地理院の仕様
+
+国土地理院が提供するデータ仕様。
+
+## 1. 国土地理院について
+
+**国土地理院（GSI）** は日本政府の公式な地理情報機関です。
+
+## 2. GSI タイルサービス一覧
+
+| サービス | URL | タイプ | 用途 |
+|---------|-----|--------|------|
+| 標準地図 | std/{z}/{x}/{y}.png | ラスタ | 汎用地図 |
+| 淡色地図 | pale/{z}/{x}/{y}.png | ラスタ | 軽い背景 |
+| 航空写真 | seamlessphoto/{z}/{x}/{y}.jpg | ラスタ | 詳細画像 |
+| Kokuarea | kokuarea/{z}/{x}/{y}.geojson | ベクタ | 空港空域 |
+
+## 3. Kokuarea フィーチャータイプ
+
+- **進入表面**: 着陸進入経路
+- **転移表面**: 遷移ゾーン
+- **水平表面**: 外側水平面
+- **円錐表面**: 外部境界
+
+## 4. 属性表記要件
+
+**必須**: `<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>`
+

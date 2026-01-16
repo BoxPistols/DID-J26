@@ -1,0 +1,114 @@
+{/* AviationLaw.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/08_航空法対策" />
+
+# 航空法対策
+
+日本の航空法要件と本アプリケーションでの対応方法。
+
+## 1. 航空法概要
+
+日本の航空法は無人航空機（ドローン）の飛行を規制しています。
+
+### 適用範囲
+- 無人航空機（ドローン）
+- 有人航空機
+- 航空運送事業者
+
+## 2. 飛行禁止空域
+
+### 空港周辺空域
+
+```
+- 空港から半径9km以内
+- 進入表面内
+- 転移表面内
+- 水平表面内
+- 円錐表面内
+```
+
+### その他の制限
+
+```
+- 人口密集地（制限あり）
+- 高度150メートル以上（許可必要）
+- 夜間飛行（許可必要）
+- 目視外飛行（許可必要）
+```
+
+## 3. 空港空域の可視化
+
+```typescript
+const kokuareaLayer = {
+  id: 'kokuarea-restriction',
+  paint: {
+    'fill-color': '#FF4444',
+    'fill-opacity': 0.3
+  }
+}
+
+map.addLayer(kokuareaLayer)
+```
+
+## 4. 飛行経路バリデーション
+
+```typescript
+function validateFlightPath(waypoints, restrictedAreas) {
+  const issues = []
+
+  for (const waypoint of waypoints) {
+    if (checkPointInRestriction(waypoint, restrictedAreas)) {
+      issues.push(`ウェイポイント ${waypoint} は制限空域内`)
+    }
+  }
+
+  return { isValid: issues.length === 0, issues }
+}
+```
+
+## 5. 距離計算
+
+```typescript
+function calculateDistanceToAirport(position, airportCenter) {
+  const R = 6371000
+  const lat1 = position[1] * Math.PI / 180
+  const lat2 = airportCenter[1] * Math.PI / 180
+  const deltaLat = (airportCenter[1] - position[1]) * Math.PI / 180
+  const deltaLng = (airportCenter[0] - position[0]) * Math.PI / 180
+
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  const distance = R * c
+
+  return { distanceMeters: Math.round(distance), safetyViolation: distance < 9000 }
+}
+```
+
+## 6. 許可申請サポート
+
+```typescript
+function generateApplicationSummary(data) {
+  return `
+申請者: ${data.operatorName}
+機体タイプ: ${data.droneType}
+機体重量: ${data.droneWeight}kg
+飛行期間: ${data.estimatedFlightTime}時間
+  `
+}
+```
+
+## 7. 飛行安全チェックリスト
+
+```
+✓ 許可書有効期限確認
+✓ 気象条件確認
+✓ 飛行区域確認
+✓ Kokuarea データ確認
+✓ 航空情報確認
+✓ 機体状態確認
+✓ バッテリー確認
+```
+

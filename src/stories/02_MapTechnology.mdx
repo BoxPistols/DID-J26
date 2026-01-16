@@ -1,0 +1,45 @@
+{/* MapTechnology.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/02_Map技術基礎" />
+
+# Map技術基礎
+
+ウェブ地図システムの基本原理。
+
+## 1. ウェブ地図の基本
+
+ウェブ地図は**タイル**と呼ばれる正方形の画像をつなぎ合わせて表示します。
+
+## 2. ラスタタイル vs ベクタタイル
+
+### ラスタタイル
+- JPEG/PNG形式
+- 高速に表示
+- スタイル変更不可
+
+### ベクタタイル
+- GeoJSON形式
+- スタイル変更可能
+- インタラクション豊富
+
+## 3. タイル座標系（XYZ）
+
+```
+Z = ズームレベル
+X = 経度方向インデックス
+Y = 緯度方向インデックス
+```
+
+## 4. MapLibre GLの基本
+
+```typescript
+import maplibregl from 'maplibre-gl'
+
+const map = new maplibregl.Map({
+  container: 'map',
+  center: [139.69, 35.69],
+  zoom: 12
+})
+```
+

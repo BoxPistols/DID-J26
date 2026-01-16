@@ -1,0 +1,75 @@
+{/* TypeScript.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/04_TypeScript" />
+
+# TypeScript
+
+型安全で表現力豊かなアプリケーションを構築するための TypeScript パターン。
+
+## 1. 条件付き型（Conditional Types）
+
+条件に基づいて型を選択します。
+
+```typescript
+type IsString<T> = T extends string ? true : false
+
+type A = IsString<'hello'>  // true
+type B = IsString<42>       // false
+
+type Awaited<T> = T extends Promise<infer U> ? U : T
+```
+
+## 2. マップ型（Mapped Types）
+
+既存の型を変換して新しい型を作成します。
+
+```typescript
+type Readonly<T> = {
+  readonly [K in keyof T]: T[K]
+}
+
+type Partial<T> = {
+  [K in keyof T]?: T[K]
+}
+```
+
+## 3. 型ガード（Type Guards）
+
+型を絞り込みます。
+
+```typescript
+function isGeoOverlay(overlay: any): overlay is GeoOverlay {
+  return 'tiles' in overlay || 'geojson' in overlay
+}
+
+function processOverlay(overlay: Overlay) {
+  if (isGeoOverlay(overlay)) {
+    loadTiles(overlay.tiles)
+  }
+}
+```
+
+## 4. ジェネリック制約
+
+```typescript
+interface GeoJsonFeature {
+  type: 'Feature'
+  properties: Record<string, unknown>
+  geometry: any
+}
+
+function processFeature<T extends GeoJsonFeature>(feature: T): T {
+  return feature
+}
+```
+
+## 5. ユーティリティ型
+
+```typescript
+type BaseMapWithoutStyle = Omit<BaseMap, 'style'>
+type BaseMapNameOnly = Pick<BaseMap, 'name'>
+type BaseMapRecord = Record<string, BaseMap>
+type PartialBaseMap = Partial<BaseMap>
+```
+

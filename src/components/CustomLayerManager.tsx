@@ -19,6 +19,7 @@ export interface CustomLayerManagerProps {
   onLayerAdded: (layer: CustomLayer) => void
   onLayerRemoved: (layerId: string) => void
   onLayerToggle: (layerId: string, visible: boolean) => void
+  onLayerFocus?: (layerId: string) => void
   visibleLayers: Set<string>
   darkMode: boolean
 }
@@ -53,6 +54,7 @@ export function CustomLayerManager({
   onLayerAdded,
   onLayerRemoved,
   onLayerToggle,
+  onLayerFocus,
   visibleLayers,
   darkMode
 }: CustomLayerManagerProps) {
@@ -144,6 +146,14 @@ export function CustomLayerManager({
       const layer = CustomLayerService.getById(layerId)
       downloadAsFile(data, `${layer?.name || layerId}.geojson`)
     }
+  }
+
+  const focusLayer = (layerId: string) => {
+    // フォーカスするなら、まず表示状態にしておく（見えないままズームすると混乱するため）
+    if (!visibleLayers.has(layerId)) {
+      onLayerToggle(layerId, true)
+    }
+    onLayerFocus?.(layerId)
   }
 
   /**
@@ -357,7 +367,23 @@ export function CustomLayerManager({
                         borderRadius: '2px'
                       }}
                     />
-                    <span style={{ flex: 1, fontWeight: 600, color: theme.colors.text }}>{layer.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => focusLayer(layer.id)}
+                      style={{
+                        flex: 1,
+                        textAlign: 'left',
+                        padding: 0,
+                        background: 'none',
+                        border: 'none',
+                        fontWeight: 600,
+                        color: theme.colors.text,
+                        cursor: 'pointer'
+                      }}
+                      title="クリックでズーム"
+                    >
+                      {layer.name}
+                    </button>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginLeft: '24px' }}>
                     <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
@@ -369,6 +395,25 @@ export function CustomLayerManager({
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '4px', marginLeft: '24px' }}>
+                    <button
+                      type="button"
+                      onClick={() => focusLayer(layer.id)}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '10px',
+                        backgroundColor: darkMode ? 'rgba(51,136,255,0.18)' : 'rgba(51,136,255,0.12)',
+                        border: `1px solid ${
+                          darkMode ? 'rgba(160, 199, 255, 0.55)' : 'rgba(21, 101, 192, 0.35)'
+                        }`,
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        color: darkMode ? '#a0c7ff' : '#1565c0',
+                        fontWeight: 700
+                      }}
+                      title="ズーム"
+                    >
+                      ZOOM
+                    </button>
                     <button
                       onClick={() => handleExportLayer(layer.id)}
                       style={{

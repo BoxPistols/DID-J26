@@ -1,0 +1,75 @@
+{/* ReactFundamentals.mdx */}
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/01_React基礎" />
+
+# React基礎
+
+Reactの基本概念から本プロジェクトでの応用まで。
+
+## 1. コンポーネントの基礎
+
+Reactは**コンポーネント**という再利用可能なUI部品を組み合わせてアプリケーションを構築します。
+
+### 関数コンポーネント
+
+```typescript
+function Welcome() {
+  return <h1>ようこそ</h1>
+}
+
+interface AirportInfoProps {
+  name: string
+  code: string
+}
+
+function AirportInfo({ name, code }: AirportInfoProps) {
+  return <div><h2>{name}</h2><p>{code}</p></div>
+}
+```
+
+## 2. フック（Hooks）
+
+フックはコンポーネントに状態を持たせます。
+
+### useState
+
+```typescript
+import { useState } from 'react'
+
+function LayerToggle() {
+  const [isVisible, setIsVisible] = useState(true)
+  return <input type="checkbox" checked={isVisible} onChange={(e) => setIsVisible(e.target.checked)} />
+}
+```
+
+### useEffect
+
+```typescript
+import { useEffect, useState } from 'react'
+
+function MapInitializer() {
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    initializeMapLibre()
+    setIsLoaded(true)
+  }, [])
+
+  return isLoaded ? <div id="map" /> : <p>読み込み中</p>
+}
+```
+
+## 3. JSXの基本
+
+```typescript
+function MapControls() {
+  return (
+    <div className="controls">
+      <button onClick={() => zoomIn()}>ズームイン</button>
+      <input type="text" placeholder="検索..." />
+    </div>
+  )
+}
+```
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { formatCoordinates, formatCoordinatesDMS } from '../lib/utils/geo'
 
 export interface CoordinateDisplayProps {
@@ -19,6 +19,12 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
   onClose
 }) => {
   const [showModal, setShowModal] = useState(true)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+
+  type PanelPos = { left: number; top: number }
+  const [pos, setPos] = useState<PanelPos | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null)
 
   useEffect(() => {
     // Auto-close after 5 seconds
@@ -33,33 +39,124 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
     return null
   }
 
-  const decimalFormat = formatCoordinates(lng, lat)
-  const dmsFormat = formatCoordinatesDMS(lng, lat)
+  const decimalFormat = useMemo(() => formatCoordinates(lng, lat), [lng, lat])
+  const dmsFormat = useMemo(() => formatCoordinatesDMS(lng, lat), [lng, lat])
+
+  // 初回表示時に右下付近へ配置（計測できない場合は固定bottom/rightのまま）
+  useEffect(() => {
+    if (pos) return
+    const el = panelRef.current
+    if (!el) return
+
+    const place = () => {
+      const rect = el.getBoundingClientRect()
+      const margin = 20
+      const left = Math.max(margin, window.innerWidth - rect.width - margin)
+      const top = Math.max(margin, window.innerHeight - rect.height - margin)
+      setPos({ left, top })
+    }
+
+    // 次フレームでDOMサイズが安定してから配置
+    const raf = window.requestAnimationFrame(place)
+    return () => window.cancelAnimationFrame(raf)
+  }, [pos])
+
+  // ドラッグ中の移動（Pointer Events）
+  useEffect(() => {
+    if (!isDragging) return
+
+    const onMove = (e: PointerEvent) => {
+      const el = panelRef.current
+      const off = dragOffsetRef.current
+      if (!el || !off) return
+
+      const rect = el.getBoundingClientRect()
+      const margin = 8
+      const nextLeft = e.clientX - off.dx
+      const nextTop = e.clientY - off.dy
+
+      const clampedLeft = Math.min(
+        Math.max(margin, nextLeft),
+        Math.max(margin, window.innerWidth - rect.width - margin)
+      )
+      const clampedTop = Math.min(
+        Math.max(margin, nextTop),
+        Math.max(margin, window.innerHeight - rect.height - margin)
+      )
+
+      setPos({ left: clampedLeft, top: clampedTop })
+    }
+
+    const onUp = () => {
+      dragOffsetRef.current = null
+      setIsDragging(false)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp, { once: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [isDragging])
 
   return (
     <div
+      ref={panelRef}
       style={{
         position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        backgroundColor: darkMode ? '#2d2d2d' : '#ffffff',
+        ...(pos ? { left: `${pos.left}px`, top: `${pos.top}px` } : { bottom: '20px', right: '20px' }),
+        backgroundColor: darkMode ? 'rgba(45,45,45,0.85)' : 'rgba(255,255,255,0.88)',
         border: `2px solid ${darkMode ? '#444' : '#ccc'}`,
         borderRadius: '8px',
         padding: '16px',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         zIndex: 1000,
         maxWidth: '360px',
         color: darkMode ? '#e0e0e0' : '#333',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }}
     >
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ fontSize: '12px', color: darkMode ? '#888' : '#666', marginBottom: '4px' }}>
+      {/* Drag handle */}
+      <div
+        onPointerDown={(e) => {
+          // クリック/タップでの選択は許可しつつ、ドラッグ開始
+          const el = panelRef.current
+          if (!el) return
+          const rect = el.getBoundingClientRect()
+          dragOffsetRef.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top }
+          try {
+            ;(e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId)
+          } catch {
+            // ignore
+          }
+          setIsDragging(true)
+        }}
+        title="ドラッグして移動"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          marginBottom: '10px',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          paddingBottom: '6px',
+          borderBottom: `1px solid ${darkMode ? '#444' : '#ddd'}`
+        }}
+      >
+        <div style={{ fontSize: '13px', fontWeight: 800, color: darkMode ? '#ddd' : '#333' }}>
           座標情報
         </div>
+        <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666' }}>Drag</div>
+      </div>
+
+      <div style={{ marginBottom: '12px' }}>
         <div style={{ marginBottom: '8px' }}>
           <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
-            10進数表記（Decimal）
+            <span style={{ fontWeight: 700 }}>10進数表記</span>（Decimal）
           </div>
           <div
             style={{
@@ -77,7 +174,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
         </div>
         <div>
           <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
-            度分秒表記（DMS）- NOTAM申請用
+            <span style={{ fontWeight: 700 }}>度分秒表記</span>（DMS）- NOTAM申請用
           </div>
           <div
             style={{
@@ -94,13 +191,13 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: '8px', fontSize: '12px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px' }}>
         <button
           onClick={() => {
             navigator.clipboard.writeText(decimalFormat)
           }}
           style={{
-            flex: 1,
+            flex: '1 1 140px',
             padding: '6px 8px',
             backgroundColor: darkMode ? '#444' : '#e0e0e0',
             border: 'none',
@@ -108,7 +205,9 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             cursor: 'pointer',
             color: darkMode ? '#e0e0e0' : '#333',
             fontSize: '12px',
-            transition: 'background-color 0.2s'
+            transition: 'background-color 0.2s',
+            whiteSpace: 'nowrap',
+            minWidth: 0
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = darkMode ? '#555' : '#d0d0d0'
@@ -124,7 +223,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             navigator.clipboard.writeText(dmsFormat)
           }}
           style={{
-            flex: 1,
+            flex: '1 1 120px',
             padding: '6px 8px',
             backgroundColor: darkMode ? '#444' : '#e0e0e0',
             border: 'none',
@@ -132,7 +231,9 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             cursor: 'pointer',
             color: darkMode ? '#e0e0e0' : '#333',
             fontSize: '12px',
-            transition: 'background-color 0.2s'
+            transition: 'background-color 0.2s',
+            whiteSpace: 'nowrap',
+            minWidth: 0
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = darkMode ? '#555' : '#d0d0d0'
@@ -141,7 +242,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             e.currentTarget.style.backgroundColor = darkMode ? '#444' : '#e0e0e0'
           }}
         >
-          DMS コピー
+          DMSコピー
         </button>
         <button
           onClick={() => {
@@ -149,7 +250,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             onClose?.()
           }}
           style={{
-            flex: 1,
+            flex: '1 1 90px',
             padding: '6px 8px',
             backgroundColor: darkMode ? '#444' : '#e0e0e0',
             border: 'none',
@@ -157,7 +258,9 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
             cursor: 'pointer',
             color: darkMode ? '#e0e0e0' : '#333',
             fontSize: '12px',
-            transition: 'background-color 0.2s'
+            transition: 'background-color 0.2s',
+            whiteSpace: 'nowrap',
+            minWidth: 0
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = darkMode ? '#555' : '#d0d0d0'

@@ -23,6 +23,14 @@
 import { Airport } from '../types'
 import { createCirclePolygon, calculateDistance } from '../utils/geo'
 
+export type AirportMarkerProperties = {
+  id: string
+  name: string
+  nameEn?: string
+  type: Airport['type']
+  radiusKm: number
+}
+
 // 主要空港データ（小型無人機等飛行禁止法の対象空港含む）
 export const MAJOR_AIRPORTS: Airport[] = [
   // 小型無人機等飛行禁止法で指定された8空港
@@ -911,21 +919,26 @@ export function generateAirportGeoJSON(): GeoJSON.FeatureCollection {
 /**
  * Generate GeoJSON for airport markers (points)
  */
-export function generateAirportMarkersGeoJSON(): GeoJSON.FeatureCollection {
-  const features: GeoJSON.Feature[] = getAllAirports().map(airport => ({
-    type: 'Feature',
-    properties: {
-      id: airport.id,
-      name: airport.name,
-      nameEn: airport.nameEn,
-      type: airport.type,
-      radiusKm: airport.radiusKm
-    },
-    geometry: {
-      type: 'Point',
-      coordinates: airport.coordinates
-    }
-  }))
+export function generateAirportMarkersGeoJSON(): GeoJSON.FeatureCollection<
+  GeoJSON.Point,
+  AirportMarkerProperties
+> {
+  const features: Array<GeoJSON.Feature<GeoJSON.Point, AirportMarkerProperties>> = getAllAirports().map(
+    (airport) => ({
+      type: 'Feature',
+      properties: {
+        id: airport.id,
+        name: airport.name,
+        nameEn: airport.nameEn,
+        type: airport.type,
+        radiusKm: airport.radiusKm
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: airport.coordinates
+      }
+    })
+  )
 
   return {
     type: 'FeatureCollection',

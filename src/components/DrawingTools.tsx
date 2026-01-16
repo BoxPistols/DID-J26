@@ -97,7 +97,14 @@ const loadFromLocalStorage = (): GeoJSON.FeatureCollection | null => {
  * DrawingTools Component
  * 飛行経路・飛行範囲の描画ツール
  */
-export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded = false, mapLoaded = false, onOpenHelp }: DrawingToolsProps) {
+export function DrawingTools({
+  map,
+  onFeaturesChange,
+  darkMode = false,
+  embedded = false,
+  mapLoaded = false,
+  onOpenHelp
+}: DrawingToolsProps) {
   const [isOpen, setIsOpen] = useState(embedded) // 埋め込み時はデフォルトで開く
   const [activeTab, setActiveTab] = useState<'draw' | 'manage' | 'export'>('draw')
   const [showGuide, setShowGuide] = useState(false)
@@ -117,9 +124,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const [continuousMode, setContinuousMode] = useState(true) // WP連続配置モード
   const [checkedFeatureIds, setCheckedFeatureIds] = useState<Set<string>>(new Set()) // 複数選択用
   const [searchQuery, setSearchQuery] = useState('') // 検索クエリ
-  const [typeFilter, setTypeFilter] = useState<'all' | 'polygon' | 'circle' | 'point' | 'line'>('all') // タイプフィルタ
+  const [typeFilter, setTypeFilter] = useState<'all' | 'polygon' | 'circle' | 'point' | 'line'>(
+    'all'
+  ) // タイプフィルタ
   const drawModeRef = useRef<DrawMode>('none') // 描画モードをrefでも保持
   const continuousModeRef = useRef(true) // 連続モードをrefでも保持
+  const modeStartFeatureIdsRef = useRef<Set<string>>(new Set()) // モード開始時点のフィーチャID（破棄用）
+  const modeStartDrawModeRef = useRef<DrawMode>('none') // どのモード開始時に記録したか
   const isRestoringRef = useRef(false) // データ復元中フラグ
   const isDisposedRef = useRef(false) // アンマウント/破棄フラグ（非同期の後処理を止める）
 
@@ -144,7 +155,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     // drawnFeaturesからGeoJSONを再構築
     const featureCollection: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: drawnFeatures.map(f => {
+      features: drawnFeatures.map((f) => {
         // プロパティに名前とその他の情報を含める
         const properties: Record<string, unknown> = {
           ...f.properties,
@@ -167,11 +178,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           type: 'Feature',
           id: f.id,
           properties,
-          geometry: f.type === 'point'
-            ? { type: 'Point', coordinates: f.coordinates as GeoJSON.Position }
-            : f.type === 'line'
-            ? { type: 'LineString', coordinates: f.coordinates as GeoJSON.Position[] }
-            : { type: 'Polygon', coordinates: f.coordinates as GeoJSON.Position[][] }
+          geometry:
+            f.type === 'point'
+              ? { type: 'Point', coordinates: f.coordinates as GeoJSON.Position }
+              : f.type === 'line'
+                ? { type: 'LineString', coordinates: f.coordinates as GeoJSON.Position[] }
+                : { type: 'Polygon', coordinates: f.coordinates as GeoJSON.Position[][] }
         }
       })
     }
@@ -203,7 +215,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         const selected = drawRef.current.getSelected()
         if (selected && selected.features && selected.features.length > 0) {
           e.preventDefault()
-          const ids = selected.features.map(f => String(f.id))
+          const ids = selected.features.map((f) => String(f.id))
           setPendingDeleteIds(ids)
           setSelectedCount(ids.length)
           setShowDeleteConfirm(true)
@@ -254,7 +266,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-polygon-fill-inactive',
           type: 'fill',
-          filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'active', 'false'],
+            ['==', '$type', 'Polygon'],
+            ['!=', 'mode', 'static']
+          ],
           paint: {
             'fill-color': '#3388ff',
             'fill-outline-color': '#3388ff',
@@ -276,7 +293,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-polygon-stroke-inactive',
           type: 'line',
-          filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'active', 'false'],
+            ['==', '$type', 'Polygon'],
+            ['!=', 'mode', 'static']
+          ],
           layout: {
             'line-cap': 'round',
             'line-join': 'round'
@@ -305,7 +327,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-line-inactive',
           type: 'line',
-          filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'LineString'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'active', 'false'],
+            ['==', '$type', 'LineString'],
+            ['!=', 'mode', 'static']
+          ],
           layout: {
             'line-cap': 'round',
             'line-join': 'round'
@@ -334,7 +361,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-point-inactive',
           type: 'circle',
-          filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'active', 'false'],
+            ['==', '$type', 'Point'],
+            ['==', 'meta', 'feature'],
+            ['!=', 'mode', 'static']
+          ],
           paint: {
             'circle-radius': 6,
             'circle-color': '#3388ff'
@@ -344,7 +377,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-point-active',
           type: 'circle',
-          filter: ['all', ['==', '$type', 'Point'], ['!=', 'meta', 'midpoint'], ['==', 'active', 'true']],
+          filter: [
+            'all',
+            ['==', '$type', 'Point'],
+            ['!=', 'meta', 'midpoint'],
+            ['==', 'active', 'true']
+          ],
           paint: {
             'circle-radius': 8,
             'circle-color': '#3388ff'
@@ -354,7 +392,13 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-point-point-stroke-inactive',
           type: 'circle',
-          filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'active', 'false'],
+            ['==', '$type', 'Point'],
+            ['==', 'meta', 'feature'],
+            ['!=', 'mode', 'static']
+          ],
           paint: {
             'circle-radius': 8,
             'circle-opacity': 1,
@@ -365,7 +409,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-polygon-and-line-vertex-stroke-inactive',
           type: 'circle',
-          filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'meta', 'vertex'],
+            ['==', '$type', 'Point'],
+            ['!=', 'mode', 'static']
+          ],
           paint: {
             'circle-radius': 6,
             'circle-color': '#ff9800'
@@ -374,7 +423,12 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         {
           id: 'gl-draw-polygon-and-line-vertex-inactive',
           type: 'circle',
-          filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
+          filter: [
+            'all',
+            ['==', 'meta', 'vertex'],
+            ['==', '$type', 'Point'],
+            ['!=', 'mode', 'static']
+          ],
           paint: {
             'circle-radius': 4,
             'circle-color': '#3388ff'
@@ -553,6 +607,10 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
           draw.set(savedData)
           updateFeatures()
 
+          // 初期表示時に描画データがある場合は「管理」タブを優先表示
+          // （ユーザーが直前に何をしていたかを永続化していないため、まずは安全に「描画→管理」へ寄せる）
+          setActiveTab((prev) => (prev === 'draw' ? 'manage' : prev))
+
           // 復元完了後、フラグをリセット
           safeSetTimeout(() => {
             isRestoringRef.current = false
@@ -642,7 +700,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
             console.warn('Failed to remove draw control:', e)
           }
         }
-        
+
         drawRef.current = null
       }
     }
@@ -701,7 +759,19 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       allFeatures = drawRef.current.getAll()
     } catch (error) {
       // #region agent log (debug)
-      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:updateVertexLabels',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'src/components/DrawingTools.tsx:updateVertexLabels',
+          message: 'draw-getAll-failed',
+          data: { error: error instanceof Error ? error.message : String(error) },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'D'
+        })
+      }).catch(() => {})
       // #endregion agent log (debug)
       return
     }
@@ -738,7 +808,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       // 各頂点にラベルを追加
       coords.forEach((coord, index) => {
         // 選択状態をチェック（座標が一致するか）
-        const isSelected = selectedCoords !== null &&
+        const isSelected =
+          selectedCoords !== null &&
           Math.abs(coord[0] - selectedCoords[0]) < 0.0000001 &&
           Math.abs(coord[1] - selectedCoords[1]) < 0.0000001
 
@@ -808,7 +879,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       ]
 
       // 描画レイヤーを最前面に移動
-      drawLayerIds.forEach(layerId => {
+      drawLayerIds.forEach((layerId) => {
         if (map.getLayer(layerId)) {
           map.moveLayer(layerId)
         }
@@ -835,7 +906,19 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       allFeatures = drawRef.current.getAll()
     } catch (error) {
       // #region agent log (debug)
-      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:updateFeatures',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'src/components/DrawingTools.tsx:updateFeatures',
+          message: 'draw-getAll-failed',
+          data: { error: error instanceof Error ? error.message : String(error) },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'D'
+        })
+      }).catch(() => {})
       // #endregion agent log (debug)
       return
     }
@@ -850,9 +933,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       // 名前が明示的に設定されている場合はそれを使用（空文字列も許可）
       // 未設定（undefined/null）の場合のみデフォルト名を生成
       const hasExplicitName = f.properties && 'name' in f.properties
-      const name = hasExplicitName
-        ? (f.properties?.name as string)
-        : `${type}-${id.slice(0, 6)}`
+      const name = hasExplicitName ? (f.properties?.name as string) : `${type}-${id.slice(0, 6)}`
 
       // 高度情報を取得
       const elevation = f.properties?.elevation as number | undefined
@@ -869,7 +950,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
         properties: f.properties || {},
         elevation,
         flightHeight,
-        maxAltitude,
+        maxAltitude
       }
     })
 
@@ -884,132 +965,147 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   }, [onFeaturesChange])
 
   // 座標配列からバウンディングボックスを計算
-  const calculateBounds = useCallback((coordinates: GeoJSON.Position[]): [[number, number], [number, number]] | null => {
-    if (!coordinates || coordinates.length === 0) return null
+  const calculateBounds = useCallback(
+    (coordinates: GeoJSON.Position[]): [[number, number], [number, number]] | null => {
+      if (!coordinates || coordinates.length === 0) return null
 
-    let minLng = Infinity
-    let maxLng = -Infinity
-    let minLat = Infinity
-    let maxLat = -Infinity
+      let minLng = Infinity
+      let maxLng = -Infinity
+      let minLat = Infinity
+      let maxLat = -Infinity
 
-    coordinates.forEach(coord => {
-      const [lng, lat] = coord
-      if (lng < minLng) minLng = lng
-      if (lng > maxLng) maxLng = lng
-      if (lat < minLat) minLat = lat
-      if (lat > maxLat) maxLat = lat
-    })
+      coordinates.forEach((coord) => {
+        const [lng, lat] = coord
+        if (lng < minLng) minLng = lng
+        if (lng > maxLng) maxLng = lng
+        if (lat < minLat) minLat = lat
+        if (lat > maxLat) maxLat = lat
+      })
 
-    // バウンディングボックスが有効かチェック
-    if (!isFinite(minLng) || !isFinite(maxLng) || !isFinite(minLat) || !isFinite(maxLat)) {
-      return null
-    }
+      // バウンディングボックスが有効かチェック
+      if (!isFinite(minLng) || !isFinite(maxLng) || !isFinite(minLat) || !isFinite(maxLat)) {
+        return null
+      }
 
-    // 最小サイズのチェック（点や線の場合に備えて）
-    const lngDiff = maxLng - minLng
-    const latDiff = maxLat - minLat
-    const minDiff = 0.001 // 約100m
+      // 最小サイズのチェック（点や線の場合に備えて）
+      const lngDiff = maxLng - minLng
+      const latDiff = maxLat - minLat
+      const minDiff = 0.001 // 約100m
 
-    if (lngDiff < minDiff && latDiff < minDiff) {
-      // 点や非常に小さいポリゴンの場合、周囲にマージンを追加
-      const margin = minDiff / 2
+      if (lngDiff < minDiff && latDiff < minDiff) {
+        // 点や非常に小さいポリゴンの場合、周囲にマージンを追加
+        const margin = minDiff / 2
+        return [
+          [minLng - margin, minLat - margin],
+          [maxLng + margin, maxLat + margin]
+        ]
+      }
+
       return [
-        [minLng - margin, minLat - margin],
-        [maxLng + margin, maxLat + margin]
+        [minLng, minLat],
+        [maxLng, maxLat]
       ]
-    }
-
-    return [[minLng, minLat], [maxLng, maxLat]]
-  }, [])
+    },
+    []
+  )
 
   // フィーチャーにズーム
-  const zoomToFeature = useCallback((feature: DrawnFeature) => {
-    if (!map) return
+  const zoomToFeature = useCallback(
+    (feature: DrawnFeature) => {
+      if (!map) return
 
-    let bounds: [[number, number], [number, number]] | null = null
-    let center: [number, number] | null = null
+      let bounds: [[number, number], [number, number]] | null = null
+      let center: [number, number] | null = null
 
-    switch (feature.type) {
-      case 'point':
-        // ポイントの場合は中心座標にズーム
-        if (Array.isArray(feature.coordinates) && feature.coordinates.length === 2) {
-          center = [feature.coordinates[0] as number, feature.coordinates[1] as number]
-        }
-        break
+      switch (feature.type) {
+        case 'point':
+          // ポイントの場合は中心座標にズーム
+          if (Array.isArray(feature.coordinates) && feature.coordinates.length === 2) {
+            center = [feature.coordinates[0] as number, feature.coordinates[1] as number]
+          }
+          break
 
-      case 'circle':
-        // 円の場合は中心座標にズーム
-        if (feature.center) {
-          center = feature.center
-        }
-        break
+        case 'circle':
+          // 円の場合は中心座標にズーム
+          if (feature.center) {
+            center = feature.center
+          }
+          break
 
-      case 'line':
-        // ラインの場合は全座標からバウンディングボックスを計算
-        if (Array.isArray(feature.coordinates)) {
-          bounds = calculateBounds(feature.coordinates as GeoJSON.Position[])
-        }
-        break
+        case 'line':
+          // ラインの場合は全座標からバウンディングボックスを計算
+          if (Array.isArray(feature.coordinates)) {
+            bounds = calculateBounds(feature.coordinates as GeoJSON.Position[])
+          }
+          break
 
-      case 'polygon':
-        // ポリゴンの場合は外周座標からバウンディングボックスを計算
-        if (Array.isArray(feature.coordinates) && feature.coordinates.length > 0) {
-          // ポリゴンの座標は [[外周], [穴1], [穴2], ...] の形式
-          const outerRing = feature.coordinates[0] as GeoJSON.Position[]
-          if (outerRing && outerRing.length > 0) {
-            bounds = calculateBounds(outerRing)
+        case 'polygon':
+          // ポリゴンの場合は外周座標からバウンディングボックスを計算
+          if (Array.isArray(feature.coordinates) && feature.coordinates.length > 0) {
+            // ポリゴンの座標は [[外周], [穴1], [穴2], ...] の形式
+            const outerRing = feature.coordinates[0] as GeoJSON.Position[]
+            if (outerRing && outerRing.length > 0) {
+              bounds = calculateBounds(outerRing)
+            }
+          }
+          break
+      }
+
+      // ズーム実行
+      const currentZoom = map.getZoom()
+      if (bounds) {
+        // boundsの妥当性をチェック
+        const [[minLng, minLat], [maxLng, maxLat]] = bounds
+        const isValidBounds =
+          isFinite(minLng) &&
+          isFinite(minLat) &&
+          isFinite(maxLng) &&
+          isFinite(maxLat) &&
+          minLng >= -180 &&
+          maxLng <= 180 &&
+          minLat >= -90 &&
+          maxLat <= 90 &&
+          minLng < maxLng &&
+          minLat < maxLat
+
+        if (isValidBounds) {
+          try {
+            map.fitBounds(bounds, {
+              padding: 100,
+              maxZoom: Math.min(15, currentZoom + 2),
+              duration: 1000
+            })
+          } catch (error) {
+            console.error('Failed to fit bounds:', error)
           }
         }
-        break
-    }
+      } else if (center) {
+        // centerの妥当性をチェック
+        const [lng, lat] = center
+        const isValidCenter =
+          isFinite(lng) && isFinite(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
 
-    // ズーム実行
-    const currentZoom = map.getZoom()
-    if (bounds) {
-      // boundsの妥当性をチェック
-      const [[minLng, minLat], [maxLng, maxLat]] = bounds
-      const isValidBounds =
-        isFinite(minLng) && isFinite(minLat) && isFinite(maxLng) && isFinite(maxLat) &&
-        minLng >= -180 && maxLng <= 180 && minLat >= -90 && maxLat <= 90 &&
-        minLng < maxLng && minLat < maxLat
-
-      if (isValidBounds) {
-        try {
-          map.fitBounds(bounds, {
-            padding: 100,
-            maxZoom: Math.min(15, currentZoom + 2),
-            duration: 1000
-          })
-        } catch (error) {
-          console.error('Failed to fit bounds:', error)
+        if (isValidCenter) {
+          // ポイント/円の場合、ズームレベルを控えめに
+          const targetZoom = Math.min(14, currentZoom + 1)
+          try {
+            map.flyTo({
+              center,
+              zoom: targetZoom,
+              duration: 1000
+            })
+          } catch (error) {
+            console.error('Failed to fly to center:', error)
+          }
         }
       }
-    } else if (center) {
-      // centerの妥当性をチェック
-      const [lng, lat] = center
-      const isValidCenter =
-        isFinite(lng) && isFinite(lat) &&
-        lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90
-
-      if (isValidCenter) {
-        // ポイント/円の場合、ズームレベルを控えめに
-        const targetZoom = Math.min(14, currentZoom + 1)
-        try {
-          map.flyTo({
-            center,
-            zoom: targetZoom,
-            duration: 1000
-          })
-        } catch (error) {
-          console.error('Failed to fly to center:', error)
-        }
-      }
-    }
-  }, [map, calculateBounds])
+    },
+    [map, calculateBounds]
+  )
 
   // フィルタリングされたフィーチャーリスト
   const filteredFeatures = useMemo(() => {
-    return drawnFeatures.filter(f => {
+    return drawnFeatures.filter((f) => {
       // タイプフィルタ
       if (typeFilter !== 'all' && f.type !== typeFilter) return false
       // 検索フィルタ
@@ -1025,7 +1121,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       setCheckedFeatureIds(new Set())
     } else {
       // 全選択
-      setCheckedFeatureIds(new Set(filteredFeatures.map(f => f.id)))
+      setCheckedFeatureIds(new Set(filteredFeatures.map((f) => f.id)))
     }
   }, [checkedFeatureIds.size, filteredFeatures])
 
@@ -1039,7 +1135,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // チェックボックスのトグル
   const toggleFeatureCheck = useCallback((featureId: string) => {
-    setCheckedFeatureIds(prev => {
+    setCheckedFeatureIds((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(featureId)) {
         newSet.delete(featureId)
@@ -1053,7 +1149,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   // 削除後にチェック状態をクリア
   const handleConfirmDeleteWithClear = useCallback(() => {
     if (!drawRef.current || pendingDeleteIds.length === 0) return
-    pendingDeleteIds.forEach(id => {
+    pendingDeleteIds.forEach((id) => {
       drawRef.current?.delete(id)
     })
     setShowDeleteConfirm(false)
@@ -1069,6 +1165,17 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     if (!drawRef.current || !map) {
       console.error('Draw instance or map not available')
       return
+    }
+
+    // 「破棄（追加分削除）」のために、モード開始時点のスナップショットを保存する
+    // 例: WP連続配置中に破棄を押したら、この時点以降に追加されたWPを削除できる
+    try {
+      const all = drawRef.current.getAll()
+      modeStartFeatureIdsRef.current = new Set(all.features.map((f) => String(f.id)))
+      modeStartDrawModeRef.current = mode
+    } catch {
+      modeStartFeatureIdsRef.current = new Set()
+      modeStartDrawModeRef.current = mode
     }
 
     setDrawMode(mode)
@@ -1138,18 +1245,27 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
       return feature.center
     } else if (feature.type === 'point' && Array.isArray(feature.coordinates)) {
       return feature.coordinates as [number, number]
-    } else if (feature.type === 'polygon' && Array.isArray(feature.coordinates) && feature.coordinates.length > 0) {
+    } else if (
+      feature.type === 'polygon' &&
+      Array.isArray(feature.coordinates) &&
+      feature.coordinates.length > 0
+    ) {
       const outerRing = feature.coordinates[0] as [number, number][]
       if (outerRing.length > 0) {
         // ポリゴンの重心を計算
-        let sumLng = 0, sumLat = 0
-        outerRing.forEach(coord => {
+        let sumLng = 0,
+          sumLat = 0
+        outerRing.forEach((coord) => {
           sumLng += coord[0]
           sumLat += coord[1]
         })
         return [sumLng / outerRing.length, sumLat / outerRing.length]
       }
-    } else if (feature.type === 'line' && Array.isArray(feature.coordinates) && feature.coordinates.length > 0) {
+    } else if (
+      feature.type === 'line' &&
+      Array.isArray(feature.coordinates) &&
+      feature.coordinates.length > 0
+    ) {
       const lineCoords = feature.coordinates as [number, number][]
       // ラインの中点
       const midIndex = Math.floor(lineCoords.length / 2)
@@ -1162,7 +1278,7 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const handleFetchElevation = async (featureId: string) => {
     if (!drawRef.current) return
 
-    const drawnFeature = drawnFeatures.find(f => f.id === featureId)
+    const drawnFeature = drawnFeatures.find((f) => f.id === featureId)
     if (!drawnFeature) return
 
     const center = getFeatureCenter(drawnFeature)
@@ -1219,9 +1335,8 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
     drawRef.current.setFeatureProperty(featureId, 'flightHeight', flightHeight)
 
     // 上限高度を自動計算
-    const maxAltitude = elevation !== undefined && flightHeight !== undefined
-      ? elevation + flightHeight
-      : undefined
+    const maxAltitude =
+      elevation !== undefined && flightHeight !== undefined ? elevation + flightHeight : undefined
     drawRef.current.setFeatureProperty(featureId, 'maxAltitude', maxAltitude)
 
     updateFeatures()
@@ -1236,11 +1351,11 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
   const convertToGeoJSON = (features: GeoJSON.Feature[]): string => {
     const exportData = {
       type: 'FeatureCollection',
-      features: features.map(f => {
+      features: features.map((f) => {
         const props = { ...f.properties }
 
         // 高度情報を取得
-        const drawnFeature = drawnFeatures.find(df => String(df.id) === String(f.id))
+        const drawnFeature = drawnFeatures.find((df) => String(df.id) === String(f.id))
         if (drawnFeature?.maxAltitude !== undefined) {
           props.maxAltitude = drawnFeature.maxAltitude
         }
@@ -1281,43 +1396,49 @@ export function DrawingTools({ map, onFeaturesChange, darkMode = false, embedded
 
   // KMLフォーマットに変換
   const convertToKML = (features: GeoJSON.Feature[]): string => {
-    const kmlFeatures = features.map(f => {
-      const props = f.properties || {}
-      const name = props.name || f.id || 'Unnamed'
+    const kmlFeatures = features
+      .map((f) => {
+        const props = f.properties || {}
+        const name = props.name || f.id || 'Unnamed'
 
-      // 高度情報を取得
-      const drawnFeature = drawnFeatures.find(df => String(df.id) === String(f.id))
-      const maxAlt = drawnFeature?.maxAltitude ?? 0
-      const elevation = drawnFeature?.elevation
-      const flightHeight = drawnFeature?.flightHeight
+        // 高度情報を取得
+        const drawnFeature = drawnFeatures.find((df) => String(df.id) === String(f.id))
+        const maxAlt = drawnFeature?.maxAltitude ?? 0
+        const elevation = drawnFeature?.elevation
+        const flightHeight = drawnFeature?.flightHeight
 
-      let coordinatesKML = ''
-      let extendedData = ''
+        let coordinatesKML = ''
+        let extendedData = ''
 
-      // ExtendedDataで高度情報を含める
-      if (elevation !== undefined || flightHeight !== undefined || drawnFeature?.maxAltitude !== undefined) {
-        extendedData = `      <ExtendedData>
+        // ExtendedDataで高度情報を含める
+        if (
+          elevation !== undefined ||
+          flightHeight !== undefined ||
+          drawnFeature?.maxAltitude !== undefined
+        ) {
+          extendedData = `      <ExtendedData>
 ${elevation !== undefined ? `        <Data name="elevation"><value>${elevation}</value></Data>\n` : ''}${flightHeight !== undefined ? `        <Data name="flightHeight"><value>${flightHeight}</value></Data>\n` : ''}${drawnFeature?.maxAltitude !== undefined ? `        <Data name="maxAltitude"><value>${drawnFeature.maxAltitude}</value></Data>\n` : ''}      </ExtendedData>\n`
-      }
+        }
 
-      if (f.geometry.type === 'Point') {
-        const coords = f.geometry.coordinates as [number, number]
-        coordinatesKML = `<Point><coordinates>${coords[0]},${coords[1]},${maxAlt}</coordinates></Point>`
-      } else if (f.geometry.type === 'LineString') {
-        const coords = f.geometry.coordinates as [number, number][]
-        const coordStr = coords.map(c => `${c[0]},${c[1]},${maxAlt}`).join(' ')
-        coordinatesKML = `<LineString><coordinates>${coordStr}</coordinates></LineString>`
-      } else if (f.geometry.type === 'Polygon') {
-        const coords = f.geometry.coordinates[0] as [number, number][]
-        const coordStr = coords.map(c => `${c[0]},${c[1]},${maxAlt}`).join(' ')
-        coordinatesKML = `<Polygon><outerBoundaryIs><LinearRing><coordinates>${coordStr}</coordinates></LinearRing></outerBoundaryIs></Polygon>`
-      }
+        if (f.geometry.type === 'Point') {
+          const coords = f.geometry.coordinates as [number, number]
+          coordinatesKML = `<Point><coordinates>${coords[0]},${coords[1]},${maxAlt}</coordinates></Point>`
+        } else if (f.geometry.type === 'LineString') {
+          const coords = f.geometry.coordinates as [number, number][]
+          const coordStr = coords.map((c) => `${c[0]},${c[1]},${maxAlt}`).join(' ')
+          coordinatesKML = `<LineString><coordinates>${coordStr}</coordinates></LineString>`
+        } else if (f.geometry.type === 'Polygon') {
+          const coords = f.geometry.coordinates[0] as [number, number][]
+          const coordStr = coords.map((c) => `${c[0]},${c[1]},${maxAlt}`).join(' ')
+          coordinatesKML = `<Polygon><outerBoundaryIs><LinearRing><coordinates>${coordStr}</coordinates></LinearRing></outerBoundaryIs></Polygon>`
+        }
 
-      return `    <Placemark>
+        return `    <Placemark>
       <name>${name}</name>
 ${extendedData}      ${coordinatesKML}
     </Placemark>`
-    }).join('\n')
+      })
+      .join('\n')
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -1333,12 +1454,12 @@ ${kmlFeatures}
   const convertToCSV = (features: GeoJSON.Feature[]): string => {
     const rows = ['Type,Name,Latitude,Longitude,Radius(m),MaxAltitude(m)']
 
-    features.forEach(f => {
+    features.forEach((f) => {
       const props = f.properties || {}
       const name = props.name || f.id || 'Unnamed'
 
       // 高度情報を取得
-      const drawnFeature = drawnFeatures.find(df => String(df.id) === String(f.id))
+      const drawnFeature = drawnFeatures.find((df) => String(df.id) === String(f.id))
       const maxAlt = drawnFeature?.maxAltitude !== undefined ? drawnFeature.maxAltitude : ''
 
       if (f.geometry.type === 'Point') {
@@ -1369,9 +1490,7 @@ ${kmlFeatures}
     const minutes = Math.floor(minutesDecimal)
     const seconds = Math.floor((minutesDecimal - minutes) * 60)
 
-    const direction = isLatitude
-      ? (decimal >= 0 ? '北緯' : '南緯')
-      : (decimal >= 0 ? '東経' : '西経')
+    const direction = isLatitude ? (decimal >= 0 ? '北緯' : '南緯') : decimal >= 0 ? '東経' : '西経'
 
     return `${direction}${degrees}°${minutes}'${seconds}"`
   }
@@ -1381,12 +1500,12 @@ ${kmlFeatures}
     const lines: string[] = []
     let featureIndex = 1
 
-    features.forEach(f => {
+    features.forEach((f) => {
       const props = f.properties || {}
       const name = props.name || f.id || `範囲${featureIndex}`
 
       // 高度情報を取得
-      const drawnFeature = drawnFeatures.find(df => String(df.id) === String(f.id))
+      const drawnFeature = drawnFeatures.find((df) => String(df.id) === String(f.id))
       const maxAlt = drawnFeature?.maxAltitude
 
       // 高度情報の文字列を生成（下限：地表面、上限：海抜高度）
@@ -1430,11 +1549,12 @@ ${kmlFeatures}
     if (!drawRef.current || isDisposedRef.current) return
 
     // 空の名前があるかチェック
-    const featuresWithEmptyNames = drawnFeatures.filter(f => isNameEmpty(f.name))
+    const featuresWithEmptyNames = drawnFeatures.filter((f) => isNameEmpty(f.name))
     if (featuresWithEmptyNames.length > 0) {
-      const message = featuresWithEmptyNames.length === 1
-        ? '1つのフィーチャーに名前が設定されていません。エクスポート前に名前を入力してください。'
-        : `${featuresWithEmptyNames.length}個のフィーチャーに名前が設定されていません。エクスポート前に名前を入力してください。`
+      const message =
+        featuresWithEmptyNames.length === 1
+          ? '1つのフィーチャーに名前が設定されていません。エクスポート前に名前を入力してください。'
+          : `${featuresWithEmptyNames.length}個のフィーチャーに名前が設定されていません。エクスポート前に名前を入力してください。`
 
       showToast(message, 'error')
       return
@@ -1445,7 +1565,19 @@ ${kmlFeatures}
       allFeatures = drawRef.current.getAll()
     } catch (error) {
       // #region agent log (debug)
-      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/components/DrawingTools.tsx:handleShowPreview',message:'draw-getAll-failed',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/95e2077b-40eb-4a7c-a9eb-5a01c799bc92', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'src/components/DrawingTools.tsx:handleShowPreview',
+          message: 'draw-getAll-failed',
+          data: { error: error instanceof Error ? error.message : String(error) },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'D'
+        })
+      }).catch(() => {})
       // #endregion agent log (debug)
       return
     }
@@ -1498,27 +1630,34 @@ ${kmlFeatures}
 
   // 座標をテキスト形式でコピー
   const handleCopyCoordinates = async () => {
-    const coordText = drawnFeatures.map(f => {
-      if (f.type === 'point') {
-        const coords = f.coordinates as GeoJSON.Position
-        return `${f.name}: ${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`
-      } else if (f.type === 'circle' && f.center) {
-        return `${f.name}: 中心 ${f.center[1].toFixed(6)}, ${f.center[0].toFixed(6)} / 半径 ${f.radius}m`
-      } else if (f.type === 'line') {
-        const coords = f.coordinates as GeoJSON.Position[]
-        return `${f.name}:\n` + coords.map((c, i) =>
-          `  WP${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`
-        ).join('\n')
-      } else {
-        const coords = f.coordinates as GeoJSON.Position[][]
-        if (coords.length > 0 && coords[0].length > 0) {
-          return `${f.name} (${f.type}):\n` + coords[0].slice(0, -1).map((c, i) =>
-            `  P${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`
-          ).join('\n')
+    const coordText = drawnFeatures
+      .map((f) => {
+        if (f.type === 'point') {
+          const coords = f.coordinates as GeoJSON.Position
+          return `${f.name}: ${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`
+        } else if (f.type === 'circle' && f.center) {
+          return `${f.name}: 中心 ${f.center[1].toFixed(6)}, ${f.center[0].toFixed(6)} / 半径 ${f.radius}m`
+        } else if (f.type === 'line') {
+          const coords = f.coordinates as GeoJSON.Position[]
+          return (
+            `${f.name}:\n` +
+            coords.map((c, i) => `  WP${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`).join('\n')
+          )
+        } else {
+          const coords = f.coordinates as GeoJSON.Position[][]
+          if (coords.length > 0 && coords[0].length > 0) {
+            return (
+              `${f.name} (${f.type}):\n` +
+              coords[0]
+                .slice(0, -1)
+                .map((c, i) => `  P${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`)
+                .join('\n')
+            )
+          }
+          return `${f.name} (${f.type}): No coordinates`
         }
-        return `${f.name} (${f.type}): No coordinates`
-      }
-    }).join('\n\n')
+      })
+      .join('\n\n')
 
     if (!navigator.clipboard || !navigator.clipboard.writeText) {
       showToast('このブラウザではクリップボードへのコピーがサポートされていません', 'error')
@@ -1548,13 +1687,38 @@ ${kmlFeatures}
     }
   }
 
-  // 描画モードをキャンセル
-  const handleCancelMode = () => {
+  // 描画モードを終了（保持）
+  const handleFinishMode = () => {
     if (!drawRef.current || !map) return
     drawRef.current.changeMode('simple_select')
     setDrawMode('none')
     setIsEditing(false)
     map.getCanvas().style.cursor = ''
+  }
+
+  // 描画モードを破棄（追加分を削除して終了）
+  // - 現状のユーザー体感として「キャンセル＝破棄」を期待しやすいのはWP連続配置。
+  // - 他モードは未確定の描画が多く、追加分削除の概念が曖昧になりがちなので、まずはWP連続配置を対象にする。
+  const handleDiscardMode = () => {
+    if (!drawRef.current || !map) return
+
+    const startMode = modeStartDrawModeRef.current
+    const startIds = modeStartFeatureIdsRef.current
+
+    if (startMode === 'point') {
+      try {
+        const all = drawRef.current.getAll()
+        const currentIds = new Set(all.features.map((f) => String(f.id)))
+        currentIds.forEach((id) => {
+          if (!startIds.has(id)) drawRef.current?.delete(id)
+        })
+      } catch (error) {
+        console.error('Failed to discard newly added features:', error)
+      }
+      updateFeatures()
+    }
+
+    handleFinishMode()
   }
 
   // 円のリサイズ
@@ -1648,8 +1812,8 @@ ${kmlFeatures}
             userSelect: 'none',
             transition: 'background-color 0.2s'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a6fc9'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3388ff'}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2a6fc9')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#3388ff')}
         >
           <span>飛行経路／飛行範囲</span>
           <span style={{ fontSize: '12px' }}>▼</span>
@@ -1660,25 +1824,31 @@ ${kmlFeatures}
 
   return (
     <>
-      <div style={embedded ? {
-        // 埋め込み時のスタイル
-        marginBottom: '12px',
-        backgroundColor: darkMode ? '#222' : '#f8f8f8',
-        borderRadius: '4px',
-        overflow: 'hidden'
-      } : {
-        // フローティング時のスタイル
-        position: 'fixed',
-        top: 120,
-        left: 300,
-        width: '280px',
-        backgroundColor: bgColor,
-        color: textColor,
-        borderRadius: '8px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-        zIndex: 1000,
-        overflow: 'hidden'
-      }}>
+      <div
+        style={
+          embedded
+            ? {
+                // 埋め込み時のスタイル
+                marginBottom: '12px',
+                backgroundColor: darkMode ? '#222' : '#f8f8f8',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }
+            : {
+                // フローティング時のスタイル
+                position: 'fixed',
+                top: 120,
+                left: 300,
+                width: '280px',
+                backgroundColor: bgColor,
+                color: textColor,
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                zIndex: 1000,
+                overflow: 'hidden'
+              }
+        }
+      >
         {/* Header - クリック可能 */}
         <div
           onClick={() => embedded && setIsOpen(false)}
@@ -1696,12 +1866,17 @@ ${kmlFeatures}
           onMouseEnter={(e) => embedded && (e.currentTarget.style.backgroundColor = '#2a6fc9')}
           onMouseLeave={(e) => embedded && (e.currentTarget.style.backgroundColor = '#3388ff')}
         >
-          <h3 style={{ margin: 0, fontSize: embedded ? '13px' : '14px', fontWeight: 500 }}>飛行経路／飛行範囲</h3>
+          <h3 style={{ margin: 0, fontSize: embedded ? '13px' : '14px', fontWeight: 500 }}>
+            飛行経路／飛行範囲
+          </h3>
           {embedded ? (
             <span style={{ fontSize: '12px', transition: 'transform 0.3s' }}>▲</span>
           ) : (
             <button
-              onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsOpen(false)
+              }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -1717,52 +1892,100 @@ ${kmlFeatures}
 
         {/* Status Banner */}
         {(drawMode !== 'none' || isEditing) && (
-          <div style={{
-            padding: '8px 16px',
-            backgroundColor: isEditing ? '#e8f5e9' : '#fff3e0',
-            borderBottom: `1px solid ${isEditing ? '#4caf50' : '#ff9800'}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: isEditing ? '#2e7d32' : '#e65100', flex: 1 }}>
-              {isEditing ? '編集中' : MODE_LABELS[drawMode]}
-            </span>
-            <button
-              onClick={handleCancelMode}
+          <div
+            style={{
+              padding: '8px 16px',
+              backgroundColor: isEditing ? '#e8f5e9' : '#fff3e0',
+              borderBottom: `1px solid ${isEditing ? '#4caf50' : '#ff9800'}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+          >
+            <span
               style={{
-                padding: '4px 12px',
-                backgroundColor: isEditing ? '#4caf50' : 'transparent',
-                border: isEditing ? 'none' : '1px solid currentColor',
-                borderRadius: '4px',
-                color: isEditing ? '#fff' : '#e65100',
-                cursor: 'pointer',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 'bold',
-                flexShrink: 0
+                color: isEditing ? '#2e7d32' : '#e65100',
+                flex: 1
               }}
             >
-              {isEditing ? '完了' : 'キャンセル'}
-            </button>
+              {isEditing ? '編集中' : MODE_LABELS[drawMode]}
+            </span>
+            {drawMode === 'point' && continuousMode && !isEditing ? (
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <button
+                  onClick={handleFinishMode}
+                  title="WP配置を終了（追加したWPは保持）"
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: '#4caf50',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  完了
+                </button>
+                <button
+                  onClick={handleDiscardMode}
+                  title="WP配置を破棄（このセッションで追加したWPを削除して終了）"
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: 'transparent',
+                    border: '1px solid currentColor',
+                    borderRadius: '4px',
+                    color: '#e65100',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  破棄
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleFinishMode}
+                style={{
+                  padding: '4px 12px',
+                  backgroundColor: isEditing ? '#4caf50' : 'transparent',
+                  border: isEditing ? 'none' : '1px solid currentColor',
+                  borderRadius: '4px',
+                  color: isEditing ? '#fff' : '#e65100',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  flexShrink: 0
+                }}
+              >
+                完了
+              </button>
+            )}
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div style={{
-          display: 'flex',
-          borderBottom: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`,
-          backgroundColor: darkMode ? '#2a2a2a' : '#fafafa'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            borderBottom: `2px solid ${darkMode ? '#444' : '#e0e0e0'}`,
+            backgroundColor: darkMode ? '#2a2a2a' : '#fafafa'
+          }}
+        >
           <button
             onClick={() => setActiveTab('draw')}
             style={{
               flex: 1,
-              padding: '12px 8px',
+              padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
               borderBottom: activeTab === 'draw' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'draw' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              color: activeTab === 'draw' ? '#3388ff' : darkMode ? '#999' : '#666',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: activeTab === 'draw' ? 600 : 400,
@@ -1778,11 +2001,11 @@ ${kmlFeatures}
             title={drawnFeatures.length === 0 ? 'データがありません' : ''}
             style={{
               flex: 1,
-              padding: '12px 8px',
+              padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
               borderBottom: activeTab === 'manage' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'manage' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              color: activeTab === 'manage' ? '#3388ff' : darkMode ? '#999' : '#666',
               cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
               opacity: drawnFeatures.length === 0 ? 0.5 : 1,
               fontSize: '13px',
@@ -1794,17 +2017,19 @@ ${kmlFeatures}
           >
             管理
             {drawnFeatures.length > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                backgroundColor: '#ff5722',
-                color: '#fff',
-                borderRadius: '10px',
-                padding: '2px 6px',
-                fontSize: '10px',
-                fontWeight: 'bold'
-              }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                  backgroundColor: '#ff5722',
+                  color: '#fff',
+                  borderRadius: '10px',
+                  padding: '2px 6px',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}
+              >
                 {drawnFeatures.length}
               </span>
             )}
@@ -1815,11 +2040,11 @@ ${kmlFeatures}
             title={drawnFeatures.length === 0 ? 'データがありません' : ''}
             style={{
               flex: 1,
-              padding: '12px 8px',
+              padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
               borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'export' ? '#3388ff' : (darkMode ? '#999' : '#666'),
+              color: activeTab === 'export' ? '#3388ff' : darkMode ? '#999' : '#666',
               cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
               opacity: drawnFeatures.length === 0 ? 0.5 : 1,
               fontSize: '13px',
@@ -1836,179 +2061,256 @@ ${kmlFeatures}
         <div style={{ padding: '12px 8px' }}>
           {activeTab === 'draw' && (
             <>
-              <div style={{
-                marginBottom: '12px',
-                padding: '10px',
-                backgroundColor: darkMode ? '#2a3a4a' : '#e3f2fd',
-                borderRadius: '6px'
-              }}>
-                <label style={{ fontSize: '12px', color: darkMode ? '#90caf9' : '#1565c0', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+              <div
+                style={{
+                  marginBottom: '12px',
+                  padding: '10px',
+                  backgroundColor: darkMode ? '#2a3a4a' : '#e3f2fd',
+                  borderRadius: '6px'
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: '12px',
+                    color: darkMode ? '#90caf9' : '#1565c0',
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600
+                  }}
+                >
                   描画ツール
                 </label>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => handleModeChange('polygon')}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: drawMode === 'polygon' ? buttonActiveBg : buttonBg,
-                  color: drawMode === 'polygon' ? '#fff' : textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-                title="ポリゴン（飛行範囲）"
-              >
-                ポリゴン
-              </button>
-              <button
-                onClick={() => handleModeChange('circle')}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: drawMode === 'circle' ? buttonActiveBg : buttonBg,
-                  color: drawMode === 'circle' ? '#fff' : textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-                title="円（半径指定）"
-              >
-                円
-              </button>
-              <button
-                onClick={() => handleModeChange('point')}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: drawMode === 'point' ? buttonActiveBg : buttonBg,
-                  color: drawMode === 'point' ? '#fff' : textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-                title="ウェイポイント"
-              >
-                WP
-              </button>
-              <button
-                onClick={() => handleModeChange('line')}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: drawMode === 'line' ? buttonActiveBg : buttonBg,
-                  color: drawMode === 'line' ? '#fff' : textColor,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-                title="飛行経路（ライン）"
-              >
-                経路
-              </button>
-            </div>
-          </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: '8px'
+                  }}
+                >
+                  <button
+                    onClick={() => handleModeChange('polygon')}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: drawMode === 'polygon' ? buttonActiveBg : buttonBg,
+                      color: drawMode === 'polygon' ? '#fff' : textColor,
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      width: '100%'
+                    }}
+                    title="ポリゴン（飛行範囲）"
+                  >
+                    ポリゴン
+                  </button>
+                  <button
+                    onClick={() => handleModeChange('circle')}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: drawMode === 'circle' ? buttonActiveBg : buttonBg,
+                      color: drawMode === 'circle' ? '#fff' : textColor,
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      width: '100%'
+                    }}
+                    title="円（半径指定）"
+                  >
+                    円
+                  </button>
+                  <button
+                    onClick={() => handleModeChange('point')}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: drawMode === 'point' ? buttonActiveBg : buttonBg,
+                      color: drawMode === 'point' ? '#fff' : textColor,
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      width: '100%'
+                    }}
+                    title="ウェイポイント"
+                  >
+                    WP
+                  </button>
+                  <button
+                    onClick={() => handleModeChange('line')}
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: drawMode === 'line' ? buttonActiveBg : buttonBg,
+                      color: drawMode === 'line' ? '#fff' : textColor,
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      width: '100%'
+                    }}
+                    title="飛行経路（ライン）"
+                  >
+                    経路
+                  </button>
+                </div>
+              </div>
 
-          {/* 円の半径設定 */}
-          {drawMode === 'circle' && (
-            <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#f0f8ff', borderRadius: '4px', border: '1px solid #3388ff' }}>
-              <label style={{ fontSize: '12px', color: '#3388ff', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                半径: {circleRadius}m
-              </label>
-              <p style={{ fontSize: '10px', color: darkMode ? '#ccc' : '#666', margin: '0 0 8px' }}>
-                地図をクリックして円を配置
-              </p>
-              <select
-                value={circleRadius}
-                onChange={(e) => setCircleRadius(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: buttonBg,
-                  color: textColor
-                }}
-              >
-                <option value={10}>10m</option>
-                <option value={30}>30m</option>
-                <option value={50}>50m</option>
-                <option value={100}>100m</option>
-                <option value={150}>150m</option>
-                <option value={200}>200m</option>
-                <option value={300}>300m</option>
-                <option value={500}>500m</option>
-                <option value={1000}>1km</option>
-                <option value={2000}>2km</option>
-                <option value={5000}>5km</option>
-              </select>
-            </div>
-          )}
+              {/* 円の半径設定 */}
+              {drawMode === 'circle' && (
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: darkMode ? '#333' : '#f0f8ff',
+                    borderRadius: '4px',
+                    border: '1px solid #3388ff'
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      color: '#3388ff',
+                      display: 'block',
+                      marginBottom: '4px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    半径: {circleRadius}m
+                  </label>
+                  <p
+                    style={{
+                      fontSize: '10px',
+                      color: darkMode ? '#ccc' : '#666',
+                      margin: '0 0 8px'
+                    }}
+                  >
+                    地図をクリックして円を配置
+                  </p>
+                  <select
+                    value={circleRadius}
+                    onChange={(e) => setCircleRadius(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      backgroundColor: buttonBg,
+                      color: textColor
+                    }}
+                  >
+                    <option value={10}>10m</option>
+                    <option value={30}>30m</option>
+                    <option value={50}>50m</option>
+                    <option value={100}>100m</option>
+                    <option value={150}>150m</option>
+                    <option value={200}>200m</option>
+                    <option value={300}>300m</option>
+                    <option value={500}>500m</option>
+                    <option value={1000}>1km</option>
+                    <option value={2000}>2km</option>
+                    <option value={5000}>5km</option>
+                  </select>
+                </div>
+              )}
 
-          {/* 円の頂点数設定 */}
-          {drawMode === 'circle' && (
-            <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#e8f5e9', borderRadius: '4px', border: '1px solid #4caf50' }}>
-              <label style={{ fontSize: '12px', color: '#4caf50', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                円の頂点数
-              </label>
-              <select
-                value={circlePoints}
-                onChange={(e) => setCirclePoints(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: buttonBg,
-                  color: textColor
-                }}
-              >
-                <option value={8}>8点（簡易）</option>
-                <option value={12}>12点</option>
-                <option value={16}>16点</option>
-                <option value={24}>24点（標準）</option>
-                <option value={32}>32点（滑らか）</option>
-                <option value={48}>48点（精密）</option>
-                <option value={64}>64点（高精度）</option>
-              </select>
-            </div>
-          )}
+              {/* 円の頂点数設定 */}
+              {drawMode === 'circle' && (
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: darkMode ? '#333' : '#e8f5e9',
+                    borderRadius: '4px',
+                    border: '1px solid #4caf50'
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      color: '#4caf50',
+                      display: 'block',
+                      marginBottom: '4px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    円の頂点数
+                  </label>
+                  <select
+                    value={circlePoints}
+                    onChange={(e) => setCirclePoints(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '6px 8px',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      backgroundColor: buttonBg,
+                      color: textColor
+                    }}
+                  >
+                    <option value={8}>8点（簡易）</option>
+                    <option value={12}>12点</option>
+                    <option value={16}>16点</option>
+                    <option value={24}>24点（標準）</option>
+                    <option value={32}>32点（滑らか）</option>
+                    <option value={48}>48点（精密）</option>
+                    <option value={64}>64点（高精度）</option>
+                  </select>
+                </div>
+              )}
 
-          {/* WP連続配置モード */}
-          {drawMode === 'point' && (
-            <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#f0f8ff', borderRadius: '4px', border: '1px solid #3388ff' }}>
-              <label style={{
-                fontSize: '12px',
-                color: darkMode ? '#eee' : '#333',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={continuousMode}
-                  onChange={(e) => setContinuousMode(e.target.checked)}
-                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                <span style={{ fontWeight: 'bold' }}>連続配置モード</span>
-              </label>
-              <p style={{ fontSize: '10px', color: darkMode ? '#ccc' : '#666', margin: '6px 0 0', paddingLeft: '24px' }}>
-                {continuousMode ? 'クリックで連続してWPを配置' : 'クリックで1つ配置して終了'}
-              </p>
-            </div>
-          )}
+              {/* WP連続配置モード */}
+              {drawMode === 'point' && (
+                <div
+                  style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: darkMode ? '#333' : '#f0f8ff',
+                    borderRadius: '4px',
+                    border: '1px solid #3388ff'
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      color: darkMode ? '#eee' : '#333',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={continuousMode}
+                      onChange={(e) => setContinuousMode(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: 'bold' }}>連続配置モード</span>
+                  </label>
+                  <p
+                    style={{
+                      fontSize: '10px',
+                      color: darkMode ? '#ccc' : '#666',
+                      margin: '6px 0 0',
+                      paddingLeft: '24px'
+                    }}
+                  >
+                    {continuousMode ? 'クリックで連続してWPを配置' : 'クリックで1つ配置して終了'}
+                  </p>
+                </div>
+              )}
 
               {/* 操作ガイド */}
-              <div style={{
-                marginTop: '12px',
-                padding: '10px',
-                backgroundColor: darkMode ? '#2a2a2a' : '#f9f9f9',
-                borderRadius: '6px',
-                border: `1px solid ${borderColor}`
-              }}>
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px',
+                  backgroundColor: darkMode ? '#2a2a2a' : '#f9f9f9',
+                  borderRadius: '6px',
+                  border: `1px solid ${borderColor}`
+                }}
+              >
                 <button
                   onClick={() => setShowGuide(!showGuide)}
                   style={{
@@ -2029,12 +2331,14 @@ ${kmlFeatures}
                   <span style={{ fontSize: '10px' }}>{showGuide ? '▲' : '▼'}</span>
                 </button>
                 {showGuide && (
-                  <div style={{
-                    marginTop: '8px',
-                    fontSize: '11px',
-                    color: darkMode ? '#aaa' : '#666',
-                    lineHeight: '1.6'
-                  }}>
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      fontSize: '11px',
+                      color: darkMode ? '#aaa' : '#666',
+                      lineHeight: '1.6'
+                    }}
+                  >
                     <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                       <li>ポリゴン/経路: クリックで頂点追加、最初の点をクリックで完了</li>
                       <li>円: 中心をクリックして配置</li>
@@ -2044,7 +2348,13 @@ ${kmlFeatures}
                       <li>選択: Shift+ドラッグで複数選択</li>
                       <li>削除: 図形選択後、Delete/Backspaceキー（確認あり）</li>
                     </ul>
-                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}` }}>
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        paddingTop: '8px',
+                        borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`
+                      }}
+                    >
                       <button
                         onClick={() => onOpenHelp?.()}
                         style={{
@@ -2059,8 +2369,12 @@ ${kmlFeatures}
                           fontWeight: 600,
                           transition: 'background-color 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = darkMode ? '#1d4ed8' : '#2563eb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = darkMode ? '#2563eb' : '#3388ff'}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor = darkMode ? '#1d4ed8' : '#2563eb')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = darkMode ? '#2563eb' : '#3388ff')
+                        }
                       >
                         ? ヘルプを開く
                       </button>
@@ -2074,15 +2388,30 @@ ${kmlFeatures}
           {/* 管理タブ */}
           {activeTab === 'manage' && (
             <>
-              <div style={{
-                marginBottom: '12px',
-                padding: '10px',
-                backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
-                borderRadius: '6px'
-              }}>
+              <div
+                style={{
+                  marginBottom: '12px',
+                  padding: '6px',
+                  backgroundColor: darkMode ? '#2a3a2a' : '#f1f8e9',
+                  borderRadius: '4px'
+                }}
+              >
                 {/* ヘッダー: タイトル + 件数 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '12px', color: darkMode ? '#a5d6a7' : '#2e7d32', fontWeight: 600 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}
+                >
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      color: darkMode ? '#a5d6a7' : '#2e7d32',
+                      fontWeight: 600
+                    }}
+                  >
                     描画済み
                   </label>
                   <span style={{ fontSize: '11px', color: darkMode ? '#888' : '#666' }}>
@@ -2090,111 +2419,41 @@ ${kmlFeatures}
                   </span>
                 </div>
 
-                {/* 検索バー */}
-                <input
-                  type="text"
-                  placeholder="名前で検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    marginBottom: '8px',
-                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                    borderRadius: '4px',
-                    backgroundColor: darkMode ? '#333' : '#fff',
-                    color: darkMode ? '#fff' : '#333',
-                    fontSize: '12px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                {/* タイプフィルタ */}
-                <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  {(['all', 'polygon', 'circle', 'point', 'line'] as const).map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setTypeFilter(type)}
-                      style={{
-                        padding: '3px 8px',
-                        fontSize: '10px',
-                        border: 'none',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        backgroundColor: typeFilter === type
-                          ? '#3388ff'
-                          : (darkMode ? '#444' : '#e0e0e0'),
-                        color: typeFilter === type ? '#fff' : (darkMode ? '#ccc' : '#666')
-                      }}
-                    >
-                      {type === 'all' ? '全て' : type === 'polygon' ? 'ポリゴン' : type === 'circle' ? '円' : type === 'point' ? 'WP' : '経路'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* 一括操作ボタン */}
-                {filteredFeatures.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                    <button
-                      onClick={handleSelectAll}
-                      style={{
-                        flex: 1,
-                        padding: '5px 8px',
-                        fontSize: '11px',
-                        border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        backgroundColor: darkMode ? '#333' : '#fff',
-                        color: darkMode ? '#ccc' : '#666'
-                      }}
-                    >
-                      {checkedFeatureIds.size === filteredFeatures.length ? '全解除' : '全選択'}
-                    </button>
-                    <button
-                      onClick={handleBulkDelete}
-                      disabled={checkedFeatureIds.size === 0}
-                      style={{
-                        flex: 1,
-                        padding: '5px 8px',
-                        fontSize: '11px',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: checkedFeatureIds.size === 0 ? 'not-allowed' : 'pointer',
-                        backgroundColor: checkedFeatureIds.size === 0
-                          ? (darkMode ? '#444' : '#e0e0e0')
-                          : '#f44336',
-                        color: checkedFeatureIds.size === 0
-                          ? (darkMode ? '#666' : '#999')
-                          : '#fff'
-                      }}
-                    >
-                      選択削除 ({checkedFeatureIds.size})
-                    </button>
-                  </div>
-                )}
-
                 {/* フィーチャーリスト */}
-                <div style={{
-                  maxHeight: '150px',
-                  overflowY: 'auto',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px'
-                }}>
+                <div
+                  style={{
+                    maxHeight: '220px',
+                    overflowY: 'auto',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '4px'
+                  }}
+                >
                   {filteredFeatures.length === 0 ? (
-                    <p style={{ padding: '8px', fontSize: '11px', color: darkMode ? '#aaa' : '#888', margin: 0, textAlign: 'center' }}>
+                    <p
+                      style={{
+                        padding: '8px',
+                        fontSize: '11px',
+                        color: darkMode ? '#aaa' : '#888',
+                        margin: 0,
+                        textAlign: 'center'
+                      }}
+                    >
                       {drawnFeatures.length === 0 ? '地図上をクリックして描画' : '該当なし'}
                     </p>
                   ) : (
-                    filteredFeatures.map(f => (
+                    filteredFeatures.map((f) => (
                       <div
                         key={f.id}
                         style={{
                           padding: '6px 8px',
                           borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
                           fontSize: '12px',
-                          backgroundColor: selectedFeatureId === f.id
-                            ? (darkMode ? 'rgba(30, 58, 95, 0.6)' : 'rgba(187, 222, 251, 0.6)')
-                            : 'transparent',
+                          backgroundColor:
+                            selectedFeatureId === f.id
+                              ? darkMode
+                                ? 'rgba(30, 58, 95, 0.6)'
+                                : 'rgba(187, 222, 251, 0.6)'
+                              : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px'
@@ -2209,13 +2468,23 @@ ${kmlFeatures}
                           style={{ cursor: 'pointer', flexShrink: 0 }}
                         />
                         {/* タイプアイコン */}
-                        <span style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: f.type === 'point' ? '50%' : f.type === 'circle' ? '50%' : '2px',
-                          backgroundColor: f.type === 'point' ? '#ff9800' : f.type === 'circle' ? '#9c27b0' : f.type === 'line' ? '#4caf50' : '#3388ff',
-                          flexShrink: 0
-                        }} />
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius:
+                              f.type === 'point' ? '50%' : f.type === 'circle' ? '50%' : '2px',
+                            backgroundColor:
+                              f.type === 'point'
+                                ? '#ff9800'
+                                : f.type === 'circle'
+                                  ? '#9c27b0'
+                                  : f.type === 'line'
+                                    ? '#4caf50'
+                                    : '#3388ff',
+                            flexShrink: 0
+                          }}
+                        />
                         {/* 名前（クリックでズーム） */}
                         <span
                           style={{
@@ -2245,7 +2514,9 @@ ${kmlFeatures}
                             border: 'none',
                             borderRadius: '10px',
                             cursor: 'pointer',
-                            backgroundColor: darkMode ? 'rgba(66, 165, 245, 0.2)' : 'rgba(21, 101, 192, 0.1)',
+                            backgroundColor: darkMode
+                              ? 'rgba(66, 165, 245, 0.2)'
+                              : 'rgba(21, 101, 192, 0.1)',
                             color: darkMode ? '#90caf9' : '#1565c0',
                             flexShrink: 0
                           }}
@@ -2256,479 +2527,752 @@ ${kmlFeatures}
                     ))
                   )}
                 </div>
-              </div>
 
-          {/* 選択中の円のリサイズ */}
-          {selectedFeatureId && drawnFeatures.find(f => f.id === selectedFeatureId)?.type === 'circle' && (
-            <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#e8f5e9', borderRadius: '4px', border: '1px solid #4caf50' }}>
-              <label style={{ fontSize: '12px', color: '#4caf50', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                円のサイズ変更
-              </label>
-              <select
-                value={drawnFeatures.find(f => f.id === selectedFeatureId)?.radius || 100}
-                onChange={(e) => handleResizeCircle(Number(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: buttonBg,
-                  color: textColor
-                }}
-              >
-                <option value={10}>10m</option>
-                <option value={30}>30m</option>
-                <option value={50}>50m</option>
-                <option value={100}>100m</option>
-                <option value={150}>150m</option>
-                <option value={200}>200m</option>
-                <option value={300}>300m</option>
-                <option value={500}>500m</option>
-                <option value={1000}>1km</option>
-                <option value={2000}>2km</option>
-                <option value={5000}>5km</option>
-              </select>
-            </div>
-          )}
-
-          {/* 選択中の円の頂点数変更 */}
-          {selectedFeatureId && drawnFeatures.find(f => f.id === selectedFeatureId)?.type === 'circle' && (
-            <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#e8f5e9', borderRadius: '4px', border: '1px solid #4caf50' }}>
-              <label style={{ fontSize: '12px', color: '#4caf50', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                円の頂点数（WP数）
-              </label>
-              <select
-                value={(drawnFeatures.find(f => f.id === selectedFeatureId)?.properties?.circlePoints as number) || 24}
-                onChange={(e) => {
-                  const newPoints = Number(e.target.value)
-                  const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
-                  if (currentFeature && drawRef.current) {
-                    const feature = drawRef.current.get(selectedFeatureId)
-                    if (feature?.properties?.center && feature?.properties?.radiusKm) {
-                      const center = feature.properties.center as [number, number]
-                      const radiusKm = feature.properties.radiusKm as number
-                      const newCirclePolygon = createCirclePolygon(center, radiusKm, newPoints)
-                      drawRef.current.delete(selectedFeatureId)
-                      const newFeature = drawRef.current.add({
-                        type: 'Feature',
-                        properties: { isCircle: true, radiusKm, center, circlePoints: newPoints },
-                        geometry: newCirclePolygon
-                      })
-                      if (newFeature && newFeature[0]) {
-                        setSelectedFeatureId(newFeature[0])
-                        drawRef.current.changeMode('simple_select', { featureIds: newFeature })
-                      }
-                      updateFeatures()
-                    }
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '6px 8px',
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: buttonBg,
-                  color: textColor
-                }}
-              >
-                <option value={8}>8点（簡易）</option>
-                <option value={12}>12点</option>
-                <option value={16}>16点</option>
-                <option value={24}>24点（標準）</option>
-                <option value={32}>32点（滑らか）</option>
-                <option value={48}>48点（精密）</option>
-                <option value={64}>64点（高精度）</option>
-              </select>
-            </div>
-          )}
-
-          {/* 選択中のフィーチャー名変更 */}
-          {selectedFeatureId && (() => {
-            const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
-            const currentName = currentFeature?.name || ''
-            const hasEmptyName = isNameEmpty(currentName)
-
-            // 頂点数を計算
-            let vertexCount = 0
-            if (currentFeature) {
-              if (currentFeature.type === 'polygon' && Array.isArray(currentFeature.coordinates) && currentFeature.coordinates.length > 0) {
-                const outerRing = currentFeature.coordinates[0]
-                if (Array.isArray(outerRing)) {
-                  vertexCount = outerRing.length - 1 // 最後は最初と同じ座標なので-1
-                }
-              } else if (currentFeature.type === 'line' && Array.isArray(currentFeature.coordinates)) {
-                vertexCount = currentFeature.coordinates.length
-              } else if (currentFeature.type === 'circle') {
-                vertexCount = (currentFeature.properties?.circlePoints as number) || 24
-              }
-            }
-
-            return (
-              <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: darkMode ? '#333' : '#f0f7ff', borderRadius: '4px', border: `1px solid ${darkMode ? '#555' : '#2196f3'}` }}>
-                <label style={{ fontSize: '12px', color: darkMode ? '#64b5f6' : '#2196f3', display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                  名前
-                  {hasEmptyName && (
-                    <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '11px' }}>
-                      ※ 名前を入力してください
-                    </span>
-                  )}
-                  {vertexCount > 0 && (
-                    <span style={{ color: darkMode ? '#aaa' : '#666', marginLeft: '8px', fontSize: '11px', fontWeight: 'normal' }}>
-                      ({vertexCount}点)
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  value={currentName}
-                  onChange={(e) => handleRenameFeature(selectedFeatureId, e.target.value)}
-                  placeholder="フィーチャー名を入力"
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    border: hasEmptyName ? '2px solid #f44336' : `1px solid ${borderColor}`,
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    backgroundColor: hasEmptyName ? (darkMode ? '#3d2020' : '#fff5f5') : buttonBg,
-                    color: textColor,
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            )
-          })()}
-
-          {/* 飛行高度設定 */}
-          {selectedFeatureId && (() => {
-            const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
-            const elevation = currentFeature?.elevation
-            const flightHeight = currentFeature?.flightHeight
-            const maxAltitude = currentFeature?.maxAltitude
-
-            return (
-              <div style={{
-                marginBottom: '12px',
-                padding: '8px',
-                backgroundColor: darkMode ? '#333' : '#f0f7ff',
-                borderRadius: '4px',
-                border: `1px solid ${darkMode ? '#555' : '#2196f3'}`
-              }}>
-                <label style={{
-                  fontSize: '12px',
-                  color: darkMode ? '#64b5f6' : '#2196f3',
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: 'bold'
-                }}>
-                  飛行高度設定
-                </label>
-
-                {/* 標高表示と取得ボタン */}
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{
-                    fontSize: '11px',
-                    color: darkMode ? '#aaa' : '#666',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}>
-                    標高（国土地理院）
-                  </label>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      value={elevation !== undefined ? `${elevation}m` : '未取得'}
-                      readOnly
-                      style={{
-                        flex: 1,
-                        padding: '6px 8px',
-                        border: `1px solid ${borderColor}`,
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        backgroundColor: darkMode ? '#222' : '#f5f5f5',
-                        color: textColor,
-                        outline: 'none'
-                      }}
-                    />
-                    <button
-                      onClick={() => handleFetchElevation(selectedFeatureId)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#4caf50',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      取得
-                    </button>
-                  </div>
-                </div>
-
-                {/* 飛行高度入力 */}
-                <div style={{ marginBottom: '8px' }}>
-                  <label style={{
-                    fontSize: '11px',
-                    color: darkMode ? '#aaa' : '#666',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}>
-                    飛行高度（相対高度）
-                  </label>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      value={flightHeight ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value === '' ? undefined : Number(e.target.value)
-                        handleUpdateFlightHeight(selectedFeatureId, val)
-                      }}
-                      placeholder="例: 150"
-                      disabled={elevation === undefined}
-                      style={{
-                        flex: 1,
-                        padding: '6px 8px',
-                        border: `1px solid ${borderColor}`,
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        backgroundColor: elevation === undefined ? (darkMode ? '#222' : '#f5f5f5') : buttonBg,
-                        color: elevation === undefined ? (darkMode ? '#666' : '#999') : textColor,
-                        outline: 'none'
-                      }}
-                    />
-                    <span style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666', whiteSpace: 'nowrap' }}>m</span>
-                  </div>
-                  {elevation === undefined && (
-                    <p style={{ fontSize: '10px', color: '#f44336', margin: '4px 0 0' }}>
-                      ※ 先に標高を取得してください
-                    </p>
-                  )}
-                </div>
-
-                {/* 上限高度表示 */}
-                <div>
-                  <label style={{
-                    fontSize: '11px',
-                    color: darkMode ? '#aaa' : '#666',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}>
-                    上限（海抜高度）
-                  </label>
+                {/* 検索・絞り込み（作成データの下に配置） */}
+                <div style={{ marginTop: '10px' }}>
                   <input
                     type="text"
-                    value={maxAltitude !== undefined ? `${maxAltitude}m` : '未設定'}
-                    readOnly
+                    placeholder="名前で検索..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '6px 8px',
-                      border: `1px solid ${borderColor}`,
+                      marginBottom: '8px',
+                      border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
                       borderRadius: '4px',
+                      backgroundColor: darkMode ? '#333' : '#fff',
+                      color: darkMode ? '#fff' : '#333',
                       fontSize: '12px',
-                      backgroundColor: darkMode ? '#222' : '#f5f5f5',
-                      color: maxAltitude !== undefined ? (darkMode ? '#4caf50' : '#2e7d32') : textColor,
-                      fontWeight: maxAltitude !== undefined ? 'bold' : 'normal',
-                      outline: 'none'
+                      boxSizing: 'border-box'
                     }}
                   />
-                </div>
 
-                {/* 説明 */}
-                <p style={{
-                  fontSize: '10px',
-                  color: darkMode ? '#aaa' : '#666',
-                  margin: '8px 0 0',
-                  lineHeight: 1.4
-                }}>
-                  下限：地表面、上限：標高+飛行高度
-                </p>
-              </div>
-            )
-          })()}
+                  {/* タイプフィルタ */}
+                  <div
+                    style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}
+                  >
+                    {(['all', 'polygon', 'circle', 'point', 'line'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setTypeFilter(type)}
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '10px',
+                          border: 'none',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          backgroundColor:
+                            typeFilter === type ? '#3388ff' : darkMode ? '#444' : '#e0e0e0',
+                          color: typeFilter === type ? '#fff' : darkMode ? '#ccc' : '#666'
+                        }}
+                      >
+                        {type === 'all'
+                          ? '全て'
+                          : type === 'polygon'
+                            ? 'ポリゴン'
+                            : type === 'circle'
+                              ? '円'
+                              : type === 'point'
+                                ? 'WP'
+                                : '経路'}
+                      </button>
+                    ))}
+                  </div>
 
-          {/* 編集・削除ボタン */}
-          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-            <button
-              onClick={handleEditFeature}
-              disabled={!selectedFeatureId}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: isEditing ? '#4caf50' : (selectedFeatureId ? (darkMode ? '#1e3a5f' : '#e3f2fd') : buttonBg),
-                color: isEditing ? '#fff' : (selectedFeatureId ? (darkMode ? '#64b5f6' : '#1565c0') : (darkMode ? '#666' : '#999')),
-                border: `1px solid ${isEditing ? '#4caf50' : (selectedFeatureId ? (darkMode ? '#1565c0' : borderColor) : borderColor)}`,
-                borderRadius: '4px',
-                cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
-                fontSize: '11px',
-                fontWeight: isEditing ? 'bold' : 'normal'
-              }}
-            >
-              {isEditing ? '編集完了' : '編集'}
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={!selectedFeatureId}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: selectedFeatureId ? (darkMode ? '#4a2020' : '#ffebee') : buttonBg,
-                color: selectedFeatureId ? (darkMode ? '#ef9a9a' : '#c62828') : (darkMode ? '#666' : '#999'),
-                border: `1px solid ${selectedFeatureId ? (darkMode ? '#c62828' : borderColor) : borderColor}`,
-                borderRadius: '4px',
-                cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
-                fontSize: '11px'
-              }}
-            >
-              削除
-            </button>
-          </div>
-
-          {/* 頂点編集の操作説明 */}
-          {selectedFeatureId && (() => {
-            const currentFeature = drawnFeatures.find(f => f.id === selectedFeatureId)
-            const isCircle = currentFeature?.type === 'circle'
-            const isPolygonOrLine = currentFeature?.type === 'polygon' || currentFeature?.type === 'line'
-
-            if (!isCircle && isPolygonOrLine) {
-              if (isEditing) {
-                // 編集モード中の詳細説明
-                return (
-                  <div style={{
-                    marginBottom: '12px',
-                    padding: '8px',
-                    backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
-                    borderRadius: '4px',
-                    border: '1px solid #8bc34a',
-                    fontSize: '11px',
-                    color: darkMode ? '#c5e1a5' : '#558b2f'
-                  }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>頂点の編集方法</div>
-                    <div style={{ lineHeight: '1.6' }}>
-                      - 頂点を移動: 青い点をドラッグ<br/>
-                      - 頂点を追加: 辺の中点（小さい点）をクリック<br/>
-                      - 頂点を削除: 頂点を選択 → Delete/Backspace
+                  {/* 一括操作ボタン */}
+                  {filteredFeatures.length > 0 && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={handleSelectAll}
+                        style={{
+                          flex: 1,
+                          padding: '5px 8px',
+                          fontSize: '11px',
+                          border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          backgroundColor: darkMode ? '#333' : '#fff',
+                          color: darkMode ? '#ccc' : '#666'
+                        }}
+                      >
+                        {checkedFeatureIds.size === filteredFeatures.length ? '全解除' : '全選択'}
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={checkedFeatureIds.size === 0}
+                        style={{
+                          flex: 1,
+                          padding: '5px 8px',
+                          fontSize: '11px',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: checkedFeatureIds.size === 0 ? 'not-allowed' : 'pointer',
+                          backgroundColor:
+                            checkedFeatureIds.size === 0
+                              ? darkMode
+                                ? '#444'
+                                : '#e0e0e0'
+                              : '#f44336',
+                          color:
+                            checkedFeatureIds.size === 0 ? (darkMode ? '#666' : '#999') : '#fff'
+                        }}
+                      >
+                        選択削除 ({checkedFeatureIds.size})
+                      </button>
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 選択中の円のリサイズ */}
+              {selectedFeatureId &&
+                drawnFeatures.find((f) => f.id === selectedFeatureId)?.type === 'circle' && (
+                  <div
+                    style={{
+                      marginBottom: '12px',
+                      padding: '8px',
+                      backgroundColor: darkMode ? '#333' : '#e8f5e9',
+                      borderRadius: '4px',
+                      border: '1px solid #4caf50'
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        color: '#4caf50',
+                        display: 'block',
+                        marginBottom: '4px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      円のサイズ変更
+                    </label>
+                    <select
+                      value={drawnFeatures.find((f) => f.id === selectedFeatureId)?.radius || 100}
+                      onChange={(e) => handleResizeCircle(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        backgroundColor: buttonBg,
+                        color: textColor
+                      }}
+                    >
+                      <option value={10}>10m</option>
+                      <option value={30}>30m</option>
+                      <option value={50}>50m</option>
+                      <option value={100}>100m</option>
+                      <option value={150}>150m</option>
+                      <option value={200}>200m</option>
+                      <option value={300}>300m</option>
+                      <option value={500}>500m</option>
+                      <option value={1000}>1km</option>
+                      <option value={2000}>2km</option>
+                      <option value={5000}>5km</option>
+                    </select>
                   </div>
-                )
-              } else {
-                // 編集モード前のヒント
-                return (
-                  <div style={{
-                    marginBottom: '12px',
-                    padding: '6px 8px',
-                    backgroundColor: darkMode ? '#1e3a5f' : '#e3f2fd',
+                )}
+
+              {/* 選択中の円の頂点数変更 */}
+              {selectedFeatureId &&
+                drawnFeatures.find((f) => f.id === selectedFeatureId)?.type === 'circle' && (
+                  <div
+                    style={{
+                      marginBottom: '12px',
+                      padding: '8px',
+                      backgroundColor: darkMode ? '#333' : '#e8f5e9',
+                      borderRadius: '4px',
+                      border: '1px solid #4caf50'
+                    }}
+                  >
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        color: '#4caf50',
+                        display: 'block',
+                        marginBottom: '4px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      円の頂点数（WP数）
+                    </label>
+                    <select
+                      value={
+                        (drawnFeatures.find((f) => f.id === selectedFeatureId)?.properties
+                          ?.circlePoints as number) || 24
+                      }
+                      onChange={(e) => {
+                        const newPoints = Number(e.target.value)
+                        const currentFeature = drawnFeatures.find((f) => f.id === selectedFeatureId)
+                        if (currentFeature && drawRef.current) {
+                          const feature = drawRef.current.get(selectedFeatureId)
+                          if (feature?.properties?.center && feature?.properties?.radiusKm) {
+                            const center = feature.properties.center as [number, number]
+                            const radiusKm = feature.properties.radiusKm as number
+                            const newCirclePolygon = createCirclePolygon(
+                              center,
+                              radiusKm,
+                              newPoints
+                            )
+                            drawRef.current.delete(selectedFeatureId)
+                            const newFeature = drawRef.current.add({
+                              type: 'Feature',
+                              properties: {
+                                isCircle: true,
+                                radiusKm,
+                                center,
+                                circlePoints: newPoints
+                              },
+                              geometry: newCirclePolygon
+                            })
+                            if (newFeature && newFeature[0]) {
+                              setSelectedFeatureId(newFeature[0])
+                              drawRef.current.changeMode('simple_select', {
+                                featureIds: newFeature
+                              })
+                            }
+                            updateFeatures()
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        backgroundColor: buttonBg,
+                        color: textColor
+                      }}
+                    >
+                      <option value={8}>8点（簡易）</option>
+                      <option value={12}>12点</option>
+                      <option value={16}>16点</option>
+                      <option value={24}>24点（標準）</option>
+                      <option value={32}>32点（滑らか）</option>
+                      <option value={48}>48点（精密）</option>
+                      <option value={64}>64点（高精度）</option>
+                    </select>
+                  </div>
+                )}
+
+              {/* 選択中のフィーチャー名変更 */}
+              {selectedFeatureId &&
+                (() => {
+                  const currentFeature = drawnFeatures.find((f) => f.id === selectedFeatureId)
+                  const currentName = currentFeature?.name || ''
+                  const hasEmptyName = isNameEmpty(currentName)
+
+                  // 頂点数を計算
+                  let vertexCount = 0
+                  if (currentFeature) {
+                    if (
+                      currentFeature.type === 'polygon' &&
+                      Array.isArray(currentFeature.coordinates) &&
+                      currentFeature.coordinates.length > 0
+                    ) {
+                      const outerRing = currentFeature.coordinates[0]
+                      if (Array.isArray(outerRing)) {
+                        vertexCount = outerRing.length - 1 // 最後は最初と同じ座標なので-1
+                      }
+                    } else if (
+                      currentFeature.type === 'line' &&
+                      Array.isArray(currentFeature.coordinates)
+                    ) {
+                      vertexCount = currentFeature.coordinates.length
+                    } else if (currentFeature.type === 'circle') {
+                      vertexCount = (currentFeature.properties?.circlePoints as number) || 24
+                    }
+                  }
+
+                  return (
+                    <div
+                      style={{
+                        marginBottom: '12px',
+                        padding: '8px',
+                        backgroundColor: darkMode ? '#333' : '#f0f7ff',
+                        borderRadius: '4px',
+                        border: `1px solid ${darkMode ? '#555' : '#2196f3'}`
+                      }}
+                    >
+                      <label
+                        style={{
+                          fontSize: '12px',
+                          color: darkMode ? '#64b5f6' : '#2196f3',
+                          display: 'block',
+                          marginBottom: '4px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        名前
+                        {hasEmptyName && (
+                          <span style={{ color: '#f44336', marginLeft: '8px', fontSize: '11px' }}>
+                            ※ 名前を入力してください
+                          </span>
+                        )}
+                        {vertexCount > 0 && (
+                          <span
+                            style={{
+                              color: darkMode ? '#aaa' : '#666',
+                              marginLeft: '8px',
+                              fontSize: '11px',
+                              fontWeight: 'normal'
+                            }}
+                          >
+                            ({vertexCount}点)
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={currentName}
+                        onChange={(e) => handleRenameFeature(selectedFeatureId, e.target.value)}
+                        placeholder="フィーチャー名を入力"
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          border: hasEmptyName ? '2px solid #f44336' : `1px solid ${borderColor}`,
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          backgroundColor: hasEmptyName
+                            ? darkMode
+                              ? '#3d2020'
+                              : '#fff5f5'
+                            : buttonBg,
+                          color: textColor,
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  )
+                })()}
+
+              {/* 飛行高度設定 */}
+              {selectedFeatureId &&
+                (() => {
+                  const currentFeature = drawnFeatures.find((f) => f.id === selectedFeatureId)
+                  const elevation = currentFeature?.elevation
+                  const flightHeight = currentFeature?.flightHeight
+                  const maxAltitude = currentFeature?.maxAltitude
+
+                  return (
+                    <div
+                      style={{
+                        marginBottom: '12px',
+                        padding: '8px',
+                        backgroundColor: darkMode ? '#333' : '#f0f7ff',
+                        borderRadius: '4px',
+                        border: `1px solid ${darkMode ? '#555' : '#2196f3'}`
+                      }}
+                    >
+                      <label
+                        style={{
+                          fontSize: '12px',
+                          color: darkMode ? '#64b5f6' : '#2196f3',
+                          display: 'block',
+                          marginBottom: '8px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        飛行高度設定
+                      </label>
+
+                      {/* 標高表示と取得ボタン */}
+                      <div style={{ marginBottom: '8px' }}>
+                        <label
+                          style={{
+                            fontSize: '11px',
+                            color: darkMode ? '#aaa' : '#666',
+                            display: 'block',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          標高（国土地理院）
+                        </label>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            value={elevation !== undefined ? `${elevation}m` : '未取得'}
+                            readOnly
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              border: `1px solid ${borderColor}`,
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              backgroundColor: darkMode ? '#222' : '#f5f5f5',
+                              color: textColor,
+                              outline: 'none'
+                            }}
+                          />
+                          <button
+                            onClick={() => handleFetchElevation(selectedFeatureId)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#4caf50',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            取得
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 飛行高度入力 */}
+                      <div style={{ marginBottom: '8px' }}>
+                        <label
+                          style={{
+                            fontSize: '11px',
+                            color: darkMode ? '#aaa' : '#666',
+                            display: 'block',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          飛行高度（相対高度）
+                        </label>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            value={flightHeight ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? undefined : Number(e.target.value)
+                              handleUpdateFlightHeight(selectedFeatureId, val)
+                            }}
+                            placeholder="例: 150"
+                            disabled={elevation === undefined}
+                            style={{
+                              flex: 1,
+                              padding: '6px 8px',
+                              border: `1px solid ${borderColor}`,
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              backgroundColor:
+                                elevation === undefined
+                                  ? darkMode
+                                    ? '#222'
+                                    : '#f5f5f5'
+                                  : buttonBg,
+                              color:
+                                elevation === undefined ? (darkMode ? '#666' : '#999') : textColor,
+                              outline: 'none'
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              color: darkMode ? '#aaa' : '#666',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            m
+                          </span>
+                        </div>
+                        {elevation === undefined && (
+                          <p style={{ fontSize: '10px', color: '#f44336', margin: '4px 0 0' }}>
+                            ※ 先に標高を取得してください
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 上限高度表示 */}
+                      <div>
+                        <label
+                          style={{
+                            fontSize: '11px',
+                            color: darkMode ? '#aaa' : '#666',
+                            display: 'block',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          上限（海抜高度）
+                        </label>
+                        <input
+                          type="text"
+                          value={maxAltitude !== undefined ? `${maxAltitude}m` : '未設定'}
+                          readOnly
+                          style={{
+                            width: '100%',
+                            padding: '6px 8px',
+                            border: `1px solid ${borderColor}`,
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            backgroundColor: darkMode ? '#222' : '#f5f5f5',
+                            color:
+                              maxAltitude !== undefined
+                                ? darkMode
+                                  ? '#4caf50'
+                                  : '#2e7d32'
+                                : textColor,
+                            fontWeight: maxAltitude !== undefined ? 'bold' : 'normal',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+
+                      {/* 説明 */}
+                      <p
+                        style={{
+                          fontSize: '10px',
+                          color: darkMode ? '#aaa' : '#666',
+                          margin: '8px 0 0',
+                          lineHeight: 1.4
+                        }}
+                      >
+                        下限：地表面、上限：標高+飛行高度
+                      </p>
+                    </div>
+                  )
+                })()}
+
+              {/* 編集・削除ボタン */}
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+                <button
+                  onClick={handleEditFeature}
+                  disabled={!selectedFeatureId}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: isEditing
+                      ? '#4caf50'
+                      : selectedFeatureId
+                        ? darkMode
+                          ? '#1e3a5f'
+                          : '#e3f2fd'
+                        : buttonBg,
+                    color: isEditing
+                      ? '#fff'
+                      : selectedFeatureId
+                        ? darkMode
+                          ? '#64b5f6'
+                          : '#1565c0'
+                        : darkMode
+                          ? '#666'
+                          : '#999',
+                    border: `1px solid ${isEditing ? '#4caf50' : selectedFeatureId ? (darkMode ? '#1565c0' : borderColor) : borderColor}`,
                     borderRadius: '4px',
-                    border: `1px solid ${darkMode ? '#2196f3' : '#90caf9'}`,
-                    fontSize: '10px',
-                    color: darkMode ? '#90caf9' : '#1565c0'
-                  }}>
-                    「編集」ボタンで頂点の追加・削除・移動が可能
-                  </div>
-                )
-              }
-            }
-            return null
-          })()}
+                    cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
+                    fontSize: '11px',
+                    fontWeight: isEditing ? 'bold' : 'normal'
+                  }}
+                >
+                  {isEditing ? '編集完了' : '編集'}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={!selectedFeatureId}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    backgroundColor: selectedFeatureId
+                      ? darkMode
+                        ? '#4a2020'
+                        : '#ffebee'
+                      : buttonBg,
+                    color: selectedFeatureId
+                      ? darkMode
+                        ? '#ef9a9a'
+                        : '#c62828'
+                      : darkMode
+                        ? '#666'
+                        : '#999',
+                    border: `1px solid ${selectedFeatureId ? (darkMode ? '#c62828' : borderColor) : borderColor}`,
+                    borderRadius: '4px',
+                    cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
+                    fontSize: '11px'
+                  }}
+                >
+                  削除
+                </button>
+              </div>
+
+              {/* 頂点編集の操作説明 */}
+              {selectedFeatureId &&
+                (() => {
+                  const currentFeature = drawnFeatures.find((f) => f.id === selectedFeatureId)
+                  const isCircle = currentFeature?.type === 'circle'
+                  const isPolygonOrLine =
+                    currentFeature?.type === 'polygon' || currentFeature?.type === 'line'
+
+                  if (!isCircle && isPolygonOrLine) {
+                    if (isEditing) {
+                      // 編集モード中の詳細説明
+                      return (
+                        <div
+                          style={{
+                            marginBottom: '12px',
+                            padding: '8px',
+                            backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
+                            borderRadius: '4px',
+                            border: '1px solid #8bc34a',
+                            fontSize: '11px',
+                            color: darkMode ? '#c5e1a5' : '#558b2f'
+                          }}
+                        >
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                            頂点の編集方法
+                          </div>
+                          <div style={{ lineHeight: '1.6' }}>
+                            - 頂点を移動: 青い点をドラッグ
+                            <br />
+                            - 頂点を追加: 辺の中点（小さい点）をクリック
+                            <br />- 頂点を削除: 頂点を選択 → Delete/Backspace
+                          </div>
+                        </div>
+                      )
+                    } else {
+                      // 編集モード前のヒント
+                      return (
+                        <div
+                          style={{
+                            marginBottom: '12px',
+                            padding: '6px 8px',
+                            backgroundColor: darkMode ? '#1e3a5f' : '#e3f2fd',
+                            borderRadius: '4px',
+                            border: `1px solid ${darkMode ? '#2196f3' : '#90caf9'}`,
+                            fontSize: '10px',
+                            color: darkMode ? '#90caf9' : '#1565c0'
+                          }}
+                        >
+                          「編集」ボタンで頂点の追加・削除・移動が可能
+                        </div>
+                      )
+                    }
+                  }
+                  return null
+                })()}
             </>
           )}
 
           {/* 出力タブ */}
           {activeTab === 'export' && (
             <>
-              <div style={{
-                marginBottom: '12px',
-                padding: '10px',
-                backgroundColor: darkMode ? '#2a2a3a' : '#e8f5e9',
-                borderRadius: '6px'
-              }}>
-                <label style={{ fontSize: '12px', color: darkMode ? '#81c784' : '#2e7d32', display: 'block', marginBottom: '8px', fontWeight: 600 }}>
+              <div
+                style={{
+                  marginBottom: '12px',
+                  padding: '10px',
+                  backgroundColor: darkMode ? '#2a2a3a' : '#e8f5e9',
+                  borderRadius: '6px'
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: '12px',
+                    color: darkMode ? '#81c784' : '#2e7d32',
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: 600
+                  }}
+                >
                   エクスポート形式
                 </label>
 
-          {/* エクスポート形式選択 */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              {(['geojson', 'kml', 'csv', 'dms'] as ExportFormat[]).map(format => (
-                <button
-                  key={format}
-                  onClick={() => setExportFormat(format)}
-                  style={{
-                    flex: '1 0 auto',
-                    padding: '6px 12px',
-                    backgroundColor: exportFormat === format ? '#3388ff' : buttonBg,
-                    color: exportFormat === format ? '#fff' : (darkMode ? '#ccc' : '#666'),
-                    border: `1px solid ${exportFormat === format ? '#3388ff' : borderColor}`,
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    fontWeight: exportFormat === format ? 'bold' : 'normal'
-                  }}
-                >
-                  {EXPORT_FORMAT_LABELS[format]}
-                </button>
-              ))}
-            </div>
-          </div>
+                {/* エクスポート形式選択 */}
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    {(['geojson', 'kml', 'csv', 'dms'] as ExportFormat[]).map((format) => (
+                      <button
+                        key={format}
+                        onClick={() => setExportFormat(format)}
+                        style={{
+                          flex: '1 0 auto',
+                          padding: '6px 12px',
+                          backgroundColor: exportFormat === format ? '#3388ff' : buttonBg,
+                          color: exportFormat === format ? '#fff' : darkMode ? '#ccc' : '#666',
+                          border: `1px solid ${exportFormat === format ? '#3388ff' : borderColor}`,
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          fontWeight: exportFormat === format ? 'bold' : 'normal'
+                        }}
+                      >
+                        {EXPORT_FORMAT_LABELS[format]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-          {/* 出力ボタン */}
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button
-              onClick={handleCopyCoordinates}
-              disabled={drawnFeatures.length === 0}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: drawnFeatures.length > 0 ? '#e3f2fd' : buttonBg,
-                color: drawnFeatures.length > 0 ? '#1565c0' : (darkMode ? '#666' : '#999'),
-                border: `1px solid ${borderColor}`,
-                borderRadius: '4px',
-                cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
-                fontSize: '11px'
-              }}
-            >
-              座標コピー
-            </button>
-            <button
-              onClick={handleShowPreview}
-              disabled={drawnFeatures.length === 0}
-              style={{
-                flex: 1,
-                padding: '8px',
-                backgroundColor: drawnFeatures.length > 0 ? '#e8f5e9' : buttonBg,
-                color: drawnFeatures.length > 0 ? '#2e7d32' : (darkMode ? '#666' : '#999'),
-                border: `1px solid ${borderColor}`,
-                borderRadius: '4px',
-                cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
-                fontSize: '11px'
-              }}
-            >
-              データ出力
-            </button>
-          </div>
+                {/* 出力ボタン */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    onClick={handleShowPreview}
+                    disabled={drawnFeatures.length === 0}
+                    title={
+                      drawnFeatures.length === 0
+                        ? '描画データがありません'
+                        : `データ出力（${EXPORT_FORMAT_LABELS[exportFormat]}）`
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '12px 10px',
+                      backgroundColor: drawnFeatures.length > 0 ? '#3388ff' : buttonBg,
+                      color: drawnFeatures.length > 0 ? '#fff' : darkMode ? '#666' : '#999',
+                      border: `1px solid ${drawnFeatures.length > 0 ? '#3388ff' : borderColor}`,
+                      borderRadius: '6px',
+                      cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      letterSpacing: '0.2px'
+                    }}
+                  >
+                    データ出力（ダウンロード）
+                  </button>
 
-          {/* 全削除 */}
-          {drawnFeatures.length > 0 && (
-            <button
-              onClick={handleDeleteAll}
-              style={{
-                width: '100%',
-                marginTop: '8px',
-                padding: '6px',
-                backgroundColor: 'transparent',
-                color: '#c62828',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '10px'
-              }}
-            >
-              全て削除
-            </button>
-          )}
+                  <button
+                    onClick={handleCopyCoordinates}
+                    disabled={drawnFeatures.length === 0}
+                    title={
+                      drawnFeatures.length === 0
+                        ? '描画データがありません'
+                        : '座標をテキスト形式でコピー'
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      backgroundColor:
+                        drawnFeatures.length > 0
+                          ? darkMode
+                            ? 'rgba(66, 165, 245, 0.14)'
+                            : '#e3f2fd'
+                          : buttonBg,
+                      color: drawnFeatures.length > 0 ? '#1565c0' : darkMode ? '#666' : '#999',
+                      border: `1px solid ${borderColor}`,
+                      borderRadius: '6px',
+                      cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
+                      fontSize: '11px',
+                      fontWeight: 700
+                    }}
+                  >
+                    座標コピー
+                  </button>
+                </div>
+
+                {/* 全削除 */}
+                {drawnFeatures.length > 0 && (
+                  <button
+                    onClick={handleDeleteAll}
+                    style={{
+                      width: '100%',
+                      marginTop: '8px',
+                      padding: '6px',
+                      backgroundColor: 'transparent',
+                      color: '#c62828',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '10px'
+                    }}
+                  >
+                    全て削除
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -2737,72 +3281,102 @@ ${kmlFeatures}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }} onClick={() => {
-          setShowDeleteConfirm(false)
-          setPendingDeleteIds([])
-        }}>
-          <div style={{
-            backgroundColor: darkMode ? '#2a2a2a' : '#fff',
-            borderRadius: '16px',
-            width: '400px',
-            maxWidth: '90vw',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
-            overflow: 'hidden'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{
-              padding: '32px 24px 24px',
-              textAlign: 'center'
-            }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000
+          }}
+          onClick={() => {
+            setShowDeleteConfirm(false)
+            setPendingDeleteIds([])
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: darkMode ? '#2a2a2a' : '#fff',
+              borderRadius: '16px',
+              width: '400px',
+              maxWidth: '90vw',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                padding: '32px 24px 24px',
+                textAlign: 'center'
+              }}
+            >
               {/* アイコン: 外側リング + 内側円 + ! */}
-              <div style={{
-                width: '72px',
-                height: '72px',
-                borderRadius: '50%',
-                backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.1)' : 'rgba(239, 83, 80, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 20px'
-              }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
+              <div
+                style={{
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
-                  border: `2px solid ${darkMode ? '#ef5350' : '#ef5350'}`,
-                  backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.15)' : 'rgba(239, 83, 80, 0.1)',
+                  backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.1)' : 'rgba(239, 83, 80, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  color: '#ef5350'
-                }}>
+                  margin: '0 auto 20px'
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    border: `2px solid ${darkMode ? '#ef5350' : '#ef5350'}`,
+                    backgroundColor: darkMode
+                      ? 'rgba(239, 83, 80, 0.15)'
+                      : 'rgba(239, 83, 80, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    color: '#ef5350'
+                  }}
+                >
                   !
                 </div>
               </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: 600, color: darkMode ? '#fff' : '#333' }}>
+              <h3
+                style={{
+                  margin: '0 0 8px',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: darkMode ? '#fff' : '#333'
+                }}
+              >
                 削除しますか？
               </h3>
-              <p style={{ margin: 0, fontSize: '14px', color: darkMode ? '#999' : '#666', lineHeight: 1.5 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  color: darkMode ? '#999' : '#666',
+                  lineHeight: 1.5
+                }}
+              >
                 選択された {selectedCount} 個のオブジェクトを削除します
               </p>
             </div>
-            <div style={{
-              padding: '16px 24px 24px',
-              display: 'flex',
-              gap: '12px'
-            }}>
+            <div
+              style={{
+                padding: '16px 24px 24px',
+                display: 'flex',
+                gap: '12px'
+              }}
+            >
               <button
                 onClick={() => {
                   setShowDeleteConfirm(false)
@@ -2854,7 +3428,10 @@ ${kmlFeatures}
             <button
               onClick={async () => {
                 if (!navigator.clipboard || !navigator.clipboard.writeText) {
-                  showToast('このブラウザではクリップボードへのコピーがサポートされていません', 'error')
+                  showToast(
+                    'このブラウザではクリップボードへのコピーがサポートされていません',
+                    'error'
+                  )
                   return
                 }
                 try {

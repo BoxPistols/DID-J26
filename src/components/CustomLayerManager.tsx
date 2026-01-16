@@ -3,7 +3,7 @@
  * ユーザーがカスタムレイヤーをインポート/エクスポート/管理するUI
  */
 
-import { useState, useRef } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import {
   CustomLayerService,
   CustomLayer,
@@ -13,12 +13,14 @@ import {
 } from '../lib/services/customLayers'
 import { showToast } from '../utils/toast'
 import { showConfirm } from '../utils/dialog'
+import { getAppTheme } from '../styles/theme'
 
 export interface CustomLayerManagerProps {
   onLayerAdded: (layer: CustomLayer) => void
   onLayerRemoved: (layerId: string) => void
   onLayerToggle: (layerId: string, visible: boolean) => void
   visibleLayers: Set<string>
+  darkMode: boolean
 }
 
 /**
@@ -51,8 +53,10 @@ export function CustomLayerManager({
   onLayerAdded,
   onLayerRemoved,
   onLayerToggle,
-  visibleLayers
+  visibleLayers,
+  darkMode
 }: CustomLayerManagerProps) {
+  const theme = useMemo(() => getAppTheme(darkMode), [darkMode])
   const [isOpen, setIsOpen] = useState(false)
   const [customLayers, setCustomLayers] = useState<CustomLayer[]>(() => CustomLayerService.getAll())
   const [importing, setImporting] = useState(false)
@@ -174,7 +178,7 @@ export function CustomLayerManager({
           bottom: 20,
           right: 20,
           padding: '10px 16px',
-          backgroundColor: '#4a90d9',
+          backgroundColor: theme.colors.buttonBgActive,
           color: '#fff',
           border: 'none',
           borderRadius: '8px',
@@ -196,7 +200,7 @@ export function CustomLayerManager({
       right: 20,
       width: '360px',
       maxHeight: '80vh',
-      backgroundColor: '#fff',
+      backgroundColor: theme.colors.panelBg,
       borderRadius: '8px',
       boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
       zIndex: 1000,
@@ -207,7 +211,7 @@ export function CustomLayerManager({
       {/* Header */}
       <div style={{
         padding: '12px 16px',
-        backgroundColor: '#4a90d9',
+        backgroundColor: theme.colors.buttonBgActive,
         color: '#fff',
         display: 'flex',
         justifyContent: 'space-between',
@@ -232,7 +236,7 @@ export function CustomLayerManager({
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
         {/* Import Section */}
         <div style={{ marginBottom: '16px' }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: '#666' }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: theme.colors.textMuted }}>
             GeoJSONファイルをインポート
           </h4>
 
@@ -245,10 +249,12 @@ export function CustomLayerManager({
               style={{
                 width: '100%',
                 padding: '6px 8px',
-                border: '1px solid #ddd',
+                border: `1px solid ${theme.colors.borderStrong}`,
                 borderRadius: '4px',
                 fontSize: '12px',
-                marginBottom: '4px'
+                marginBottom: '4px',
+                backgroundColor: theme.colors.buttonBg,
+                color: theme.colors.text
               }}
             />
           </div>
@@ -267,9 +273,11 @@ export function CustomLayerManager({
               style={{
                 flex: 1,
                 padding: '6px 8px',
-                border: '1px solid #ddd',
+                border: `1px solid ${theme.colors.borderStrong}`,
                 borderRadius: '4px',
-                fontSize: '12px'
+                fontSize: '12px',
+                backgroundColor: theme.colors.buttonBg,
+                color: theme.colors.text
               }}
             >
               {CATEGORIES.map(cat => (
@@ -299,7 +307,7 @@ export function CustomLayerManager({
             style={{
               width: '100%',
               padding: '8px',
-              backgroundColor: importing ? '#ccc' : '#4a90d9',
+              backgroundColor: importing ? theme.colors.borderStrong : theme.colors.buttonBgActive,
               color: '#fff',
               border: 'none',
               borderRadius: '4px',
@@ -313,12 +321,12 @@ export function CustomLayerManager({
 
         {/* Existing Layers */}
         <div style={{ marginBottom: '16px' }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: '#666' }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: theme.colors.textMuted }}>
             登録済みレイヤー ({customLayers.length})
           </h4>
 
           {customLayers.length === 0 ? (
-            <p style={{ fontSize: '11px', color: '#888', textAlign: 'center', padding: '16px' }}>
+            <p style={{ fontSize: '11px', color: theme.colors.textSubtle, textAlign: 'center', padding: '16px' }}>
               カスタムレイヤーがありません
             </p>
           ) : (
@@ -329,9 +337,10 @@ export function CustomLayerManager({
                   style={{
                     padding: '8px',
                     marginBottom: '4px',
-                    backgroundColor: '#f8f8f8',
+                    backgroundColor: darkMode ? 'rgba(255,255,255,0.06)' : '#f8f8f8',
                     borderRadius: '4px',
-                    fontSize: '11px'
+                    fontSize: '11px',
+                    border: `1px solid ${theme.colors.border}`
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -348,14 +357,14 @@ export function CustomLayerManager({
                         borderRadius: '2px'
                       }}
                     />
-                    <span style={{ flex: 1, fontWeight: 500 }}>{layer.name}</span>
+                    <span style={{ flex: 1, fontWeight: 600, color: theme.colors.text }}>{layer.name}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginLeft: '24px' }}>
-                    <span style={{ color: '#888', fontSize: '10px' }}>
+                    <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
                       {CATEGORIES.find(c => c.id === layer.category)?.name || layer.category}
                     </span>
-                    <span style={{ color: '#888', fontSize: '10px' }}>|</span>
-                    <span style={{ color: '#888', fontSize: '10px' }}>
+                    <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>|</span>
+                    <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
                       {layer.data.features.length} features
                     </span>
                   </div>
@@ -365,10 +374,11 @@ export function CustomLayerManager({
                       style={{
                         padding: '2px 8px',
                         fontSize: '10px',
-                        backgroundColor: '#e8e8e8',
+                        backgroundColor: darkMode ? 'rgba(255,255,255,0.10)' : '#e8e8e8',
                         border: 'none',
                         borderRadius: '2px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        color: theme.colors.text
                       }}
                     >
                       エクスポート
@@ -378,8 +388,8 @@ export function CustomLayerManager({
                       style={{
                         padding: '2px 8px',
                         fontSize: '10px',
-                        backgroundColor: '#ffebee',
-                        color: '#c62828',
+                        backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.18)' : '#ffebee',
+                        color: darkMode ? '#ff8a80' : '#c62828',
                         border: 'none',
                         borderRadius: '2px',
                         cursor: 'pointer'
@@ -395,8 +405,8 @@ export function CustomLayerManager({
         </div>
 
         {/* Bulk Operations */}
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '12px' }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: '#666' }}>一括操作</h4>
+        <div style={{ borderTop: `1px solid ${theme.colors.border}`, paddingTop: '12px' }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '12px', color: theme.colors.textMuted }}>一括操作</h4>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={handleExportAll}
@@ -405,10 +415,14 @@ export function CustomLayerManager({
                 flex: 1,
                 padding: '8px',
                 fontSize: '11px',
-                backgroundColor: customLayers.length === 0 ? '#eee' : '#f0f0f0',
+                backgroundColor:
+                  customLayers.length === 0
+                    ? (darkMode ? 'rgba(255,255,255,0.08)' : '#eee')
+                    : (darkMode ? 'rgba(255,255,255,0.10)' : '#f0f0f0'),
                 border: 'none',
                 borderRadius: '4px',
-                cursor: customLayers.length === 0 ? 'not-allowed' : 'pointer'
+                cursor: customLayers.length === 0 ? 'not-allowed' : 'pointer',
+                color: theme.colors.text
               }}
             >
               全てエクスポート
@@ -417,11 +431,12 @@ export function CustomLayerManager({
               flex: 1,
               padding: '8px',
               fontSize: '11px',
-              backgroundColor: '#f0f0f0',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.10)' : '#f0f0f0',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              textAlign: 'center'
+              textAlign: 'center',
+              color: theme.colors.text
             }}>
               一括インポート
               <input
@@ -438,10 +453,10 @@ export function CustomLayerManager({
       {/* Help text */}
       <div style={{
         padding: '8px 16px',
-        backgroundColor: '#f8f8f8',
-        borderTop: '1px solid #eee',
+        backgroundColor: darkMode ? 'rgba(255,255,255,0.06)' : '#f8f8f8',
+        borderTop: `1px solid ${theme.colors.border}`,
         fontSize: '10px',
-        color: '#888'
+        color: theme.colors.textSubtle
       }}>
         GeoJSON形式のファイルをインポートできます。
         データはブラウザのローカルストレージに保存されます。

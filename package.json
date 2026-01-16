@@ -26,6 +26,7 @@
     "build": "tsc -b && vite build",
     "build:lib": "tsc --project tsconfig.lib.json",
     "preview": "vite preview",
+    "test": "vitest",
     "prepublishOnly": "npm run build:lib",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -78,9 +79,11 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^27.4.0",
     "mapshaper": "^0.6.113",
     "storybook": "^8.6.15",
     "typescript": "^5.7.2",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vitest": "^4.0.17"
   }
 }

@@ -2301,6 +2301,9 @@ function App() {
   const KOKUAREA_TILE_ZOOM = 8
   const KOKUAREA_MIN_MAP_ZOOM = 8
   const KOKUAREA_FETCH_CONCURRENCY = 6
+  const KOKUAREA_TOAST_INTERVAL_MS = 8000
+
+  type KokuareaToastKey = 'zoom' | 'tooMany'
 
   const kokuareaRef = useRef<{
     enabled: boolean
@@ -2310,6 +2313,7 @@ function App() {
     updateSeq: number
     detach: (() => void) | null
     lastKeysSig: string | null
+    lastToastKey: KokuareaToastKey | null
     lastToastAt: number
   }>({
     enabled: false,
@@ -2319,6 +2323,7 @@ function App() {
     updateSeq: 0,
     detach: null,
     lastKeysSig: null,
+    lastToastKey: null,
     lastToastAt: 0
   })
 
@@ -2361,9 +2366,6 @@ function App() {
 
     if (xyzs.length > KOKUAREA_MAX_TILES) {
       // 広域表示すぎるとタイル数が爆発して重くなるため、一定以上は描画しない
-      toast.info(
-        '表示範囲が広すぎます。現在は空港位置を簡易表示します。ズームインすると空港など周辺空域が表示されます'
-      )
       return { z, keys: [], xyzs: [], tooMany: true }
     }
 
@@ -2543,9 +2545,11 @@ function App() {
     const seq = ++state.updateSeq
     const { keys, xyzs, tooMany } = computeKokuareaZoomAndTiles(map)
 
-    const maybeToast = (message: string): void => {
+    const maybeToast = (key: KokuareaToastKey, message: string): void => {
       const now = Date.now()
-      if (now - state.lastToastAt < 1500) return
+      if (state.lastToastKey === key) return
+      if (now - state.lastToastAt < KOKUAREA_TOAST_INTERVAL_MS) return
+      state.lastToastKey = key
       state.lastToastAt = now
       toast.info(message)
     }
@@ -2558,10 +2562,12 @@ function App() {
       const zoom = map.getZoom()
       if (zoom < KOKUAREA_MIN_MAP_ZOOM) {
         maybeToast(
+          'zoom',
           `空港など周辺空域はズーム${KOKUAREA_MIN_MAP_ZOOM}+で詳細表示します（現在は簡易表示: Z ${zoom.toFixed(1)}）`
         )
       } else {
         maybeToast(
+          'tooMany',
           '表示範囲が広すぎます。現在は空港位置を簡易表示します。ズームインすると空域が表示されます'
         )
       }
@@ -2582,6 +2588,7 @@ function App() {
 
     // タイル表示可能なら、全国俯瞰用の点表示は消す（重複・ノイズ防止）
     setAirportOverviewVisibility(map, false)
+    state.lastToastKey = null
 
     // 使わなくなったタイルを捨てる（メモリ・feature数を抑制）
     const keep = new Set(keys)

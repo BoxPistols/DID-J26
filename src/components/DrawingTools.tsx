@@ -561,6 +561,7 @@ export function DrawingTools({
   const [circlePoints, setCirclePoints] = useState(24) // 円の頂点数
   const drawRef = useRef<MapboxDraw | null>(null)
   const [selectedFeatureId, setSelectedFeatureId] = useState<string | null>(null)
+  const [selectedFeatureIds, setSelectedFeatureIds] = useState<Set<string>>(new Set())
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<string>('')
   const [exportFormat, setExportFormat] = useState<ExportFormat>('geojson')
@@ -588,6 +589,15 @@ export function DrawingTools({
   const modeStartDrawModeRef = useRef<DrawMode>('none') // どのモード開始時に記録したか
   const isRestoringRef = useRef(false) // データ復元中フラグ
   const isDisposedRef = useRef(false) // アンマウント/破棄フラグ（非同期の後処理を止める）
+
+  const updateSelectionState = useCallback((ids: string[], primaryId?: string | null) => {
+    const nextPrimary =
+      primaryId && ids.includes(primaryId) ? primaryId : ids.length > 0 ? ids[0] : null
+    setSelectedFeatureIds(new Set(ids))
+    setCheckedFeatureIds(new Set(ids))
+    setSelectedCount(ids.length)
+    setSelectedFeatureId(nextPrimary)
+  }, [])
 
   // drawModeが変更されたらrefも更新
   useEffect(() => {
@@ -965,7 +975,7 @@ export function DrawingTools({
     }
 
     // イベントハンドラ
-    const handleCreate = (e: { features: Array<{ id: string }> }) => {
+    const handleCreate = (e: { features: Array<{ id: string | number }> }) => {
       updateFeatures()
       bringLabelsToFront()
 
@@ -980,8 +990,8 @@ export function DrawingTools({
 
       // 作成後、自動的に選択状態にして編集しやすく
       if (e.features.length > 0) {
-        const newFeatureId = e.features[0].id
-        setSelectedFeatureId(newFeatureId)
+        const newFeatureId = String(e.features[0].id)
+        updateSelectionState([newFeatureId], newFeatureId)
         // 作成後、選択モードに戻す
         safeSetTimeout(() => {
           draw.changeMode('simple_select', { featureIds: [newFeatureId] })
@@ -997,16 +1007,16 @@ export function DrawingTools({
 
     const handleDelete = () => {
       updateFeatures()
-      setSelectedFeatureId(null)
+      updateSelectionState([])
       bringLabelsToFront()
     }
 
-    const handleSelectionChange = (e: { features: Array<{ id: string }> }) => {
-      if (e.features.length > 0) {
-        setSelectedFeatureId(e.features[0].id)
-      } else {
-        setSelectedFeatureId(null)
-      }
+    const handleSelectionChange = (e: { features?: Array<{ id?: string | number }> }) => {
+      const ids = (e.features ?? [])
+        .map((feature) => (feature.id !== undefined ? String(feature.id) : null))
+        .filter((id): id is string => id !== null)
+
+      updateSelectionState(ids)
       // direct_selectモードの場合、頂点ラベルを更新して選択状態を反映
       if (draw.getMode() === 'direct_select') {
         safeSetTimeout(() => {
@@ -1571,14 +1581,15 @@ export function DrawingTools({
 
   // 全選択/解除
   const handleSelectAll = useCallback(() => {
+    const allIds = filteredFeatures.map((f) => f.id)
     if (checkedFeatureIds.size === filteredFeatures.length) {
       // 全解除
-      setCheckedFeatureIds(new Set())
+      updateSelectionState([])
     } else {
       // 全選択
-      setCheckedFeatureIds(new Set(filteredFeatures.map((f) => f.id)))
+      updateSelectionState(allIds)
     }
-  }, [checkedFeatureIds.size, filteredFeatures])
+  }, [checkedFeatureIds.size, filteredFeatures, updateSelectionState])
 
   // 選択中のフィーチャーを一括削除
   const handleBulkDelete = useCallback(() => {
@@ -1590,16 +1601,14 @@ export function DrawingTools({
 
   // チェックボックスのトグル
   const toggleFeatureCheck = useCallback((featureId: string) => {
-    setCheckedFeatureIds((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(featureId)) {
-        newSet.delete(featureId)
-      } else {
-        newSet.add(featureId)
-      }
-      return newSet
-    })
-  }, [])
+    const next = new Set(checkedFeatureIds)
+    if (next.has(featureId)) {
+      next.delete(featureId)
+    } else {
+      next.add(featureId)
+    }
+    updateSelectionState(Array.from(next), featureId)
+  }, [checkedFeatureIds, updateSelectionState])
 
   // 削除後にチェック状態をクリア
   const handleConfirmDeleteWithClear = useCallback(() => {
@@ -1609,11 +1618,9 @@ export function DrawingTools({
     })
     setShowDeleteConfirm(false)
     setPendingDeleteIds([])
-    setSelectedCount(0)
-    setSelectedFeatureId(null)
-    setCheckedFeatureIds(new Set()) // チェックをクリア
+    updateSelectionState([])
     updateFeatures()
-  }, [pendingDeleteIds, updateFeatures])
+  }, [pendingDeleteIds, updateFeatures, updateSelectionState])
 
   // 描画モード変更
   const handleModeChange = (mode: DrawMode) => {
@@ -1671,7 +1678,7 @@ export function DrawingTools({
   const handleDelete = () => {
     if (!drawRef.current || !selectedFeatureId) return
     drawRef.current.delete(selectedFeatureId)
-    setSelectedFeatureId(null)
+    updateSelectionState([])
     updateFeatures()
   }
 
@@ -1680,6 +1687,7 @@ export function DrawingTools({
     if (!drawRef.current) return
     drawRef.current.deleteAll()
     setDrawnFeatures([])
+    updateSelectionState([])
     onFeaturesChange?.([])
   }
 
@@ -1704,7 +1712,7 @@ export function DrawingTools({
   const handleNameClick = (feature: DrawnFeature) => {
     clearNameClickTimer()
     nameClickTimerRef.current = window.setTimeout(() => {
-      setSelectedFeatureId(feature.id)
+      updateSelectionState([feature.id], feature.id)
       zoomToFeature(feature)
       nameClickTimerRef.current = null
     }, 200)
@@ -1712,7 +1720,7 @@ export function DrawingTools({
 
   const handleNameDoubleClick = (feature: DrawnFeature) => {
     clearNameClickTimer()
-    setSelectedFeatureId(feature.id)
+    updateSelectionState([feature.id], feature.id)
     setEditingNameId(feature.id)
     setEditingNameValue(feature.name)
     editingNameOriginalRef.current = feature.name
@@ -2203,9 +2211,10 @@ ${kmlFeatures}
 
       const firstId = Array.isArray(addedIds) ? addedIds[0] : addedIds
       if (firstId) {
-        setSelectedFeatureId(String(firstId))
+        updateSelectionState([String(firstId)], String(firstId))
+      } else {
+        updateSelectionState([])
       }
-      setCheckedFeatureIds(new Set())
       setActiveTab('manage')
 
       showToast(`インポート完了: ${normalized.length}件`, 'success')
@@ -2345,7 +2354,7 @@ ${kmlFeatures}
 
     // 新しいフィーチャーを選択
     if (newFeature && newFeature[0]) {
-      setSelectedFeatureId(newFeature[0])
+      updateSelectionState([String(newFeature[0])], String(newFeature[0]))
       drawRef.current.changeMode('simple_select', { featureIds: newFeature })
     }
 
@@ -3005,9 +3014,16 @@ ${kmlFeatures}
                   >
                     描画済み
                   </label>
-                  <span style={{ fontSize: '11px', color: darkMode ? '#888' : '#666' }}>
-                    {filteredFeatures.length}/{drawnFeatures.length}件
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: darkMode ? '#888' : '#666' }}>
+                      {filteredFeatures.length}/{drawnFeatures.length}件
+                    </span>
+                    {selectedFeatureIds.size > 0 && (
+                      <span style={{ fontSize: '11px', color: darkMode ? '#ffcc80' : '#ef6c00' }}>
+                        選択中: {selectedFeatureIds.size}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* フィーチャーリスト */}
@@ -3032,24 +3048,33 @@ ${kmlFeatures}
                       {drawnFeatures.length === 0 ? '地図上をクリックして描画' : '該当なし'}
                     </p>
                   ) : (
-                    filteredFeatures.map((f) => (
-                      <div
-                        key={f.id}
-                        style={{
-                          padding: '6px 8px',
-                          borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
-                          fontSize: '12px',
-                          backgroundColor:
-                            selectedFeatureId === f.id
+                    filteredFeatures.map((f) => {
+                      const isSelected = selectedFeatureIds.has(f.id)
+                      return (
+                        <div
+                          key={f.id}
+                          style={{
+                            padding: '6px 8px',
+                            borderBottom: `1px solid ${darkMode ? '#333' : '#eee'}`,
+                            fontSize: '12px',
+                            backgroundColor: isSelected
                               ? darkMode
-                                ? 'rgba(30, 58, 95, 0.6)'
-                                : 'rgba(187, 222, 251, 0.6)'
+                                ? 'rgba(30, 58, 95, 0.85)'
+                                : 'rgba(187, 222, 251, 0.8)'
                               : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
+                            borderLeft: isSelected
+                              ? `3px solid ${darkMode ? '#90caf9' : '#1976d2'}`
+                              : '3px solid transparent',
+                            boxShadow: isSelected
+                              ? darkMode
+                                ? '0 0 0 1px rgba(144, 202, 249, 0.5) inset'
+                                : '0 0 0 1px rgba(25, 118, 210, 0.35) inset'
+                              : 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
                         {/* チェックボックス */}
                         <input
                           type="checkbox"
@@ -3156,7 +3181,7 @@ ${kmlFeatures}
                         {/* ZOOMボタン */}
                         <button
                           onClick={() => {
-                            setSelectedFeatureId(f.id)
+                            updateSelectionState([f.id], f.id)
                             zoomToFeature(f)
                           }}
                           style={{
@@ -3174,8 +3199,9 @@ ${kmlFeatures}
                         >
                           ZOOM
                         </button>
-                      </div>
-                    ))
+                        </div>
+                      )
+                    })
                   )}
                 </div>
 
@@ -3380,7 +3406,7 @@ ${kmlFeatures}
                               geometry: newCirclePolygon
                             })
                             if (newFeature && newFeature[0]) {
-                              setSelectedFeatureId(newFeature[0])
+                              updateSelectionState([String(newFeature[0])], String(newFeature[0]))
                               drawRef.current.changeMode('simple_select', {
                                 featureIds: newFeature
                               })

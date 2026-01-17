@@ -33,7 +33,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "download:facilities": "node scripts/download_osm_facilities.js"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [

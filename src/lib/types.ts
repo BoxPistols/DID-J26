@@ -110,6 +110,21 @@ export interface RestrictionCategory {
 }
 
 // ============================================
+// Facility Layer Types (施設データ)
+// ============================================
+export type FacilityCategory = 'landing' | 'military' | 'fire' | 'medical'
+
+export interface FacilityLayerConfig {
+  id: string
+  name: string
+  path: string
+  color: string
+  category: FacilityCategory
+  description?: string
+  pointRadius?: number
+}
+
+// ============================================
 // Airport Types
 // ============================================
 export interface Airport {

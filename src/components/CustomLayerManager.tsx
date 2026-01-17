@@ -14,6 +14,7 @@ import {
 import { showToast } from '../utils/toast'
 import { showConfirm } from '../utils/dialog'
 import { getAppTheme } from '../styles/theme'
+import { Modal } from './Modal'
 
 export interface CustomLayerManagerProps {
   onLayerAdded: (layer: CustomLayer) => void
@@ -456,6 +457,7 @@ export function CustomLayerManager({
   }
 
   return (
+    <>
     <div style={{
       position: 'fixed',
       bottom: 20,
@@ -522,40 +524,6 @@ export function CustomLayerManager({
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-        {showHelp && (
-          <div
-            style={{
-              marginBottom: '12px',
-              padding: '10px',
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '8px',
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.06)' : theme.colors.panelBgMuted,
-              color: theme.colors.text,
-              fontSize: '11px',
-              lineHeight: 1.5
-            }}
-          >
-            <div style={{ fontWeight: 800, marginBottom: '6px' }}>これは何？</div>
-            <div style={{ color: theme.colors.textMuted }}>
-              公開データが無い/足りない場合に、あなたのGeoJSON（ファイル or 描画）を地図に追加して保存・管理する機能です。
-            </div>
-            <div style={{ marginTop: '8px', fontWeight: 800 }}>できること</div>
-            <div style={{ marginTop: '4px', color: theme.colors.textMuted }}>
-              - ファイル（GeoJSON）や描画ツールの作成データからレイヤー追加
-              <br />
-              - 表示ON/OFF、ズーム、エクスポート、削除
-              <br />
-              - 一括エクスポート/一括インポート、同内容重複の整理
-            </div>
-            <div style={{ marginTop: '8px', fontWeight: 800 }}>注意</div>
-            <div style={{ marginTop: '4px', color: theme.colors.textMuted }}>
-              - データはブラウザのローカルストレージに保存されます（端末/ブラウザが変わると引き継がれません）
-              <br />
-              - 同じ内容を複数回登録すると重複します（必要なら「重複整理」）
-            </div>
-          </div>
-        )}
-
         {/* Add Layer (unified) */}
         <div style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -1019,6 +987,36 @@ export function CustomLayerManager({
         データはブラウザのローカルストレージに保存されます。
       </div>
     </div>
+
+    <Modal
+      isOpen={showHelp}
+      onClose={() => setShowHelp(false)}
+      title="カスタムレイヤー管理について"
+      darkMode={darkMode}
+      width="560px"
+      maxHeight="70vh"
+      overlayOpacity={0.25}
+      zIndex={2001}
+    >
+      <div style={{ fontSize: '13px', lineHeight: 1.6, color: theme.colors.text }}>
+        <div style={{ fontWeight: 800, marginBottom: '6px' }}>これは何？</div>
+        <div style={{ color: theme.colors.textMuted }}>
+          公開データが無い/足りない場合に、あなたのGeoJSON（ファイル or 描画）を地図に追加して保存・管理する機能です。
+        </div>
+        <div style={{ marginTop: '12px', fontWeight: 800 }}>できること</div>
+        <ul style={{ margin: '6px 0 0', paddingLeft: '20px', color: theme.colors.textMuted }}>
+          <li>ファイル（GeoJSON）や描画ツールの作成データからレイヤー追加</li>
+          <li>表示ON/OFF、ズーム、エクスポート、削除</li>
+          <li>一括エクスポート/一括インポート、同内容重複の整理</li>
+        </ul>
+        <div style={{ marginTop: '12px', fontWeight: 800 }}>注意</div>
+        <ul style={{ margin: '6px 0 0', paddingLeft: '20px', color: theme.colors.textMuted }}>
+          <li>データはブラウザのローカルストレージに保存されます（端末/ブラウザが変わると引き継がれません）</li>
+          <li>同じ内容を複数回登録すると重複します（必要なら「重複整理」）</li>
+        </ul>
+      </div>
+    </Modal>
+    </>
   )
 }
 

@@ -23,6 +23,10 @@ export interface ModalProps {
   width?: string
   /** モーダルの最大高さ */
   maxHeight?: string
+  /** 背景の透過度 */
+  overlayOpacity?: number
+  /** z-index */
+  zIndex?: number
 }
 
 /**
@@ -53,7 +57,9 @@ export function Modal({
   footer,
   darkMode = false,
   width = '600px',
-  maxHeight = '80vh'
+  maxHeight = '80vh',
+  overlayOpacity = 0.5,
+  zIndex = 2000
 }: ModalProps) {
   // ESCキーで閉じる
   useEffect(() => {
@@ -81,11 +87,11 @@ export function Modal({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: `rgba(0,0,0,${overlayOpacity})`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 2000
+        zIndex
       }}
       onClick={onClose}
     >

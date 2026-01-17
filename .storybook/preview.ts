@@ -1,23 +1,91 @@
 import React from 'react'
 import { DocsContainer } from '@storybook/blocks'
+import { SET_GLOBALS, GLOBALS_UPDATED } from '@storybook/core-events'
+import { addons } from '@storybook/preview-api'
 import { themes } from '@storybook/theming'
 
-// localStorage からテーマを取得（ブラウザ環境でのみ）
-let initialTheme = 'dark'
-if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+/** @typedef {'light' | 'dark'} ThemeName */
+
+const THEME_STORAGE_KEY = 'storybook-docs-theme'
+
+const isRecord = (value) => typeof value === 'object' && value !== null
+
+const isThemeName = (value) => value === 'light' || value === 'dark'
+
+const readStoredTheme = () => {
   try {
-    initialTheme = localStorage.getItem('storybook-theme') || 'dark'
-  } catch {
-    initialTheme = 'dark'
+    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    return isThemeName(stored) ? stored : 'light'
+  } catch (error) {
+    return 'light'
   }
+}
+
+const persistTheme = (themeName) => {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, themeName)
+  } catch (error) {
+    // ignore
+  }
+}
+
+let lastThemeName = readStoredTheme()
+
+const getThemeName = (globals) => {
+  if (!isRecord(globals)) {
+    return lastThemeName
+  }
+  const themeValue = globals.theme
+  if (isThemeName(themeValue)) {
+    lastThemeName = themeValue
+    persistTheme(themeValue)
+    return themeValue
+  }
+  return lastThemeName
+}
+
+const ThemedDocsContainer = (props) => {
+  const initialTheme = getThemeName(props?.context?.globals)
+  const [themeName, setThemeName] = React.useState(initialTheme)
+
+  React.useEffect(() => {
+    const nextTheme = getThemeName(props?.context?.globals)
+    setThemeName(nextTheme)
+  }, [props?.context?.globals])
+
+  React.useEffect(() => {
+    let channel
+    try {
+      channel = addons.getChannel()
+    } catch (error) {
+      return undefined
+    }
+
+    const handleGlobals = (payload) => {
+      const globals = payload?.globals
+      const nextTheme = getThemeName(globals)
+      setThemeName(nextTheme)
+    }
+
+    channel.on(SET_GLOBALS, handleGlobals)
+    channel.on(GLOBALS_UPDATED, handleGlobals)
+
+    return () => {
+      channel.off(SET_GLOBALS, handleGlobals)
+      channel.off(GLOBALS_UPDATED, handleGlobals)
+    }
+  }, [])
+
+  const theme = themeName === 'dark' ? themes.dark : themes.light
+  return React.createElement(DocsContainer, { ...props, theme })
 }
 
 const preview = {
   globalTypes: {
     theme: {
       name: 'Theme',
-      description: 'Storybook docs theme',
-      defaultValue: initialTheme,
+      description: 'Storybook UI theme',
+      defaultValue: lastThemeName,
       toolbar: {
         items: [
           { value: 'light', title: 'Light', icon: 'sun' },
@@ -40,8 +108,8 @@ const preview = {
         const toComparable = (entry) => {
           const value = Array.isArray(entry) ? entry[1] : entry
           return {
-            title: value?.title ?? '',
-            name: value?.name ?? ''
+            title: typeof value.title === 'string' ? value.title : '',
+            name: typeof value.name === 'string' ? value.name : ''
           }
         }
         const left = toComparable(a)
@@ -58,44 +126,16 @@ const preview = {
         headingSelector: 'h2, h3',
         title: 'Contents'
       },
-      container: (props) => {
-        const globals = props?.context?.globals ?? {}
-        const themeName = globals.theme ?? 'dark'
-        const theme = themeName === 'dark' ? themes.dark : themes.light
-        return React.createElement(DocsContainer, { ...props, theme })
-      }
+      container: ThemedDocsContainer
     },
     backgrounds: {
-      default: 'dark',
+      default: 'light',
       values: [
-        { name: 'dark', value: '#0f172a' },
-        { name: 'light', value: '#ffffff' }
+        { name: 'light', value: '#ffffff' },
+        { name: 'dark', value: '#0f172a' }
       ]
     }
   }
 }
-
-// テーマに応じてバックグラウンドを動的に設定し、localStorage に保存
-const withThemeBackground = (StoryFn, context) => {
-  const themeName = context.globals.theme ?? 'dark'
-  const bgColor = themeName === 'dark' ? '#0f172a' : '#ffffff'
-  
-  // テーマが変更されたときに localStorage に保存
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('storybook-theme', themeName)
-      // ドキュメントの背景色も更新
-      document.documentElement.style.colorScheme = themeName
-    }
-  }, [themeName])
-  
-  return React.createElement(
-    'div',
-    { style: { backgroundColor: bgColor, padding: '1rem', minHeight: '100vh' } },
-    React.createElement(StoryFn)
-  )
-}
-
-preview.decorators = [withThemeBackground]
 
 export default preview

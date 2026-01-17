@@ -22,6 +22,7 @@ export {
   RESTRICTION_COLORS,
   getAllRestrictionZones
 } from './config/overlays'
+export { FACILITY_LAYERS, getFacilityLayerById } from './config/facilities'
 export {
   LAYER_GROUPS,
   PREFECTURE_COLORS,

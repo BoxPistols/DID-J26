@@ -1,0 +1,5309 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/255037180",
+        "name": "航空自衛隊百里基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 255037180,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "Japan Air Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4171915,
+          36.1821
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/407674577",
+        "name": "嘉手納飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 407674577,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "United States Air Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.7675,
+          26.3555999
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/415168260",
+        "name": "横田飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 415168260,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3490931,
+          35.7490925
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/415168305",
+        "name": "航空自衛隊 入間基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 415168305,
+        "aeroway": "aerodrome",
+        "operator": "Japan Air Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4113541,
+          35.8429315
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/415168449",
+        "name": "青森空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 415168449,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.689686,
+          40.7340525
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/437312537",
+        "name": "大島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 437312537,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3606535,
+          34.7827315
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/711578066",
+        "name": "沖永良部空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 711578066,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          128.7051311,
+          27.4314629
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/711608508",
+        "name": "大分県央空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 711608508,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.5054495,
+          33.0265695
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/711614987",
+        "name": "壱岐空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 711614987,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.785263,
+          33.749026
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/711616938",
+        "name": "対馬空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 711616938,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.3313529,
+          34.284574
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042055838",
+        "name": "霞ヶ浦飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042055838,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "Japan Ground Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.192832,
+          36.0348716
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042055897",
+        "name": "目達原飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042055897,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.4130539,
+          33.3256992
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042055932",
+        "name": "鹿屋航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042055932,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.8356581,
+          31.3703561
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042055948",
+        "name": "航空自衛隊 岐阜基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042055948,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "Japan Air Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.8699951,
+          35.3941002
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042055974",
+        "name": "防府北基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042055974,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.548996,
+          34.0346985
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056004",
+        "name": "小月航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056004,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.052002,
+          34.0452995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056016",
+        "name": "八戸航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056016,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.468868,
+          40.5541994
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056033",
+        "name": "航空自衛隊 松島基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056033,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.2200012,
+          38.4048996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056058",
+        "name": "立川飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056058,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4029999,
+          35.7108002
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056080",
+        "name": "下総航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056080,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "JMSDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0113449,
+          35.7974387
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056568",
+        "name": "米軍伊江島補助飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056568,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.7649002,
+          26.7257576
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1042056580",
+        "name": "普天間飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1042056580,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.7557072,
+          26.2731265
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1735912495",
+        "name": "たきかわスカイパーク",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1735912495,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.8939383,
+          43.546134
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1826678044",
+        "name": "静浜基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1826678044,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "航空自衛隊"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.2958962,
+          34.8128917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/1957047232",
+        "name": "ニセコヘリポート管理事務所",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 1957047232,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.6716858,
+          42.8314707
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/2474531814",
+        "name": "ホンダエアポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 2474531814,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5238055,
+          35.9766513
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/2758262318",
+        "name": "芦屋飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 2758262318,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "JASDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.6544,
+          33.8829218
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/2758280631",
+        "name": "新田原基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 2758280631,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "JASDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.4543682,
+          32.0841222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/2902662010",
+        "name": "館山航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 2902662010,
+        "aeroway": "aerodrome",
+        "operator": "JMSDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8330565,
+          34.987205
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/4374414596",
+        "name": "スカイポート美唄",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 4374414596,
+        "aeroway": "aerodrome",
+        "operator": "Petair合同会社"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.8588724,
+          43.3898498
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7257187335",
+        "name": "三保飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7257187335,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.5301943,
+          35.0145295
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7875569714",
+        "name": "久住滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7875569714,
+        "aeroway": "aerodrome",
+        "operator": "特定非営利活動法人九州グライダースポーツ連盟"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.2336315,
+          33.0345084
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7875569847",
+        "name": "当麻滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7875569847,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.5118994,
+          43.8752303
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7875571909",
+        "name": "阿蘇場外離着陸場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7875571909,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.0973196,
+          33.0082755
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7875588480",
+        "name": "美瑛滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7875588480,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.5700437,
+          43.5285684
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/7875600968",
+        "name": "新しのつ村滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 7875600968,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.651851,
+          43.2772461
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/8627339142",
+        "name": "MICとよころ飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 8627339142,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.4917049,
+          42.7964838
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/8627354563",
+        "name": "フライトパーク白糠",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 8627354563,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.0581739,
+          42.9476976
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/9610812797",
+        "name": "流山場外へリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 9610812797,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8838205,
+          35.9040774
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/10054335207",
+        "name": "勝浦スカイハーバー",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 10054335207,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.2734467,
+          35.1787035
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/10295240024",
+        "name": "日出生台飛行場跡地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 10295240024,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.3364325,
+          33.2913905
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/35994591",
+        "name": "いわて花巻空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 35994591,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.1353103,
+          39.4271694
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/42722174",
+        "name": "浜松基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 42722174,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "航空自衛隊"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.7031999,
+          34.7491454
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/43104790",
+        "name": "陸上自衛隊 立川駐屯地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 43104790,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4029351,
+          35.7125545
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/50557531",
+        "name": "松山空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 50557531,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.6999473,
+          33.8273404
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/54717812",
+        "name": "中部国際空港セントレア",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 54717812,
+        "aeroway": "aerodrome",
+        "operator": "中部国際空港株式会社"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.8113468,
+          34.8585795
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/54852557",
+        "name": "県営名古屋空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 54852557,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.9238165,
+          35.2557503
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/55683493",
+        "name": "陸上自衛隊木更津駐屯地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 55683493,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9107768,
+          35.3981753
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007443",
+        "name": "富士山静岡空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007443,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.1890593,
+          34.7963656
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007466",
+        "name": "信州まつもと空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007466,
+        "aeroway": "aerodrome",
+        "operator": "長野県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.9237696,
+          36.1662893
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007496",
+        "name": "福井空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007496,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.2230916,
+          36.1431611
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007545",
+        "name": "能登空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007545,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.9649073,
+          37.2937936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007579",
+        "name": "富山空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007579,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.187883,
+          36.6489758
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007660",
+        "name": "新潟空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007660,
+        "aeroway": "aerodrome",
+        "operator": "http://www.pa.kkr.mlit.go.jp/osakaport/index-2.html"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1093234,
+          37.9545153
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007844",
+        "name": "利尻空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007844,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.1910409,
+          45.2432703
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007881",
+        "name": "礼文空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007881,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.0393482,
+          45.4549745
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007929",
+        "name": "新千歳空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007929,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.6832866,
+          42.7839957
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007935",
+        "name": "紋別空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007935,
+        "aeroway": "aerodrome",
+        "operator": "Hokkaidō"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.4052847,
+          44.3026512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007955",
+        "name": "稚内空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007955,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.799372,
+          45.4037687
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007960",
+        "name": "とかち帯広空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007960,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.2179331,
+          42.7312983
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007974",
+        "name": "釧路空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007974,
+        "aeroway": "aerodrome",
+        "operator": "http://www.mlit.go.jp"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.1926212,
+          43.0428637
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57007999",
+        "name": "函館空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57007999,
+        "aeroway": "aerodrome",
+        "operator": "Ministry of Land, Infrastructure and Transport (Japan)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.8238376,
+          41.7702662
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008032",
+        "name": "札幌丘珠空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008032,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3814625,
+          43.1163654
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008051",
+        "name": "中標津空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008051,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.9570855,
+          43.5768522
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008614",
+        "name": "山形空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008614,
+        "aeroway": "aerodrome",
+        "operator": "山形空港ビル"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.3699987,
+          38.4116767
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008649",
+        "name": "庄内空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008649,
+        "aeroway": "aerodrome",
+        "operator": "庄内空港ビル"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7842109,
+          38.8127805
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008682",
+        "name": "大館能代空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008682,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.371715,
+          40.1934193
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008815",
+        "name": "秋田空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008815,
+        "aeroway": "aerodrome",
+        "operator": "秋田県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.2178563,
+          39.6142939
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008836",
+        "name": "仙台空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008836,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.9144251,
+          38.1377873
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57008923",
+        "name": "三沢空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57008923,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3688222,
+          40.7013585
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009197",
+        "name": "八丈島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009197,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7856217,
+          33.1148476
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009213",
+        "name": "三宅島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009213,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5596669,
+          34.0721898
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009243",
+        "name": "神津島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009243,
+        "aeroway": "aerodrome",
+        "operator": "東京都"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1327604,
+          34.1897237
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009259",
+        "name": "新島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009259,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.268289,
+          34.3696103
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009588",
+        "name": "南紀白浜空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009588,
+        "aeroway": "aerodrome",
+        "operator": "和歌山県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.3648751,
+          33.6624235
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009635",
+        "name": "但馬飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009635,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.7870355,
+          35.512712
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009996",
+        "name": "岡山空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009996,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.8555389,
+          34.7571474
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57009997",
+        "name": "岡南飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57009997,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.9326977,
+          34.5924479
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010586",
+        "name": "山口宇部空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010586,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.2791807,
+          33.930108
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010613",
+        "name": "広島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010613,
+        "aeroway": "aerodrome",
+        "operator": "広島県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.9214166,
+          34.4374722
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010769",
+        "name": "隠岐空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010769,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.3232425,
+          36.1787124
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010831",
+        "name": "石見空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010831,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.7909755,
+          34.6764077
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010868",
+        "name": "米子鬼太郎空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010868,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.2389089,
+          35.493345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57010905",
+        "name": "鳥取砂丘コナン空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57010905,
+        "aeroway": "aerodrome",
+        "operator": "鳥取空港管理事務所"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.1659216,
+          35.5287419
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011285",
+        "name": "与論空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011285,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          128.4017008,
+          27.0438387
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011413",
+        "name": "徳之島子宝空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011413,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          128.8821383,
+          27.835353
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011474",
+        "name": "喜界空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011474,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.9278878,
+          28.3215459
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011480",
+        "name": "屋久島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011480,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.6591886,
+          30.3855446
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011543",
+        "name": "種子島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011543,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.9916096,
+          30.6046355
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011590",
+        "name": "奄美空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011590,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.7122505,
+          28.431206
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57011702",
+        "name": "鹿児島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57011702,
+        "aeroway": "aerodrome",
+        "operator": "鹿児島空港ビルディング"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.7189889,
+          31.8039367
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57013248",
+        "name": "宮崎空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57013248,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.447944,
+          31.8760552
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57014851",
+        "name": "熊本空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57014851,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.8523864,
+          32.8362524
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57014870",
+        "name": "天草空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57014870,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.1586552,
+          32.482191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57014922",
+        "name": "五島福江空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57014922,
+        "aeroway": "aerodrome",
+        "operator": "Gotō, Nagasaki"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          128.8329832,
+          32.6668356
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015147",
+        "name": "長崎空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015147,
+        "aeroway": "aerodrome",
+        "operator": "長崎空港ビルディング"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.913497,
+          32.9171843
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015307",
+        "name": "与那国空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015307,
+        "aeroway": "aerodrome",
+        "operator": "沖縄県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          122.9793643,
+          24.4673042
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015332",
+        "name": "波照間空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015332,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          123.8056552,
+          24.0597121
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015536",
+        "name": "北大東空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015536,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.3267154,
+          25.9446378
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015551",
+        "name": "南大東空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015551,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.2635281,
+          25.8465026
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015602",
+        "name": "粟国空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015602,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.2400049,
+          26.5927547
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015689",
+        "name": "伊江島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015689,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.7869276,
+          26.7226236
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015909",
+        "name": "下地島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015909,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          125.1457672,
+          24.8241764
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/57015910",
+        "name": "宮古空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 57015910,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          125.2948127,
+          24.7823798
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/58066508",
+        "name": "航空自衛隊 小牧基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 58066508,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.925709,
+          35.2559703
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/58610047",
+        "name": "横田基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 58610047,
+        "aeroway": "aerodrome",
+        "landuse": "military",
+        "operator": "United States Air Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.3541523,
+          35.7464195
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/75860961",
+        "name": "佐渡空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 75860961,
+        "aeroway": "aerodrome",
+        "operator": "新潟県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.4140765,
+          38.0610852
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/79514556",
+        "name": "霞目飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 79514556,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.9205816,
+          38.2346807
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/82765669",
+        "name": "航空自衛隊 岐阜基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 82765669,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.8692159,
+          35.3927846
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/92832772",
+        "name": "龍ヶ崎飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 92832772,
+        "aeroway": "aerodrome",
+        "operator": "川田工業"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.2421403,
+          35.9053459
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/100584058",
+        "name": "陸上自衛隊北宇都宮駐屯地;陸上自衛隊宇都宮飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 100584058,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "JGSDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.872205,
+          36.5146111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/130967700",
+        "name": "北九州空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 130967700,
+        "aeroway": "aerodrome",
+        "operator": "北九州エアターミナル"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.0333117,
+          33.8389693
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/141057752",
+        "name": "大樹町多目的航空公園",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 141057752,
+        "aeroway": "aerodrome",
+        "operator": "大樹町"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.4399183,
+          42.4994738
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/142146685",
+        "name": "航空自衛隊 那覇基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 142146685,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.6540658,
+          26.1909141
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/156753043",
+        "name": "矢臼別飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 156753043,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.998103,
+          43.28712
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/172627190",
+        "name": "東京ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 172627190,
+        "aeroway": "aerodrome",
+        "operator": "東京都"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8384348,
+          35.6360795
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/205860172",
+        "name": "海上自衛隊大村航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 205860172,
+        "aeroway": "aerodrome",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.9335647,
+          32.9275374
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/214850676",
+        "name": "石垣空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 214850676,
+        "aeroway": "aerodrome",
+        "operator": "石垣空港ターミナル"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.2453112,
+          24.396716
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/223240147",
+        "name": "高松空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 223240147,
+        "aeroway": "aerodrome",
+        "operator": "http://www.mlit.go.jp"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.0150766,
+          34.2151904
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/245451491",
+        "name": "海上自衛隊 八戸航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 245451491,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.4672316,
+          40.551525
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/268403284",
+        "name": "福島スカイパーク",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 268403284,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.3879986,
+          37.8230332
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/278762830",
+        "name": "笠岡ふれあい空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 278762830,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.4890059,
+          34.4759843
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/314547242",
+        "name": "横浜ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 314547242,
+        "aeroway": "aerodrome",
+        "operator": "横浜市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6558668,
+          35.3423911
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/316395408",
+        "name": "薩摩硫黄島飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 316395408,
+        "aeroway": "aerodrome",
+        "operator": "鹿児島県鹿児島郡三島村"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.2708973,
+          30.7844051
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/324129153",
+        "name": "那覇空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 324129153,
+        "aeroway": "aerodrome",
+        "operator": "国土交通大臣"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.6442731,
+          26.1966506
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/325639264",
+        "name": "千歳飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 325639264,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.6653169,
+          42.7938677
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/330681501",
+        "name": "奥尻空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 330681501,
+        "aeroway": "aerodrome",
+        "operator": "北海道"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4331385,
+          42.0715266
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/356582794",
+        "name": "茨城空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 356582794,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4168241,
+          36.1825502
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/368715201",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 368715201,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.8714655,
+          35.3204343
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/395670412",
+        "name": "南鳥島航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 395670412,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          153.979089,
+          24.2897945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/400715881",
+        "name": "調布飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 400715881,
+        "aeroway": "aerodrome",
+        "operator": "Tokyo Metropolitan Government"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.5288644,
+          35.6714054
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/421586353",
+        "name": "鹿部飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 421586353,
+        "aeroway": "aerodrome",
+        "operator": "朝日航空株式会社"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.7921585,
+          42.0440691
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/421590433",
+        "name": "大湊航空基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 421590433,
+        "aeroway": "aerodrome",
+        "operator": "JMSDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.1357465,
+          41.2342211
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/428833853",
+        "name": "十勝西部地区 農道離着陸場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 428833853,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.87667,
+          43.0760157
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/454193654",
+        "name": "上五島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 454193654,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.1923979,
+          33.0134262
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/454205459",
+        "name": "小値賀空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 454205459,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.0902797,
+          33.1907777
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/463103578",
+        "name": "硫黄島飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 463103578,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "Japan Maritime Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3227881,
+          24.7851628
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/463253703",
+        "name": "大利根飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 463253703,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.2414208,
+          35.8591703
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/467118559",
+        "name": "八尾空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 467118559,
+        "aeroway": "aerodrome",
+        "operator": "Ministry of Land, Infrastructure and Transport (Japan)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.5992584,
+          34.5973909
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/502741194",
+        "name": "旭川空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 502741194,
+        "aeroway": "aerodrome",
+        "operator": "Asahikawa, Hokkaido"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.4470496,
+          43.6686853
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/529445584",
+        "name": "福岡空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 529445584,
+        "aeroway": "aerodrome",
+        "operator": "Ministry of Transport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.4494515,
+          33.5868069
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/562882088",
+        "name": "上士幌航空公園",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 562882088,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.2775601,
+          43.2445057
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/621838990",
+        "name": "岡崎滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 621838990,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.1467303,
+          34.9466352
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/664900076",
+        "name": "岩国錦帯橋空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 664900076,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.2358521,
+          34.1589857
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/728246481",
+        "name": "久米島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 728246481,
+        "aeroway": "aerodrome",
+        "operator": "久米島空港ターミナルビル株式会社"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          126.7142869,
+          26.3639745
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/759070809",
+        "name": "豊富ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 759070809,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.7589052,
+          45.1009194
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/772669000",
+        "name": "神戸空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 772669000,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.224672,
+          34.6340995
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/774915833",
+        "name": "稲沢場外MLP専用飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 774915833,
+        "aeroway": "aerodrome",
+        "operator": "秋田フライングクラブ"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4094617,
+          39.6167629
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/775714197",
+        "name": "由利飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 775714197,
+        "aeroway": "aerodrome",
+        "operator": "秋田ウイングビートフライングクラブ"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0544087,
+          39.3005052
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/775714201",
+        "name": "荒川飛行場（私有地）",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 775714201,
+        "aeroway": "aerodrome",
+        "operator": "荒川さん(個人)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.7353399,
+          40.3704299
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/846889170",
+        "name": "明野飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 846889170,
+        "aeroway": "aerodrome",
+        "operator": "JGSDF"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.671839,
+          34.5329135
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/858105044",
+        "name": "航空自衛隊 築城基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 858105044,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.0399101,
+          33.6827936
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/866690235",
+        "name": "大分空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 866690235,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.7352182,
+          33.4801199
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/893188183",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 893188183,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.9153285,
+          26.9365969
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/901855527",
+        "name": "豊栄フライングクラブ",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 901855527,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.7957933,
+          34.6240395
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/901855529",
+        "name": "すいか空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 901855529,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.7044692,
+          35.4396479
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902036034",
+        "name": "UFO PARK 飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902036034,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.4350634,
+          43.3421551
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902043062",
+        "name": "あかびらスカイスポーツ振興センター専用空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902043062,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.9908878,
+          43.5728562
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902046346",
+        "name": "名寄駐屯地滑走路",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902046346,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.442587,
+          44.3845663
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902048411",
+        "name": "別寒辺飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902048411,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.708046,
+          43.32861
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902053445",
+        "name": "然別演習場滑走路",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902053445,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.1014629,
+          43.2009889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902053982",
+        "name": "北千歳駐屯地滑走路",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902053982,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.6152902,
+          42.8218282
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902787183",
+        "name": "大野滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902787183,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.6026948,
+          35.4496804
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902792647",
+        "name": "びわ湖ＭPPG パラグライダー飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902792647,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.9484959,
+          35.0848262
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/902802375",
+        "name": "飛騨エアパーク",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 902802375,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.3138371,
+          36.1790372
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/910821169",
+        "name": "オノミチフローティングポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 910821169,
+        "aeroway": "aerodrome",
+        "operator": "せとうちSEAPLANES"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.2830351,
+          34.3908078
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/930450811",
+        "name": "ホープランド飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 930450811,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.3123065,
+          42.8596055
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/930450813",
+        "name": "豊頃滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 930450813,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.5115692,
+          42.800203
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/930465847",
+        "name": "大滝飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 930465847,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.1019001,
+          42.6657827
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/933630527",
+        "name": "ニセコヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 933630527,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.6719811,
+          42.8324367
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/935617782",
+        "name": "厚真スカイパーク",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 935617782,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.8785366,
+          42.6434471
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/942758751",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 942758751,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3777935,
+          40.6290841
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/947806075",
+        "name": "城里場外離着陸場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 947806075,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.3583957,
+          36.5312727
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/958097484",
+        "name": "乙部ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 958097484,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.1620816,
+          41.9702641
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1020196357",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1020196357,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.2709683,
+          38.4898664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1023549897",
+        "name": "スカイポートきたみ",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1023549897,
+        "aeroway": "aerodrome",
+        "operator": "北見市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.7306212,
+          43.7802484
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1029364557",
+        "name": "広島ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1029364557,
+        "aeroway": "aerodrome",
+        "operator": "広島県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.4183806,
+          34.3720816
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1037339151",
+        "name": "福島空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1037339151,
+        "aeroway": "aerodrome",
+        "operator": "福島県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4294441,
+          37.2280223
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1038191263",
+        "name": "富士川滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1038191263,
+        "aeroway": "aerodrome",
+        "operator": "静岡県航空協会"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.6315567,
+          35.1209169
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1078163947",
+        "name": "瀬峰場外離着陸場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1078163947,
+        "aeroway": "aerodrome",
+        "operator": "村上商会"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.0217558,
+          38.6800803
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1089578158",
+        "name": "日本航空学園 白老滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1089578158,
+        "aeroway": "aerodrome",
+        "operator": "日本航空学園"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.2554117,
+          42.5367188
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1097148791",
+        "name": "能代ラジコンクラブ飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1097148791,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0174141,
+          40.2422549
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1107909784",
+        "name": "白川滑空場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1107909784,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.6283653,
+          32.7761144
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136928550",
+        "name": "米沢ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136928550,
+        "aeroway": "aerodrome",
+        "operator": "山形県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.1664404,
+          37.9130148
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136938529",
+        "name": "栃木ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136938529,
+        "aeroway": "aerodrome",
+        "operator": "栃木県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.0067016,
+          36.5600352
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136964759",
+        "name": "津市伊勢湾ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136964759,
+        "aeroway": "aerodrome",
+        "operator": "津市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.5549831,
+          34.6735015
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136978938",
+        "name": "枕崎ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136978938,
+        "aeroway": "aerodrome",
+        "operator": "枕崎市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.3581393,
+          31.2679092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136987587",
+        "name": "w",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136987587,
+        "aeroway": "aerodrome",
+        "operator": "前山倉庫"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9984767,
+          36.2018144
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137004856",
+        "name": "朝日・川越ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137004856,
+        "aeroway": "aerodrome",
+        "operator": "朝日航洋"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.4673058,
+          35.9580578
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137015607",
+        "name": "美樹ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137015607,
+        "aeroway": "aerodrome",
+        "operator": "美樹観光"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.2789454,
+          35.56922
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137019248",
+        "name": "浦安へリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137019248,
+        "aeroway": "aerodrome",
+        "operator": "エクセル航空"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8945223,
+          35.6242657
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137119732",
+        "name": "山梨県警察",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137119732,
+        "aeroway": "aerodrome",
+        "operator": "山梨県警察"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.4643018,
+          35.533349
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137122599",
+        "name": "浜松市消防ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137122599,
+        "aeroway": "aerodrome",
+        "operator": "浜松市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          137.7430509,
+          34.8423316
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137126072",
+        "name": "石川県警察",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137126072,
+        "aeroway": "aerodrome",
+        "operator": "石川県警察"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.665804,
+          36.6442303
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137133285",
+        "name": "大阪航空",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137133285,
+        "aeroway": "aerodrome",
+        "operator": "大阪航空"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.2469898,
+          35.0570563
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137137613",
+        "name": "周南ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137137613,
+        "aeroway": "aerodrome",
+        "operator": "福谷産業"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.8364833,
+          34.0917301
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137555316",
+        "name": "ラジコン飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137555316,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.4238087,
+          36.4345487
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1146980650",
+        "name": "朝日航洋札幌航空支社石狩基地",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1146980650,
+        "aeroway": "aerodrome",
+        "operator": "朝日航洋"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3174423,
+          43.2102538
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1155367150",
+        "name": "つくばヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1155367150,
+        "aeroway": "aerodrome",
+        "operator": "つくば航空"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.130918,
+          36.1172917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1265412224",
+        "name": "結城ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1265412224,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.9025874,
+          36.2861433
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1305844890",
+        "name": "Futaba",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1305844890,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.4831838,
+          35.6819409
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1430011841",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1430011841,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.6895828,
+          40.7335455
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/2069301",
+        "name": "徳島阿波おどり空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 2069301,
+        "aeroway": "aerodrome",
+        "operator": "海上自衛隊"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.6063975,
+          34.1329249
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/2360780",
+        "name": "多良間空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 2360780,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          124.6759017,
+          24.6537564
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/2563052",
+        "name": "嘉手納飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 2563052,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "United States Air Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.7741474,
+          26.3480427
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/3182579",
+        "name": "成田国際空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 3182579,
+        "aeroway": "aerodrome",
+        "operator": "成田国際空港株式会社"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.3835383,
+          35.7758917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/5601357",
+        "name": "九州佐賀国際空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 5601357,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.3044964,
+          33.1494164
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/6121880",
+        "name": "出雲空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 6121880,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.8891997,
+          35.413325
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/6723874",
+        "name": "Misawa Air Base - 三沢飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 6723874,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military",
+        "operator": "Japan Air Self-Defense Force;US Air Force;US Navy;US Army"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.3544758,
+          40.7079796
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/6987441",
+        "name": "慶良間空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 6987441,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.2933428,
+          26.1678834
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/7007109",
+        "name": "諏訪之瀬島飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 7007109,
+        "aeroway": "aerodrome",
+        "operator": "十島村"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          129.7019322,
+          29.6065004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/8376587",
+        "name": "厚木海軍飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 8376587,
+        "aeroway": "aerodrome",
+        "military": "airfield",
+        "landuse": "military"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.445636,
+          35.45452
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/9436735",
+        "name": "関西国際空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 9436735,
+        "aeroway": "aerodrome",
+        "operator": "関西エアポート"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.2330812,
+          34.4344098
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/12028679",
+        "name": "高知龍馬空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 12028679,
+        "aeroway": "aerodrome",
+        "operator": "Kochi Airport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.668988,
+          33.5463462
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/12537205",
+        "name": "沖永良部空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 12537205,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          128.7051311,
+          27.4314834
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/13514757",
+        "name": "小松飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 13514757,
+        "aeroway": "aerodrome",
+        "operator": "Japan Air Self-Defense Force"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.4050735,
+          36.3937725
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/16240987",
+        "name": "岩槻インターヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 16240987,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6957038,
+          35.9347289
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/16711610",
+        "name": "女満別空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 16711610,
+        "aeroway": "aerodrome",
+        "operator": "北海道"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          144.1635941,
+          43.8808709
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/17864987",
+        "name": "東京国際空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 17864987,
+        "aeroway": "aerodrome",
+        "operator": "東京空港事務所"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.7898582,
+          35.5457102
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "relation/18159861",
+        "name": "大阪国際空港",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "relation",
+        "osmId": 18159861,
+        "aeroway": "aerodrome"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.4403567,
+          34.7841935
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/4132078696",
+        "name": "橋本中央中学校ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 4132078696,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.6032453,
+          34.3117701
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/4140029242",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 4140029242,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.612547,
+          34.3458221
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/4140064193",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 4140064193,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.6048461,
+          34.3109672
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/8422764491",
+        "name": "湯村温泉ヘリポート（廃止）",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 8422764491,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.4923019,
+          35.5298116
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "node/11972059139",
+        "name": "埼玉三郷ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "node",
+        "osmId": 11972059139,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8720811,
+          35.8375532
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/150550906",
+        "name": "秋ヶ瀬へリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 150550906,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6140509,
+          35.8397196
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/209971962",
+        "name": "静岡ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 209971962,
+        "aeroway": "heliport",
+        "operator": "静岡市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.4088134,
+          35.0236475
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/212367009",
+        "name": "紀南ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 212367009,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.0077662,
+          33.7243336
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/245443241",
+        "name": "相馬原飛行場",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 245443241,
+        "aeroway": "heliport",
+        "military": "airfield",
+        "operator": "JSDF-G"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.9533335,
+          36.435118
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/245774009",
+        "name": "上野地河川広場ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 245774009,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.7604332,
+          34.0973952
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/251137634",
+        "name": "奈良県ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 251137634,
+        "aeroway": "heliport",
+        "operator": "奈良県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.8856473,
+          34.6560246
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/253746693",
+        "name": "高崎ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 253746693,
+        "aeroway": "heliport",
+        "operator": "高崎市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.9933704,
+          36.3249013
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/304172626",
+        "name": "群馬ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 304172626,
+        "aeroway": "heliport",
+        "operator": "群馬県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.107479,
+          36.3181788
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/305484502",
+        "name": "Heiwa",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 305484502,
+        "aeroway": "heliport",
+        "operator": "Heiwa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.250874,
+          36.3945917
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/452709973",
+        "name": "みなとみらいヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 452709973,
+        "aeroway": "heliport",
+        "operator": "横浜市港湾局"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6372474,
+          35.4632317
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/564147428",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 564147428,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.4680012,
+          33.5937072
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/576702855",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 576702855,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.2659439,
+          33.2828862
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/618142857",
+        "name": "大阪ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 618142857,
+        "aeroway": "heliport",
+        "operator": "小川航空"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.402646,
+          34.6722133
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/625217226",
+        "name": "長野臨時ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 625217226,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.232718,
+          36.6176341
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/670062091",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 670062091,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.796566,
+          35.636425
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/675905877",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 675905877,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0434283,
+          36.0378538
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/678335624",
+        "name": "砂川ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 678335624,
+        "aeroway": "heliport",
+        "operator": "砂川市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.8795142,
+          43.4826703
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/736713047",
+        "name": "岩井ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 736713047,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.8617243,
+          36.0443993
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/758053071",
+        "name": "みかもヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 758053071,
+        "aeroway": "heliport",
+        "operator": "藤坂"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.6219146,
+          36.3197128
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/772602873",
+        "name": "若狭ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 772602873,
+        "aeroway": "heliport",
+        "operator": "福井県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.7855505,
+          35.4900045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/776890865",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 776890865,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          131.5561669,
+          34.1387608
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/779310748",
+        "name": "酒井田ドクターヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 779310748,
+        "aeroway": "heliport",
+        "landuse": "grass"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.5539836,
+          33.198005
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/826060643",
+        "name": "奈多ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 826060643,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.3918512,
+          33.6779839
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/831552338",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 831552338,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.0934692,
+          34.2813833
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/833568286",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 833568286,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          140.3504359,
+          35.7592438
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/840133166",
+        "name": "占冠ヘリポート（閉鎖）",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 840133166,
+        "aeroway": "heliport",
+        "operator": "アルファリゾート・トマム"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          142.6173016,
+          43.0560489
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/872370558",
+        "name": "八田ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 872370558,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          134.4403118,
+          35.5347249
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/893057751",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 893057751,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          127.9808548,
+          27.041515
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/907231623",
+        "name": "京都消防ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 907231623,
+        "aeroway": "heliport",
+        "operator": "京都市"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.7385787,
+          34.9179641
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/923115487",
+        "name": "佐賀県防災航空センター",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 923115487,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.3114074,
+          33.1512567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/939568569",
+        "name": "雄飛航空 川島ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 939568569,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.499636,
+          36.0116724
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/963654929",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 963654929,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          136.0604811,
+          33.8642787
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1040377994",
+        "name": "マリンポートかごしま内ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1040377994,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          130.5567922,
+          31.5369233
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1041693625",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1041693625,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          138.2634692,
+          37.097437
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1078952059",
+        "name": "三木防災ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1078952059,
+        "aeroway": "heliport",
+        "operator": "兵庫県"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.0521894,
+          34.7784511
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1108383539",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1108383539,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0147723,
+          37.8963865
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1136998812",
+        "name": "プラスヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1136998812,
+        "aeroway": "heliport",
+        "operator": "PLUS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1771928,
+          36.40184
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137757825",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137757825,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.1031914,
+          36.0822391
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1137757826",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1137757826,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0434783,
+          36.0377998
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1140712638",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1140712638,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.0616256,
+          36.0080999
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1140714549",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1140714549,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.0962161,
+          36.1008024
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1142168427",
+        "name": "増毛ヘリポート",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1142168427,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          141.5086485,
+          43.8508819
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1142280096",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1142280096,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          143.5040586,
+          43.2405517
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1143799856",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1143799856,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          132.9678746,
+          32.7938223
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "way/1215212068",
+        "name": "名称不明",
+        "category": "landing",
+        "source": "OSM",
+        "osmType": "way",
+        "osmId": 1215212068,
+        "aeroway": "heliport"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.0945747,
+          36.3593065
+        ]
+      }
+    }
+  ]
+}

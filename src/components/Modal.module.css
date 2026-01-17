@@ -115,10 +115,64 @@
   overflow-y: auto;
   padding: 16px;
   color: rgba(255, 255, 255, 0.9);
+  background: transparent;
 }
 
 :global([data-theme="light"]) .content {
   color: rgba(0, 0, 0, 0.8);
+  background: transparent;
+}
+
+/* Ensure all nested elements inherit theme colors */
+.content > * {
+  background-color: transparent !important;
+}
+
+.content > div[style*="backgroundColor"] {
+  background-color: transparent !important;
+}
+
+/* Force all elements in modal content to use theme text colors */
+.content div {
+  background-color: inherit;
+}
+
+.content h1,
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+:global([data-theme="light"]) .content h1,
+:global([data-theme="light"]) .content h2,
+:global([data-theme="light"]) .content h3,
+:global([data-theme="light"]) .content h4,
+:global([data-theme="light"]) .content h5,
+:global([data-theme="light"]) .content h6 {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.content p,
+.content li {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+:global([data-theme="light"]) .content p,
+:global([data-theme="light"]) .content li {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.content ul,
+.content ol {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:global([data-theme="light"]) .content ul,
+:global([data-theme="light"]) .content ol {
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .footer {

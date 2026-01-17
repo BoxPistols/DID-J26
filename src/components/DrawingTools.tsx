@@ -565,6 +565,16 @@ export interface DrawnFeature {
   maxAltitude?: number // 上限海抜高度（メートル）= 標高 + 飛行高度
 }
 
+export interface UndoRedoHandlers {
+  undo: () => void
+  redo: () => void
+}
+
+export interface UndoRedoState {
+  canUndo: boolean
+  canRedo: boolean
+}
+
 export interface DrawingToolsProps {
   map: maplibregl.Map | null
   onFeaturesChange?: (features: DrawnFeature[]) => void
@@ -572,10 +582,15 @@ export interface DrawingToolsProps {
   embedded?: boolean // サイドバー内に埋め込む場合true
   mapLoaded?: boolean // マップロード状態
   onOpenHelp?: () => void // ヘルプモーダルを開く
+  onUndoRedoReady?: (handlers: UndoRedoHandlers) => void
+  onUndoRedoStateChange?: (state: UndoRedoState) => void
 }
 
 // localStorage用のキー
 const STORAGE_KEY = 'did-map-drawn-features'
+
+// Undo/Redo履歴の上限
+const HISTORY_LIMIT = 30
 
 // localStorageへの保存
 const saveToLocalStorage = (features: GeoJSON.FeatureCollection) => {
@@ -608,7 +623,9 @@ export function DrawingTools({
   darkMode = false,
   embedded = false,
   mapLoaded = false,
-  onOpenHelp
+  onOpenHelp,
+  onUndoRedoReady,
+  onUndoRedoStateChange
 }: DrawingToolsProps) {
   const [isOpen, setIsOpen] = useState(embedded) // 埋め込み時はデフォルトで開く
   const [activeTab, setActiveTab] = useState<'draw' | 'manage' | 'export'>('draw')
@@ -647,6 +664,15 @@ export function DrawingTools({
   const modeStartDrawModeRef = useRef<DrawMode>('none') // どのモード開始時に記録したか
   const isRestoringRef = useRef(false) // データ復元中フラグ
   const isDisposedRef = useRef(false) // アンマウント/破棄フラグ（非同期の後処理を止める）
+  const historyRef = useRef<GeoJSON.FeatureCollection[]>([])
+  const historyIndexRef = useRef(-1)
+  const historySignatureRef = useRef<string | null>(null)
+  const isApplyingHistoryRef = useRef(false)
+  const undoRedoHandlersRef = useRef<UndoRedoHandlers | null>(null)
+  const [undoRedoState, setUndoRedoState] = useState<UndoRedoState>({
+    canUndo: false,
+    canRedo: false
+  })
 
   const updateSelectionState = useCallback((ids: string[], primaryId?: string | null) => {
     const nextPrimary =
@@ -656,6 +682,22 @@ export function DrawingTools({
     setSelectedCount(ids.length)
     setSelectedFeatureId(nextPrimary)
   }, [])
+
+  const syncUndoRedoState = useCallback(() => {
+    const total = historyRef.current.length
+    const index = historyIndexRef.current
+    const nextState: UndoRedoState = {
+      canUndo: index > 0,
+      canRedo: index >= 0 && index < total - 1
+    }
+    setUndoRedoState((prev) =>
+      prev.canUndo === nextState.canUndo && prev.canRedo === nextState.canRedo ? prev : nextState
+    )
+  }, [])
+
+  useEffect(() => {
+    onUndoRedoStateChange?.(undoRedoState)
+  }, [onUndoRedoStateChange, undoRedoState])
 
   // drawModeが変更されたらrefも更新
   useEffect(() => {
@@ -718,7 +760,31 @@ export function DrawingTools({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 入力中は無視
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const target = e.target
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return
+      }
+
+      // Undo / Redo
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.shiftKey) {
+          undoRedoHandlersRef.current?.redo()
+        } else {
+          undoRedoHandlersRef.current?.undo()
+        }
+        return
+      }
 
       // Delete または Backspace キー
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -752,8 +818,8 @@ export function DrawingTools({
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
   }, [showDeleteConfirm])
 
   // Draw初期化
@@ -973,6 +1039,23 @@ export function DrawingTools({
     // @ts-expect-error MapLibreとMapboxの互換性
     map.addControl(draw, 'top-left')
     drawRef.current = draw
+
+    if (historyRef.current.length === 0) {
+      const savedData = loadFromLocalStorage()
+      const hasSavedFeatures = !!savedData && savedData.features.length > 0
+      if (!hasSavedFeatures) {
+        try {
+          const initialSnapshot = draw.getAll()
+          const snapshotJson = JSON.stringify(initialSnapshot)
+          historyRef.current = [JSON.parse(snapshotJson) as GeoJSON.FeatureCollection]
+          historyIndexRef.current = 0
+          historySignatureRef.current = snapshotJson
+          syncUndoRedoState()
+        } catch {
+          // 初期履歴の生成に失敗しても続行
+        }
+      }
+    }
 
     // 頂点ラベル用のソースとレイヤーを追加
     if (!map.getSource('vertex-labels')) {
@@ -1420,6 +1503,38 @@ export function DrawingTools({
     }
   }, [map])
 
+  const pushHistorySnapshot = useCallback(
+    (features: GeoJSON.FeatureCollection) => {
+      if (isApplyingHistoryRef.current) return
+      let snapshotJson: string
+      try {
+        snapshotJson = JSON.stringify(features)
+      } catch {
+        return
+      }
+      if (snapshotJson === historySignatureRef.current) return
+
+      const snapshot = JSON.parse(snapshotJson) as GeoJSON.FeatureCollection
+      const currentIndex = historyIndexRef.current
+
+      if (currentIndex < historyRef.current.length - 1) {
+        historyRef.current = historyRef.current.slice(0, currentIndex + 1)
+      }
+
+      historyRef.current.push(snapshot)
+
+      if (historyRef.current.length > HISTORY_LIMIT) {
+        const overflow = historyRef.current.length - HISTORY_LIMIT
+        historyRef.current.splice(0, overflow)
+      }
+
+      historyIndexRef.current = historyRef.current.length - 1
+      historySignatureRef.current = snapshotJson
+      syncUndoRedoState()
+    },
+    [syncUndoRedoState]
+  )
+
   // フィーチャー更新
   const updateFeatures = useCallback(() => {
     if (!drawRef.current || isDisposedRef.current) return
@@ -1485,7 +1600,73 @@ export function DrawingTools({
 
     // 頂点ラベルを更新（デバウンス）
     debouncedUpdateVertexLabels.current?.()
-  }, [onFeaturesChange])
+
+    pushHistorySnapshot(allFeatures)
+  }, [onFeaturesChange, pushHistorySnapshot])
+
+  const applyHistorySnapshot = useCallback(
+    (snapshot: GeoJSON.FeatureCollection) => {
+      if (!drawRef.current || isDisposedRef.current) return
+      isApplyingHistoryRef.current = true
+      try {
+        drawRef.current.set(snapshot)
+        updateSelectionState([])
+        setIsEditing(false)
+        setDrawMode('none')
+        if (map) {
+          map.getCanvas().style.cursor = ''
+        }
+        try {
+          if (drawRef.current.getMode() !== 'simple_select') {
+            drawRef.current.changeMode('simple_select')
+          }
+        } catch {
+          // モード変更に失敗しても続行
+        }
+      } catch (error) {
+        console.error('Failed to apply history snapshot:', error)
+      }
+
+      updateFeatures()
+
+      isApplyingHistoryRef.current = false
+      try {
+        historySignatureRef.current = JSON.stringify(snapshot)
+      } catch {
+        historySignatureRef.current = null
+      }
+      syncUndoRedoState()
+    },
+    [map, syncUndoRedoState, updateFeatures, updateSelectionState]
+  )
+
+  const handleUndo = useCallback(() => {
+    if (!drawRef.current) return
+    const currentIndex = historyIndexRef.current
+    if (currentIndex <= 0) return
+    const nextIndex = currentIndex - 1
+    const snapshot = historyRef.current[nextIndex]
+    if (!snapshot) return
+    historyIndexRef.current = nextIndex
+    applyHistorySnapshot(snapshot)
+  }, [applyHistorySnapshot])
+
+  const handleRedo = useCallback(() => {
+    if (!drawRef.current) return
+    const currentIndex = historyIndexRef.current
+    if (currentIndex < 0 || currentIndex >= historyRef.current.length - 1) return
+    const nextIndex = currentIndex + 1
+    const snapshot = historyRef.current[nextIndex]
+    if (!snapshot) return
+    historyIndexRef.current = nextIndex
+    applyHistorySnapshot(snapshot)
+  }, [applyHistorySnapshot])
+
+  useEffect(() => {
+    const handlers: UndoRedoHandlers = { undo: handleUndo, redo: handleRedo }
+    undoRedoHandlersRef.current = handlers
+    onUndoRedoReady?.(handlers)
+  }, [handleRedo, handleUndo, onUndoRedoReady])
 
   // 座標配列からバウンディングボックスを計算
   const calculateBounds = useCallback(

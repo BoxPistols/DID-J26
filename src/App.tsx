@@ -8,8 +8,10 @@ import {
   DEFAULT_ZOOM,
   LAYER_GROUPS,
   GEO_OVERLAYS,
+  FACILITY_LAYERS,
   RESTRICTION_COLORS,
   getAllRestrictionZones,
+  getFacilityLayerById,
   AirportService,
   KOKUAREA_STYLE,
   fillKokuareaTileUrl,
@@ -48,11 +50,18 @@ import type {
   SearchIndexItem,
   LayerState,
   CustomLayer,
-  KokuareaFeatureProperties
+  KokuareaFeatureProperties,
+  RestrictionZone
 } from './lib'
 import { CustomLayerManager } from './components/CustomLayerManager'
-import { DrawingTools, type DrawnFeature } from './components/DrawingTools'
+import {
+  DrawingTools,
+  type DrawnFeature,
+  type UndoRedoHandlers,
+  type UndoRedoState
+} from './components/DrawingTools'
 import { CoordinateDisplay } from './components/CoordinateDisplay'
+import { Modal } from './components/Modal'
 // NOTE: 右下の比較パネル（重複ボタン）は廃止し、隆起表示は右上UIに統一
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
@@ -507,6 +516,12 @@ function App() {
 
   // Zoom level (always-visible UI)
   const [mapZoom, setMapZoom] = useState<number | null>(null)
+
+  const undoRedoHandlersRef = useRef<UndoRedoHandlers | null>(null)
+  const [undoRedoState, setUndoRedoState] = useState<UndoRedoState>({
+    canUndo: false,
+    canRedo: false
+  })
 
   // Enable coordinate display on map click
   const [enableCoordinateDisplay, setEnableCoordinateDisplay] = useState<boolean>(() => {
@@ -1114,7 +1129,8 @@ function App() {
           f.layer.id.startsWith(ZONE_IDS.DID_ALL_JAPAN) ||
           f.layer.id.startsWith('emergency-') ||
           f.layer.id.startsWith('manned-') ||
-          f.layer.id.startsWith('remote-')
+          f.layer.id.startsWith('remote-') ||
+          f.layer.id.startsWith('facility-')
       )
 
       if (didFeature && popupRef.current) {
@@ -1195,7 +1211,34 @@ function App() {
           areaType = '人口集中地区（DID）'
           description = '航空法により無人機飛行には許可が必要'
           category = '航空法'
+        } else if (layerId.startsWith('facility-')) {
+          const facilityId = getFacilityLayerBaseId(layerId) ?? layerId
+          const facilityLayer = getFacilityLayerById(facilityId)
+          areaType = facilityLayer?.name ?? props.category ?? '施設'
+          description = facilityLayer?.description ?? '参考データ'
+          category = '参考'
         }
+
+        const restrictionZone = getRestrictionZoneByLayerId(layerId)
+        if (!areaType && restrictionZone?.name) {
+          areaType = restrictionZone.name
+        }
+        if (!description) {
+          const propsDescription = typeof props.description === 'string' ? props.description : ''
+          description = propsDescription || restrictionZone?.description || ''
+        }
+        if (!category && restrictionZone) {
+          category =
+            restrictionZone.type === 'no_fly_red' || restrictionZone.type === 'no_fly_yellow'
+              ? '小型無人機等飛行禁止法'
+              : '航空法'
+        }
+
+        const descriptionRow = description
+          ? `<div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #eee;">
+                <span class="stat-value" style="font-size:10px;color:#666;">${description}</span>
+              </div>`
+          : ''
 
         const content = `
           <div class="did-popup">
@@ -1206,7 +1249,7 @@ function App() {
             <div class="popup-stats">
               <div class="stat-row">
                 <span class="stat-label">規制法令</span>
-                <span class="stat-value">${category}</span>
+                <span class="stat-value">${category || '-'}</span>
               </div>
               ${
                 props.radiusKm
@@ -1232,9 +1275,7 @@ function App() {
               </div>`
                   : ''
               }
-              <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px solid #eee;">
-                <span class="stat-value" style="font-size:10px;color:#666;">${description}</span>
-              </div>
+              ${descriptionRow}
             </div>
           </div>
         `
@@ -1358,6 +1399,18 @@ function App() {
           map.setPaintProperty(id, 'fill-opacity', scaled)
         })
       } else {
+        const facilityLayer = getFacilityLayerById(restrictionId)
+        if (facilityLayer) {
+          const fillId = `${restrictionId}-fill`
+          const pointId = `${restrictionId}-point`
+          if (map.getLayer(fillId)) {
+            map.setPaintProperty(fillId, 'fill-opacity', opacity)
+          }
+          if (map.getLayer(pointId)) {
+            map.setPaintProperty(pointId, 'circle-opacity', opacity)
+          }
+          return
+        }
         if (map.getLayer(restrictionId)) {
           map.setPaintProperty(restrictionId, 'fill-opacity', opacity)
         }
@@ -2738,6 +2791,88 @@ function App() {
 
       const { syncState = true } = options ?? {}
 
+      const facilityLayer = getFacilityLayerById(restrictionId)
+      if (facilityLayer) {
+        if (!map.getSource(restrictionId)) {
+          try {
+            const data = await fetchGeoJSONWithCache(facilityLayer.path)
+            map.addSource(restrictionId, { type: 'geojson', data })
+          } catch (e) {
+            console.error(`Failed to load facility data for ${restrictionId}:`, e)
+            toast.error(`${facilityLayer.name}データの読み込みに失敗しました`)
+            return
+          }
+
+          const pointRadius = facilityLayer.pointRadius ?? 10
+          const pointRadiusByZoom: maplibregl.ExpressionSpecification = [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            7,
+            pointRadius * 0.7,
+            10,
+            pointRadius,
+            13,
+            pointRadius * 1.6,
+            16,
+            pointRadius * 2.4
+          ]
+          map.addLayer({
+            id: `${restrictionId}-fill`,
+            type: 'fill',
+            source: restrictionId,
+            filter: ['==', '$type', 'Polygon'],
+            paint: { 'fill-color': facilityLayer.color, 'fill-opacity': opacity }
+          })
+          map.addLayer({
+            id: `${restrictionId}-line`,
+            type: 'line',
+            source: restrictionId,
+            filter: ['any', ['==', '$type', 'Polygon'], ['==', '$type', 'LineString']],
+            paint: { 'line-color': facilityLayer.color, 'line-width': 1.5 }
+          })
+          map.addLayer({
+            id: `${restrictionId}-point`,
+            type: 'circle',
+            source: restrictionId,
+            filter: ['==', '$type', 'Point'],
+            paint: {
+              'circle-radius': pointRadiusByZoom,
+              'circle-color': facilityLayer.color,
+              'circle-opacity': opacity,
+              'circle-stroke-color': '#ffffff',
+              'circle-stroke-width': 1.2
+            }
+          })
+          map.addLayer({
+            id: `${restrictionId}-label`,
+            type: 'symbol',
+            source: restrictionId,
+            filter: ['==', '$type', 'Point'],
+            layout: {
+              'text-field': ['get', 'name'],
+              'text-size': 11,
+              'text-anchor': 'top',
+              'text-offset': [0, 1.1],
+              'text-allow-overlap': false,
+              'text-ignore-placement': false
+            },
+            paint: {
+              'text-color': '#333',
+              'text-halo-color': '#fff',
+              'text-halo-width': 1.2
+            }
+          })
+        } else {
+          setFacilityLayerVisibility(map, restrictionId, 'visible')
+        }
+
+        if (syncState) {
+          setRestrictionStates((prev) => new Map(prev).set(restrictionId, true))
+        }
+        return
+      }
+
       let geojson: GeoJSON.FeatureCollection | null = null
       let color = ''
 
@@ -2890,7 +3025,9 @@ function App() {
       const { syncState = true } = options ?? {}
 
       // Hide
-      if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
+      if (getFacilityLayerById(restrictionId)) {
+        setFacilityLayerVisibility(map, restrictionId, 'none')
+      } else if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
         const allLayers = getAllLayers()
         for (const layer of allLayers) {
           const sourceId = `${restrictionId}-${layer.id}`
@@ -2930,6 +3067,129 @@ function App() {
   }
 
   const isRestrictionVisible = (id: string) => restrictionStates.get(id) ?? false
+
+  type InfoModalKey = 'restrictions' | 'temporary' | 'facilities' | 'noFlyLaw' | 'did'
+
+  const INFO_MODAL_CONTENT: Record<
+    InfoModalKey,
+    { title: string; lead: string; bullets: string[] }
+  > = {
+    restrictions: {
+      title: '禁止エリアについて',
+      lead: '航空法・小型無人機等飛行禁止法に関わるエリアの可視化です。',
+      bullets: [
+        '空港周辺空域は国土地理院の空域タイルと国土数値情報の空港敷地を併用しています。',
+        '空港周辺空域はズーム8未満では位置の簡易表示（点）に切り替わります。',
+        'DID（人口集中地区）は国勢調査（e-Stat）に基づく統計データです。',
+        'レッド/イエローは現状サンプルで、最終判断は必ずDIPS/NOTAMで確認してください。'
+      ]
+    },
+    temporary: {
+      title: '仮設置データについて',
+      lead: '緊急用務空域・有人機発着エリアなどの参考/試験的なレイヤーです。',
+      bullets: [
+        '公式の連携前の暫定データのため、正確性・網羅性は保証されません。',
+        '飛行の可否は必ずDIPS・NOTAM・自治体の最新情報で確認してください。'
+      ]
+    },
+    facilities: {
+      title: '施設データについて',
+      lead: 'OSMや自治体オープンデータを加工した参考情報です。',
+      bullets: [
+        '空港・ヘリポート、駐屯地/基地、消防署、医療機関などを表示します。',
+        '公式の規制区分ではなく、位置情報の目安として活用してください。'
+      ]
+    },
+    noFlyLaw: {
+      title: '小型無人機等飛行禁止法について',
+      lead: '重要施設周辺の飛行禁止/注意区域です。',
+      bullets: [
+        'レッドゾーン: 原則飛行禁止、イエローゾーン: 事前通報が必要です。',
+        '現在はサンプルデータのため、必ずDIPSの最新情報で確認してください。'
+      ]
+    },
+    did: {
+      title: '人口集中地区（DID）について',
+      lead: '国勢調査に基づく統計データ（人口集中地区）です。',
+      bullets: [
+        '更新周期が長く、最新の市街地変化や施設増減とずれる場合があります。',
+        '地域別に読み込むことで高速化しています。全国一括表示は重くなるため必要な地域だけ表示してください。',
+        'DID内の飛行は許可が必要な場合があるため、事前確認が必須です。'
+      ]
+    }
+  }
+
+  const [infoModalKey, setInfoModalKey] = useState<InfoModalKey | null>(null)
+
+  const InfoBadge = ({ onClick, ariaLabel }: { onClick: () => void; ariaLabel: string }) => (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '14px',
+        height: '14px',
+        borderRadius: '999px',
+        border: '1px solid #999',
+        fontSize: '10px',
+        lineHeight: 1,
+        color: '#666',
+        background: 'transparent',
+        cursor: 'pointer'
+      }}
+    >
+      ?
+    </button>
+  )
+
+  const FACILITY_LAYER_SUFFIXES = ['fill', 'line', 'point', 'label'] as const
+
+  const getFacilityLayerBaseId = (layerId: string): string | null => {
+    if (!layerId.startsWith('facility-')) return null
+    return layerId.replace(/-(fill|line|point|label)$/, '')
+  }
+
+  const setFacilityLayerVisibility = (
+    map: maplibregl.Map,
+    facilityId: string,
+    visibility: 'visible' | 'none'
+  ): void => {
+    FACILITY_LAYER_SUFFIXES.forEach((suffix) => {
+      const layerId = `${facilityId}-${suffix}`
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', visibility)
+      }
+    })
+  }
+
+  const getRestrictionZoneByLayerId = (layerId: string): RestrictionZone | undefined => {
+    const zones = getAllRestrictionZones()
+    if (layerId.startsWith('airport-airspace')) {
+      return zones.find((zone) => zone.id === 'airport-airspace')
+    }
+    if (layerId.includes('DID_ALL_JAPAN')) {
+      return zones.find((zone) => zone.id === 'did-area')
+    }
+    if (layerId.includes('NO_FLY_RED') || layerId.includes('no-fly-red')) {
+      return zones.find((zone) => zone.id === 'no-fly-red')
+    }
+    if (layerId.includes('NO_FLY_YELLOW') || layerId.includes('no-fly-yellow')) {
+      return zones.find((zone) => zone.id === 'no-fly-yellow')
+    }
+    if (layerId.includes('EMERGENCY')) {
+      return zones.find((zone) => zone.id === 'emergency-airspace')
+    }
+    if (layerId.includes('MANNED')) {
+      return zones.find((zone) => zone.id === 'manned-aircraft')
+    }
+    if (layerId.includes('REMOTE')) {
+      return zones.find((zone) => zone.id === 'remote-id-zone')
+    }
+    return undefined
+  }
 
   useEffect(() => {
     if (!mapLoaded) return
@@ -3704,6 +3964,12 @@ function App() {
           darkMode={darkMode}
           embedded={true}
           onOpenHelp={() => setShowHelp(true)}
+          onUndoRedoReady={(handlers) => {
+            undoRedoHandlersRef.current = handlers
+          }}
+          onUndoRedoStateChange={(state) => {
+            setUndoRedoState(state)
+          }}
           onFeaturesChange={(features) => {
             // Display coordinates when a new feature is added
             if (features.length > previousFeaturesRef.current.length) {
@@ -3766,10 +4032,17 @@ function App() {
               fontSize: '14px',
               fontWeight: 600,
               borderBottom: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-              paddingBottom: '4px'
+              paddingBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
             禁止エリア
+            <InfoBadge
+              ariaLabel="禁止エリアの説明"
+              onClick={() => setInfoModalKey('restrictions')}
+            />
           </h3>
 
           {/* Airport airspace */}
@@ -3857,10 +4130,17 @@ function App() {
                 fontSize: '11px',
                 color: darkMode ? '#888' : '#999',
                 marginBottom: '6px',
-                fontWeight: 500
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
               仮設置データ *
+              <InfoBadge
+                ariaLabel="仮設置データの説明"
+                onClick={() => setInfoModalKey('temporary')}
+              />
             </div>
 
             {/* Emergency airspace */}
@@ -4026,6 +4306,71 @@ function App() {
             </label>
           </div>
 
+          {/* Facility data section */}
+          <div
+            style={{
+              marginTop: '8px',
+              paddingTop: '8px',
+              borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+              marginBottom: '8px'
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                color: darkMode ? '#888' : '#999',
+                marginBottom: '6px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              施設データ *
+              <InfoBadge
+                ariaLabel="施設データの説明"
+                onClick={() => setInfoModalKey('facilities')}
+              />
+            </div>
+            {FACILITY_LAYERS.map((facility) => (
+              <label
+                key={facility.id}
+                title={`${facility.name}：${facility.description ?? '参考データ'}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginBottom: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isRestrictionVisible(facility.id)}
+                  onChange={() => toggleRestriction(facility.id)}
+                />
+                <span
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    backgroundColor: facility.color,
+                    borderRadius: '2px'
+                  }}
+                />
+                <span>{facility.name}</span>
+              </label>
+            ))}
+            <div
+              style={{
+                fontSize: '10px',
+                color: darkMode ? '#777' : '#999',
+                paddingLeft: '20px'
+              }}
+            >
+              OSMや自治体オープンデータなどの参考情報です
+            </div>
+          </div>
+
           {/* No-fly law section */}
           <div
             style={{
@@ -4036,9 +4381,20 @@ function App() {
             }}
           >
             <div
-              style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666', marginBottom: '6px' }}
+              style={{
+                fontSize: '12px',
+                color: darkMode ? '#aaa' : '#666',
+                marginBottom: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
               小型無人機等飛行禁止法
+              <InfoBadge
+                ariaLabel="小型無人機等飛行禁止法の説明"
+                onClick={() => setInfoModalKey('noFlyLaw')}
+              />
             </div>
 
             <label
@@ -4103,8 +4459,18 @@ function App() {
 
         {/* DID Section */}
         <div>
-          <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600 }}>
+          <h3
+            style={{
+              margin: '0 0 8px',
+              fontSize: '14px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
             人口集中地区（DID）
+            <InfoBadge ariaLabel="DIDの説明" onClick={() => setInfoModalKey('did')} />
           </h3>
           {LAYER_GROUPS.map((group) => (
             <div key={group.name} style={{ marginBottom: '4px' }}>
@@ -4593,785 +4959,924 @@ function App() {
         ?
       </button>
 
-      {/* Zoom Level (always visible) */}
+      {/* Undo / Zoom / Redo (always visible) */}
       <div
         style={{
           position: 'fixed',
           top: 10,
           left: '50%',
           transform: 'translateX(-50%)',
-          padding: '6px 8px',
-          minWidth: 52,
-          textAlign: 'center',
-          backgroundColor: theme.colors.buttonBg,
-          color: theme.colors.text,
-          borderRadius: '4px',
-          boxShadow: theme.shadows.outline,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
           zIndex: 1200,
-          fontSize: '12px',
-          fontWeight: 700,
           userSelect: 'none',
-          pointerEvents: 'none'
+          pointerEvents: 'auto'
         }}
-        title="現在のズームレベル"
       >
-        Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}
-      </div>
-
-      {/* Help Modal */}
-      {showHelp && (
-        <div
+        <button
+          onClick={() => undoRedoHandlersRef.current?.undo()}
+          disabled={!undoRedoState.canUndo}
+          aria-label="Undo"
+          title="Undo (Cmd+Z)"
           style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            width: 28,
+            height: 28,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 2000
+            backgroundColor: theme.colors.buttonBg,
+            color: theme.colors.text,
+            border: 'none',
+            borderRadius: '4px',
+            boxShadow: theme.shadows.outline,
+            cursor: undoRedoState.canUndo ? 'pointer' : 'not-allowed',
+            opacity: undoRedoState.canUndo ? 1 : 0.45
           }}
-          onClick={() => setShowHelp(false)}
         >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-15-6l-3 2"></path>
+          </svg>
+        </button>
+        <div
+          style={{
+            padding: '6px 8px',
+            minWidth: 52,
+            textAlign: 'center',
+            backgroundColor: theme.colors.buttonBg,
+            color: theme.colors.text,
+            borderRadius: '4px',
+            boxShadow: theme.shadows.outline,
+            fontSize: '12px',
+            fontWeight: 700,
+            pointerEvents: 'none'
+          }}
+          title="現在のズームレベル"
+        >
+          Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}
+        </div>
+        <button
+          onClick={() => undoRedoHandlersRef.current?.redo()}
+          disabled={!undoRedoState.canRedo}
+          aria-label="Redo"
+          title="Redo (Cmd+Shift+Z)"
+          style={{
+            width: 28,
+            height: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.buttonBg,
+            color: theme.colors.text,
+            border: 'none',
+            borderRadius: '4px',
+            boxShadow: theme.shadows.outline,
+            cursor: undoRedoState.canRedo ? 'pointer' : 'not-allowed',
+            opacity: undoRedoState.canRedo ? 1 : 0.45
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 15-6l3 2"></path>
+          </svg>
+        </button>
+      </div>
+
+      {/* Help Modal */}
+      <Modal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="使い方ガイド"
+        darkMode={darkMode}
+        width="900px"
+        maxHeight="85vh"
+        overlayOpacity={0.25}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: window.innerWidth > 768 ? 'repeat(2, 1fr)' : '1fr',
+            gap: window.innerWidth > 768 ? '24px' : '16px',
+            columnGap: window.innerWidth > 768 ? '32px' : '0px',
+            fontSize: '14px'
+          }}
+        >
+          {/* ===== 左カラム ===== */}
+
+          {/* セクション1：基本操作・ヒント */}
           <div
             style={{
-              backgroundColor: darkMode ? '#2a2a2a' : '#fff',
-              color: darkMode ? '#fff' : '#333',
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(74, 144, 217, 0.1)' : '#f0f7ff',
               borderRadius: '8px',
-              maxWidth: '900px',
-              width: '90%',
-              maxHeight: '85vh',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden'
+              border: `1px solid ${darkMode ? '#444' : '#e0e0e0'}`
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            {/* ヘッダー */}
             <div
               style={{
+                fontWeight: 600,
+                marginBottom: '12px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '20px',
-                borderBottom: `1px solid ${darkMode ? '#3a3a3a' : '#e5e7eb'}`
+                gap: '6px',
+                fontSize: '14px'
               }}
             >
-              <h2 style={{ margin: 0, fontSize: '18px' }}>使い方ガイド</h2>
-              <button
-                onClick={() => setShowHelp(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: darkMode ? '#aaa' : '#666'
-                }}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                ✕
-              </button>
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+              基本操作・ヒント
             </div>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: '20px',
+                lineHeight: '1.6',
+                fontSize: '13px',
+                color: darkMode ? '#ddd' : '#555'
+              }}
+            >
+              <li style={{ marginBottom: '6px' }}>
+                <strong>描画リストのズーム:</strong>{' '}
+                右サイドバーの「描画済み」リストの項目をクリックすると、その場所へズームします。
+                <span style={{ color: darkMode ? '#ffb74d' : '#f57c00', fontWeight: 'bold' }}>
+                  連続してクリックすると、さらに段階的に拡大
+                </span>
+                します。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>地図操作:</strong>{' '}
+                左クリックで移動、右クリック＋ドラッグで回転・チルト（傾き）ができます。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>サイドバーのリサイズ:</strong>{' '}
+                左・右サイドバーの右端にマウスを置くと、カーソルが変わります。ドラッグしてサイドバーの幅を自由に調整できます。
+              </li>
+              <li>
+                <strong>検索:</strong>{' '}
+                画面左上の検索ボックスから、地名や住所で場所を検索・移動できます。
+              </li>
+            </ul>
+          </div>
 
-            {/* コンテンツ：スクロール領域（ヘッダー固定のため本文のみスクロール） */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-              {/* コンテンツ：2カラムグリッド */}
-              <div
+          {/* セクション2：禁止エリア表示 */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px'
+              }}
+            >
+              禁止エリア表示
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr',
+                gap: '4px 8px',
+                fontSize: '13px'
+              }}
+            >
+              <kbd
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: window.innerWidth > 768 ? 'repeat(2, 1fr)' : '1fr',
-                  gap: window.innerWidth > 768 ? '24px' : '16px',
-                  columnGap: window.innerWidth > 768 ? '32px' : '0px',
-                  fontSize: '14px'
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
                 }}
               >
-                {/* ===== 左カラム ===== */}
+                D
+              </kbd>
+              <span>人口集中地区（DID）</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                A
+              </kbd>
+              <span>空港周辺空域</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                R
+              </kbd>
+              <span>レッドゾーン（飛行禁止） * 未実装</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                Y
+              </kbd>
+              <span>イエローゾーン（要許可） * 未実装</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                E
+              </kbd>
+              <span>緊急用務空域 *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                H
+              </kbd>
+              <span>ヘリポート</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                I
+              </kbd>
+              <span>リモートID特定区域 *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                V
+              </kbd>
+              <span>有人機発着エリア *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                U
+              </kbd>
+              <span>有人機発着区域 *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                F
+              </kbd>
+              <span>電波干渉区域 *</span>
+            </div>
+          </div>
 
-                {/* セクション1：基本操作・ヒント */}
+          {/* セクション2.5：データと注意事項 */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px'
+              }}
+            >
+              データと注意事項
+            </div>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: '20px',
+                lineHeight: '1.6',
+                fontSize: '13px',
+                color: darkMode ? '#ddd' : '#555'
+              }}
+            >
+              <li style={{ marginBottom: '6px' }}>
+                <strong>最終確認:</strong>{' '}
+                実際の飛行可否は必ずDIPS・NOTAM・自治体の最新情報で確認してください。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>DID:</strong>{' '}
+                国勢調査の人口集中地区（e-Stat）に基づく統計データです。更新周期が長く、
+                最新の市街地変化とずれる場合があります。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>DIDの表示:</strong>{' '}
+                地域別は必要な地域のみ読み込むため軽量です。全国一括は全都道府県を読み込むため
+                重く、広域確認向きです。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>空港周辺空域:</strong>{' '}
+                国土地理院の空域タイルと国土数値情報の空港敷地を併用しています。ズーム8未満は
+                簡易表示、ズーム8以上で詳細表示に切り替わります。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>施設データ:</strong>{' '}
+                OSM/自治体オープンデータを加工した参考情報です。公式の規制区分ではありません。
+              </li>
+              <li>
+                <strong>* 仮設置データ:</strong>{' '}
+                緊急用務空域・有人機発着エリアなどは試験的表示です。
+              </li>
+            </ul>
+          </div>
+
+          {/* セクション3：クイックアクセス */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px'
+              }}
+            >
+              クイックアクセス
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr',
+                gap: '4px 8px',
+                fontSize: '13px'
+              }}
+            >
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '11px'
+                }}
+              >
+                ⌘K
+              </kbd>
+              <span>検索にフォーカス</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '11px'
+                }}
+              >
+                ⌘Z
+              </kbd>
+              <span>Undo（描画の取り消し）</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '11px'
+                }}
+              >
+                ⇧⌘Z
+              </kbd>
+              <span>Redo（描画のやり直し）</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                S
+              </kbd>
+              <span>左サイドバー開閉</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                P
+              </kbd>
+              <span>右サイドバー開閉</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                M
+              </kbd>
+              <span>マップスタイル切替（M: 次 / Shift+M: 前）</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                T
+              </kbd>
+              <span>ツールチップ表示</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                G
+              </kbd>
+              <span>座標表示</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                L
+              </kbd>
+              <span>ダークモード/ライトモード</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                2 / 3
+              </kbd>
+              <span>2D / 3D表示切替</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                R
+              </kbd>
+              <span>レッドゾーン * 未実装</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                Y
+              </kbd>
+              <span>イエローゾーン * 未実装</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                W
+              </kbd>
+              <span>風向・風量 *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                C
+              </kbd>
+              <span>LTE *</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                ?
+              </kbd>
+              <span>ヘルプ表示/非表示</span>
+            </div>
+          </div>
+
+          {/* ===== 右カラム ===== */}
+
+          {/* セクション4：描画ツールの使い方 */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              描画ツールの使い方
+            </div>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: '20px',
+                lineHeight: '1.6',
+                fontSize: '13px',
+                color: darkMode ? '#ddd' : '#555'
+              }}
+            >
+              <li style={{ marginBottom: '6px' }}>
+                <strong>描画の種類:</strong>{' '}
+                ポリゴン、円、ウェイポイント、経路（ライン）の4種類から選択できます。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>ウェイポイント名前付け:</strong>{' '}
+                右サイドバーの「描画済み」リストで各フィーチャーを選択し、名前フィールドを編集できます。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>高度設定:</strong>{' '}
+                標高（国土地理院APIから自動取得）と飛行高度を設定すると、上限海抜高度が計算されます。
+              </li>
+              <li>
+                <strong>頂点ラベル:</strong>{' '}
+                描画中は各頂点に座標ラベルが常時表示されます（ツールチップ機能 T キー）。
+              </li>
+            </ul>
+          </div>
+
+          {/* セクション5：データエクスポート */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              データエクスポート
+            </div>
+            <div
+              style={{
+                fontSize: '13px',
+                lineHeight: '1.7',
+                color: darkMode ? '#ddd' : '#555'
+              }}
+            >
+              <div style={{ marginBottom: '8px' }}>
+                <strong>GeoJSON</strong> - Web地図/開発ツール連携用
                 <div
                   style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(74, 144, 217, 0.1)' : '#f0f7ff',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#444' : '#e0e0e0'}`
+                    fontSize: '12px',
+                    color: darkMode ? '#aaa' : '#666',
+                    marginLeft: '8px'
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '12px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M12 16v-4"></path>
-                      <path d="M12 8h.01"></path>
-                    </svg>
-                    基本操作・ヒント
-                  </div>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: '20px',
-                      lineHeight: '1.6',
-                      fontSize: '13px',
-                      color: darkMode ? '#ddd' : '#555'
-                    }}
-                  >
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>描画リストのズーム:</strong>{' '}
-                      右サイドバーの「描画済み」リストの項目をクリックすると、その場所へズームします。
-                      <span style={{ color: darkMode ? '#ffb74d' : '#f57c00', fontWeight: 'bold' }}>
-                        連続してクリックすると、さらに段階的に拡大
-                      </span>
-                      します。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>地図操作:</strong>{' '}
-                      左クリックで移動、右クリック＋ドラッグで回転・チルト（傾き）ができます。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>サイドバーのリサイズ:</strong>{' '}
-                      左・右サイドバーの右端にマウスを置くと、カーソルが変わります。ドラッグしてサイドバーの幅を自由に調整できます。
-                    </li>
-                    <li>
-                      <strong>検索:</strong>{' '}
-                      画面左上の検索ボックスから、地名や住所で場所を検索・移動できます。
-                    </li>
-                  </ul>
+                  プログラム処理、QGIS等のGISツール
                 </div>
-
-                {/* セクション2：禁止エリア表示 */}
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <strong>KML</strong> - Google Earth/Maps用
                 <div
                   style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+                    fontSize: '12px',
+                    color: darkMode ? '#aaa' : '#666',
+                    marginLeft: '8px'
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '10px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      fontSize: '14px'
-                    }}
-                  >
-                    禁止エリア表示
-                  </div>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '60px 1fr',
-                      gap: '4px 8px',
-                      fontSize: '13px'
-                    }}
-                  >
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      D
-                    </kbd>
-                    <span>人口集中地区（DID）</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      A
-                    </kbd>
-                    <span>空港周辺空域</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      R
-                    </kbd>
-                    <span>レッドゾーン（飛行禁止） * 未実装</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      Y
-                    </kbd>
-                    <span>イエローゾーン（要許可） * 未実装</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      E
-                    </kbd>
-                    <span>緊急用務空域 *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      H
-                    </kbd>
-                    <span>ヘリポート</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      I
-                    </kbd>
-                    <span>リモートID特定区域 *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      V
-                    </kbd>
-                    <span>有人機発着エリア *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      U
-                    </kbd>
-                    <span>有人機発着区域 *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      F
-                    </kbd>
-                    <span>電波干渉区域 *</span>
-                  </div>
+                  可視化、共有、プレゼンテーション
                 </div>
-
-                {/* セクション3：クイックアクセス */}
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <strong>CSV</strong> - スプレッドシート用
                 <div
                   style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+                    fontSize: '12px',
+                    color: darkMode ? '#aaa' : '#666',
+                    marginLeft: '8px'
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '10px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      fontSize: '14px'
-                    }}
-                  >
-                    クイックアクセス
-                  </div>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '60px 1fr',
-                      gap: '4px 8px',
-                      fontSize: '13px'
-                    }}
-                  >
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '11px'
-                      }}
-                    >
-                      ⌘K
-                    </kbd>
-                    <span>検索にフォーカス</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      S
-                    </kbd>
-                    <span>左サイドバー開閉</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      P
-                    </kbd>
-                    <span>右サイドバー開閉</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      M
-                    </kbd>
-                    <span>マップスタイル切替（M: 次 / Shift+M: 前）</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      T
-                    </kbd>
-                    <span>ツールチップ表示</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      G
-                    </kbd>
-                    <span>座標表示</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      L
-                    </kbd>
-                    <span>ダークモード/ライトモード</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      2 / 3
-                    </kbd>
-                    <span>2D / 3D表示切替</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      R
-                    </kbd>
-                    <span>レッドゾーン * 未実装</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      Y
-                    </kbd>
-                    <span>イエローゾーン * 未実装</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      W
-                    </kbd>
-                    <span>風向・風量 *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      C
-                    </kbd>
-                    <span>LTE *</span>
-                    <kbd
-                      style={{
-                        backgroundColor: darkMode ? '#444' : '#eee',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '12px'
-                      }}
-                    >
-                      ?
-                    </kbd>
-                    <span>ヘルプ表示/非表示</span>
-                  </div>
+                  Excel、座標一覧の確認・編集
                 </div>
-
-                {/* ===== 右カラム ===== */}
-
-                {/* セクション4：描画ツールの使い方 */}
+              </div>
+              <div>
+                <strong>NOTAM/DMS</strong> - 飛行申請用（度分秒形式）
                 <div
                   style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+                    fontSize: '12px',
+                    color: darkMode ? '#aaa' : '#666',
+                    marginLeft: '8px'
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '10px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                      <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                    描画ツールの使い方
-                  </div>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: '20px',
-                      lineHeight: '1.6',
-                      fontSize: '13px',
-                      color: darkMode ? '#ddd' : '#555'
-                    }}
-                  >
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>描画の種類:</strong>{' '}
-                      ポリゴン、円、ウェイポイント、経路（ライン）の4種類から選択できます。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>ウェイポイント名前付け:</strong>{' '}
-                      右サイドバーの「描画済み」リストで各フィーチャーを選択し、名前フィールドを編集できます。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>高度設定:</strong>{' '}
-                      標高（国土地理院APIから自動取得）と飛行高度を設定すると、上限海抜高度が計算されます。
-                    </li>
-                    <li>
-                      <strong>頂点ラベル:</strong>{' '}
-                      描画中は各頂点に座標ラベルが常時表示されます（ツールチップ機能 T キー）。
-                    </li>
-                  </ul>
-                </div>
-
-                {/* セクション5：データエクスポート */}
-                <div
-                  style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '10px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    データエクスポート
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      lineHeight: '1.7',
-                      color: darkMode ? '#ddd' : '#555'
-                    }}
-                  >
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>GeoJSON</strong> - Web地図/開発ツール連携用
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: darkMode ? '#aaa' : '#666',
-                          marginLeft: '8px'
-                        }}
-                      >
-                        プログラム処理、QGIS等のGISツール
-                      </div>
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>KML</strong> - Google Earth/Maps用
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: darkMode ? '#aaa' : '#666',
-                          marginLeft: '8px'
-                        }}
-                      >
-                        可視化、共有、プレゼンテーション
-                      </div>
-                    </div>
-                    <div style={{ marginBottom: '8px' }}>
-                      <strong>CSV</strong> - スプレッドシート用
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: darkMode ? '#aaa' : '#666',
-                          marginLeft: '8px'
-                        }}
-                      >
-                        Excel、座標一覧の確認・編集
-                      </div>
-                    </div>
-                    <div>
-                      <strong>NOTAM/DMS</strong> - 飛行申請用（度分秒形式）
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: darkMode ? '#aaa' : '#666',
-                          marginLeft: '8px'
-                        }}
-                      >
-                        DIPS申請、航空当局への提出資料
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* セクション6：座標・表示設定 */}
-                <div
-                  style={{
-                    marginBottom: '8px',
-                    padding: '16px',
-                    backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-                    borderRadius: '8px',
-                    border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      marginBottom: '10px',
-                      color: darkMode ? '#4a90d9' : '#2563eb',
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M12 6v6l4 2"></path>
-                    </svg>
-                    座標・表示設定
-                  </div>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: '20px',
-                      lineHeight: '1.6',
-                      fontSize: '13px',
-                      color: darkMode ? '#ddd' : '#555'
-                    }}
-                  >
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>座標フォーマット:</strong>{' '}
-                      地図をクリックすると10進数形式と度分秒（DMS）形式の両方が5秒間表示されます（ドラッグすると固定）。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>座標表示切替（G）:</strong> 座標表示のON/OFFを切り替えます。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>ツールチップ表示（T）:</strong>{' '}
-                      描画中の頂点に座標ラベルを表示します（現在はON固定）。
-                    </li>
-                    <li style={{ marginBottom: '6px' }}>
-                      <strong>表示モード切替:</strong> L キー（ダークモード）、2/3
-                      キー（2D/3D表示）で切り替え可能です。
-                    </li>
-                    <li>
-                      <strong>表示設定:</strong>{' '}
-                      ツールチップの詳細、海抜高度、推奨飛行高度などが画面上部パネルに表示されます。
-                    </li>
-                  </ul>
+                  DIPS申請、航空当局への提出資料
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* フッター */}
+          {/* セクション6：座標・表示設定 */}
+          <div
+            style={{
+              marginBottom: '8px',
+              padding: '16px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+              borderRadius: '8px',
+              border: `1px solid ${darkMode ? '#333' : '#e0e0e0'}`
+            }}
+          >
             <div
               style={{
-                margin: '24px',
-                paddingTop: '16px',
-                borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`,
-                fontSize: '12px',
-                color: darkMode ? '#888' : '#666'
+                fontWeight: 600,
+                marginBottom: '10px',
+                color: darkMode ? '#4a90d9' : '#2563eb',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}
             >
-              <p>
-                <strong>データソース：</strong>
-                DIDデータは政府統計の総合窓口(e-Stat)より。禁止区域は参考データです。飛行前は必ずDIPSで最新情報を確認してください。
-              </p>
-              <p>
-                <strong>* 仮設置データ：</strong>
-                ヘリポート、有人機発着エリア/区域、電波干渉区域、緊急用務空域、リモートID特定区域、風向・風量、LTEは参考データまたは試験的表示です。
-              </p>
-              <p>
-                <strong>* 未実装：</strong>
-                レッドゾーン、イエローゾーンは国土交通省DIPSシステムからの実装が予定されており、現在は利用できません。飛行前は必ずDIPSで公式情報を確認してください。
-              </p>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              座標・表示設定
             </div>
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: '20px',
+                lineHeight: '1.6',
+                fontSize: '13px',
+                color: darkMode ? '#ddd' : '#555'
+              }}
+            >
+              <li style={{ marginBottom: '6px' }}>
+                <strong>座標フォーマット:</strong>{' '}
+                地図をクリックすると10進数形式と度分秒（DMS）形式の両方が5秒間表示されます（ドラッグすると固定）。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>座標表示切替（G）:</strong> 座標表示のON/OFFを切り替えます。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>ツールチップ表示（T）:</strong>{' '}
+                描画中の頂点に座標ラベルを表示します（現在はON固定）。
+              </li>
+              <li style={{ marginBottom: '6px' }}>
+                <strong>表示モード切替:</strong> L キー（ダークモード）、2/3
+                キー（2D/3D表示）で切り替え可能です。
+              </li>
+              <li>
+                <strong>表示設定:</strong>{' '}
+                ツールチップの詳細、海抜高度、推奨飛行高度などが画面上部パネルに表示されます。
+              </li>
+            </ul>
           </div>
         </div>
-      )}
+
+        {/* フッター */}
+        <div
+          style={{
+            marginTop: '16px',
+            paddingTop: '16px',
+            borderTop: `1px solid ${darkMode ? '#444' : '#ddd'}`,
+            fontSize: '12px',
+            color: darkMode ? '#888' : '#666'
+          }}
+        >
+          <p>
+            <strong>データソース：</strong>
+            DIDデータは政府統計の総合窓口(e-Stat)より。禁止区域は参考データです。飛行前は必ずDIPSで最新情報を確認してください。
+          </p>
+          <p>
+            <strong>* 仮設置データ：</strong>
+            ヘリポート、有人機発着エリア/区域、電波干渉区域、緊急用務空域、リモートID特定区域、風向・風量、LTEは参考データまたは試験的表示です。
+          </p>
+          <p>
+            <strong>* 未実装：</strong>
+            レッドゾーン、イエローゾーンは国土交通省DIPSシステムからの実装が予定されており、現在は利用できません。飛行前は必ずDIPSで公式情報を確認してください。
+          </p>
+        </div>
+      </Modal>
+
+      {/* Info Modal */}
+      <Modal
+        isOpen={infoModalKey !== null}
+        onClose={() => setInfoModalKey(null)}
+        title={infoModalKey ? INFO_MODAL_CONTENT[infoModalKey].title : ''}
+        darkMode={darkMode}
+        width="640px"
+        maxHeight="70vh"
+        overlayOpacity={0.25}
+        zIndex={2001}
+      >
+        {infoModalKey && (
+          <div style={{ fontSize: '13px', lineHeight: 1.6 }}>
+            <div style={{ marginBottom: '10px', color: darkMode ? '#ddd' : '#555' }}>
+              {INFO_MODAL_CONTENT[infoModalKey].lead}
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '20px', color: darkMode ? '#ddd' : '#555' }}>
+              {INFO_MODAL_CONTENT[infoModalKey].bullets.map((item) => (
+                <li key={item} style={{ marginBottom: '6px' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Modal>
 
       {/* Attribution */}
       <div

@@ -66,6 +66,12 @@ body {
   top: 50px !important;
 }
 
+/* Glassmorphism base styles */
+[data-glass] {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 /* チェックボックスを大きく */
 input[type="checkbox"] {
   width: 18px;

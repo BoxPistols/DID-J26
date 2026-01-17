@@ -3217,6 +3217,7 @@ ${kmlFeatures}
                       <li>移動: 図形をドラッグ</li>
                       <li>選択: Shift+ドラッグで複数選択</li>
                       <li>削除: 図形選択後、Delete/Backspaceキー（確認あり）</li>
+                      <li style={{ marginTop: '4px' }}>座標名: リスト内の名前をダブルクリックで編集</li>
                     </ul>
                     <div
                       style={{
@@ -3427,10 +3428,21 @@ ${kmlFeatures}
                                   cursor: 'pointer',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
+                                  whiteSpace: 'nowrap',
+                                  padding: '2px 4px',
+                                  borderRadius: '3px',
+                                  transition: 'background-color 0.2s, color 0.2s'
                                 }}
                                 onClick={() => handleNameClick(f)}
                                 onDoubleClick={() => handleNameDoubleClick(f)}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = darkMode
+                                    ? 'rgba(144, 202, 249, 0.2)'
+                                    : 'rgba(25, 118, 210, 0.12)'
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'transparent'
+                                }}
                                 title={`${f.name}（ダブルクリックで編集）`}
                               >
                                 {f.name}

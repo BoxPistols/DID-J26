@@ -1,40 +1,35 @@
 import { addons } from '@storybook/manager-api'
-import { GLOBALS_UPDATED, SET_GLOBALS } from '@storybook/core-events'
+import { SET_CONFIG, SET_GLOBALS, GLOBALS_UPDATED } from '@storybook/core-events'
 import { themes } from '@storybook/theming'
+
+const applyTheme = (themeName) => {
+  const theme = themeName === 'dark' ? themes.dark : themes.light
+  addons.setConfig({ theme })
+}
 
 const channel = addons.getChannel()
 
-const applyTheme = (themeName: string) => {
-  const theme = themeName === 'dark' ? themes.dark : themes.light
-  addons.setConfig({ theme })
-  
-  // テーマを localStorage に保存
-  try {
-    localStorage.setItem('storybook-theme', themeName)
-  } catch {
-    // localStorage が使用不可の場合は無視
+const FORCE_THEME = 'dark'
+
+applyTheme(FORCE_THEME)
+
+channel.on(SET_CONFIG, (payload) => {
+  const themeBase = payload?.theme?.base ?? null
+  if (themeBase !== FORCE_THEME) {
+    applyTheme(FORCE_THEME)
   }
-}
+})
 
-// 初期テーマを設定（preview.ts と同期）
-try {
-  const savedTheme = localStorage.getItem('storybook-theme') || 'dark'
-  applyTheme(savedTheme)
-} catch {
-  applyTheme('dark')
-}
-
-// テーマ変更を監視
 channel.on(SET_GLOBALS, (payload) => {
-  const themeName = payload?.globals?.theme
-  if (themeName) {
-    applyTheme(themeName)
+  const theme = payload?.globals?.theme
+  if (theme !== FORCE_THEME) {
+    applyTheme(FORCE_THEME)
   }
 })
 
 channel.on(GLOBALS_UPDATED, (payload) => {
-  const themeName = payload?.globals?.theme
-  if (themeName) {
-    applyTheme(themeName)
+  const theme = payload?.globals?.theme
+  if (theme !== FORCE_THEME) {
+    applyTheme(FORCE_THEME)
   }
 })

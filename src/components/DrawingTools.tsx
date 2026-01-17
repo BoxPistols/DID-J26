@@ -862,8 +862,8 @@ export function DrawingTools({
             ['!=', 'mode', 'static']
           ],
           paint: {
-            'fill-color': '#3388ff',
-            'fill-outline-color': '#3388ff',
+            'fill-color': '#2563eb',
+            'fill-outline-color': '#2563eb',
             'fill-opacity': 0.25
           }
         },
@@ -873,8 +873,8 @@ export function DrawingTools({
           type: 'fill',
           filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']],
           paint: {
-            'fill-color': '#3388ff',
-            'fill-outline-color': '#3388ff',
+            'fill-color': '#2563eb',
+            'fill-outline-color': '#2563eb',
             'fill-opacity': 0.25
           }
         },
@@ -893,7 +893,7 @@ export function DrawingTools({
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#3388ff',
+            'line-color': '#2563eb',
             'line-width': 3
           }
         },
@@ -907,7 +907,7 @@ export function DrawingTools({
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#3388ff',
+            'line-color': '#2563eb',
             'line-dasharray': [0.2, 2],
             'line-width': 2
           }
@@ -927,7 +927,7 @@ export function DrawingTools({
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#3388ff',
+            'line-color': '#2563eb',
             'line-width': 3
           }
         },
@@ -941,7 +941,7 @@ export function DrawingTools({
             'line-join': 'round'
           },
           paint: {
-            'line-color': '#3388ff',
+            'line-color': '#2563eb',
             'line-dasharray': [0.2, 2],
             'line-width': 3
           }
@@ -959,7 +959,7 @@ export function DrawingTools({
           ],
           paint: {
             'circle-radius': 6,
-            'circle-color': '#3388ff'
+            'circle-color': '#2563eb'
           }
         },
         // ポイント - アクティブ（描画中の点）
@@ -974,7 +974,7 @@ export function DrawingTools({
           ],
           paint: {
             'circle-radius': 8,
-            'circle-color': '#3388ff'
+            'circle-color': '#2563eb'
           }
         },
         // 描画中のポイント
@@ -1020,7 +1020,7 @@ export function DrawingTools({
           ],
           paint: {
             'circle-radius': 4,
-            'circle-color': '#3388ff'
+            'circle-color': '#2563eb'
           }
         },
         // ミッドポイント（頂点追加用）
@@ -1030,7 +1030,7 @@ export function DrawingTools({
           filter: ['all', ['==', 'meta', 'midpoint'], ['==', '$type', 'Point']],
           paint: {
             'circle-radius': 4,
-            'circle-color': '#3388ff'
+            'circle-color': '#2563eb'
           }
         }
       ]
@@ -1074,7 +1074,7 @@ export function DrawingTools({
         source: 'vertex-labels',
         paint: {
           'circle-radius': ['case', ['get', 'selected'], 14, 12],
-          'circle-color': ['case', ['get', 'selected'], '#ff9800', '#3388ff'],
+          'circle-color': ['case', ['get', 'selected'], '#ff9800', '#2563eb'],
           'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
           'circle-stroke-color': '#ffffff'
         }
@@ -1582,7 +1582,10 @@ export function DrawingTools({
         id,
         type,
         name,
-        coordinates: f.geometry.type === 'GeometryCollection' ? [] : (f.geometry as Exclude<GeoJSON.Geometry, GeoJSON.GeometryCollection>).coordinates,
+        coordinates:
+          f.geometry.type === 'GeometryCollection'
+            ? []
+            : (f.geometry as Exclude<GeoJSON.Geometry, GeoJSON.GeometryCollection>).coordinates,
         radius: f.properties?.radiusKm ? (f.properties.radiusKm as number) * 1000 : undefined,
         center: f.properties?.center as [number, number] | undefined,
         properties: f.properties || {},
@@ -2472,20 +2475,45 @@ ${kmlFeatures}
     }
   }
 
-  // 座標をテキスト形式でコピー
+  // 座標をDMS形式（NOTAM対応）でクリップボードにコピー
   const handleCopyCoordinates = async () => {
+    // 緯度経度をDMS形式に変換
+    const toDMS = (decimal: number, isLat: boolean): string => {
+      const abs = Math.abs(decimal)
+      let degrees = Math.floor(abs)
+      let minutes = Math.floor((abs - degrees) * 60)
+      let seconds = ((abs - degrees) * 60 - minutes) * 60
+
+      // 丸め処理による繰り上がり対応
+      if (parseFloat(seconds.toFixed(2)) >= 60) {
+        seconds = 0
+        minutes++
+        if (minutes >= 60) {
+          minutes = 0
+          degrees++
+        }
+      }
+
+      const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : decimal >= 0 ? 'E' : 'W'
+      return `${degrees}°${minutes.toString().padStart(2, '0')}'${seconds.toFixed(2).padStart(5, '0')}"${dir}`
+    }
+
+    const formatCoordDMS = (lat: number, lng: number): string => {
+      return `${toDMS(lat, true)} ${toDMS(lng, false)}`
+    }
+
     const coordText = drawnFeatures
       .map((f) => {
         if (f.type === 'point') {
           const coords = f.coordinates as GeoJSON.Position
-          return `${f.name}: ${coords[1].toFixed(6)}, ${coords[0].toFixed(6)}`
+          return `${f.name}: ${formatCoordDMS(coords[1], coords[0])}`
         } else if (f.type === 'circle' && f.center) {
-          return `${f.name}: 中心 ${f.center[1].toFixed(6)}, ${f.center[0].toFixed(6)} / 半径 ${f.radius}m`
+          return `${f.name}: 中心 ${formatCoordDMS(f.center[1], f.center[0])} / 半径 ${f.radius}m`
         } else if (f.type === 'line') {
           const coords = f.coordinates as GeoJSON.Position[]
           return (
             `${f.name}:\n` +
-            coords.map((c, i) => `  WP${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`).join('\n')
+            coords.map((c, i) => `  WP${i + 1}: ${formatCoordDMS(c[1], c[0])}`).join('\n')
           )
         } else {
           const coords = f.coordinates as GeoJSON.Position[][]
@@ -2494,7 +2522,7 @@ ${kmlFeatures}
               `${f.name} (${f.type}):\n` +
               coords[0]
                 .slice(0, -1)
-                .map((c, i) => `  P${i + 1}: ${c[1].toFixed(6)}, ${c[0].toFixed(6)}`)
+                .map((c, i) => `  P${i + 1}: ${formatCoordDMS(c[1], c[0])}`)
                 .join('\n')
             )
           }
@@ -2510,7 +2538,7 @@ ${kmlFeatures}
 
     try {
       await navigator.clipboard.writeText(coordText)
-      showToast('座標をクリップボードにコピーしました', 'success')
+      showToast('座標（DMS形式）をクリップボードにコピーしました', 'success')
     } catch (error) {
       console.error('Failed to copy to clipboard:', error)
       showToast('クリップボードへのコピーに失敗しました', 'error')
@@ -2607,7 +2635,7 @@ ${kmlFeatures}
   const textColor = darkMode ? '#fff' : '#333'
   const borderColor = darkMode ? '#555' : '#ddd'
   const buttonBg = darkMode ? '#444' : '#f0f0f0'
-  const buttonActiveBg = '#3388ff'
+  const buttonActiveBg = '#2563eb' // Muted indigo-600 (was #2563eb)
 
   // 埋め込み時は折りたたみボタンを表示しない
   if (!isOpen && !embedded) {
@@ -2619,7 +2647,7 @@ ${kmlFeatures}
           top: 120,
           left: 300,
           padding: '10px 16px',
-          backgroundColor: '#3388ff',
+          backgroundColor: '#2563eb',
           color: '#fff',
           border: 'none',
           borderRadius: '8px',
@@ -2643,7 +2671,7 @@ ${kmlFeatures}
           style={{
             width: '100%',
             padding: '10px 12px',
-            backgroundColor: '#3388ff',
+            backgroundColor: '#2563eb',
             color: '#fff',
             border: 'none',
             borderRadius: '4px',
@@ -2656,8 +2684,8 @@ ${kmlFeatures}
             userSelect: 'none',
             transition: 'background-color 0.2s'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2a6fc9')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#3388ff')}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1e40af')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
         >
           <span>飛行経路／飛行範囲</span>
           <span style={{ fontSize: '12px' }}>▼</span>
@@ -2698,7 +2726,7 @@ ${kmlFeatures}
           onClick={() => embedded && setIsOpen(false)}
           style={{
             padding: embedded ? '10px 8px' : '12px 16px',
-            backgroundColor: '#3388ff',
+            backgroundColor: '#2563eb',
             color: '#fff',
             display: 'flex',
             justifyContent: 'space-between',
@@ -2707,8 +2735,8 @@ ${kmlFeatures}
             userSelect: 'none',
             transition: 'background-color 0.2s'
           }}
-          onMouseEnter={(e) => embedded && (e.currentTarget.style.backgroundColor = '#2a6fc9')}
-          onMouseLeave={(e) => embedded && (e.currentTarget.style.backgroundColor = '#3388ff')}
+          onMouseEnter={(e) => embedded && (e.currentTarget.style.backgroundColor = '#1e40af')}
+          onMouseLeave={(e) => embedded && (e.currentTarget.style.backgroundColor = '#2563eb')}
         >
           <h3 style={{ margin: 0, fontSize: embedded ? '13px' : '14px', fontWeight: 500 }}>
             飛行経路／飛行範囲
@@ -2828,8 +2856,8 @@ ${kmlFeatures}
               padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'draw' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'draw' ? '#3388ff' : darkMode ? '#999' : '#666',
+              borderBottom: activeTab === 'draw' ? '3px solid #2563eb' : '3px solid transparent',
+              color: activeTab === 'draw' ? '#2563eb' : darkMode ? '#999' : '#666',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: activeTab === 'draw' ? 600 : 400,
@@ -2848,8 +2876,8 @@ ${kmlFeatures}
               padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'manage' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'manage' ? '#3388ff' : darkMode ? '#999' : '#666',
+              borderBottom: activeTab === 'manage' ? '3px solid #2563eb' : '3px solid transparent',
+              color: activeTab === 'manage' ? '#2563eb' : darkMode ? '#999' : '#666',
               cursor: drawnFeatures.length === 0 ? 'not-allowed' : 'pointer',
               opacity: drawnFeatures.length === 0 ? 0.5 : 1,
               fontSize: '13px',
@@ -2886,8 +2914,8 @@ ${kmlFeatures}
               padding: '10px 6px',
               backgroundColor: 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'export' ? '3px solid #3388ff' : '3px solid transparent',
-              color: activeTab === 'export' ? '#3388ff' : darkMode ? '#999' : '#666',
+              borderBottom: activeTab === 'export' ? '3px solid #2563eb' : '3px solid transparent',
+              color: activeTab === 'export' ? '#2563eb' : darkMode ? '#999' : '#666',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: activeTab === 'export' ? 600 : 400,
@@ -3004,13 +3032,13 @@ ${kmlFeatures}
                     padding: '8px',
                     backgroundColor: darkMode ? '#333' : '#f0f8ff',
                     borderRadius: '4px',
-                    border: '1px solid #3388ff'
+                    border: '1px solid #2563eb'
                   }}
                 >
                   <label
                     style={{
                       fontSize: '12px',
-                      color: '#3388ff',
+                      color: '#2563eb',
                       display: 'block',
                       marginBottom: '4px',
                       fontWeight: 'bold'
@@ -3109,7 +3137,7 @@ ${kmlFeatures}
                     padding: '8px',
                     backgroundColor: darkMode ? '#333' : '#f0f8ff',
                     borderRadius: '4px',
-                    border: '1px solid #3388ff'
+                    border: '1px solid #2563eb'
                   }}
                 >
                   <label
@@ -3202,7 +3230,7 @@ ${kmlFeatures}
                         style={{
                           width: '100%',
                           padding: '4px 8px',
-                          backgroundColor: darkMode ? '#2563eb' : '#3388ff',
+                          backgroundColor: darkMode ? '#2563eb' : '#2563eb',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '4px',
@@ -3215,7 +3243,7 @@ ${kmlFeatures}
                           (e.currentTarget.style.backgroundColor = darkMode ? '#1d4ed8' : '#2563eb')
                         }
                         onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor = darkMode ? '#2563eb' : '#3388ff')
+                          (e.currentTarget.style.backgroundColor = darkMode ? '#2563eb' : '#2563eb')
                         }
                       >
                         ? ヘルプを開く
@@ -3339,7 +3367,7 @@ ${kmlFeatures}
                                     ? '#9c27b0'
                                     : f.type === 'line'
                                       ? '#4caf50'
-                                      : '#3388ff',
+                                      : '#2563eb',
                               flexShrink: 0
                             }}
                           />
@@ -3482,7 +3510,7 @@ ${kmlFeatures}
                           borderRadius: '12px',
                           cursor: 'pointer',
                           backgroundColor:
-                            typeFilter === type ? '#3388ff' : darkMode ? '#444' : '#e0e0e0',
+                            typeFilter === type ? '#2563eb' : darkMode ? '#444' : '#e0e0e0',
                           color: typeFilter === type ? '#fff' : darkMode ? '#ccc' : '#666'
                         }}
                       >
@@ -4012,9 +4040,9 @@ ${kmlFeatures}
                         style={{
                           flex: '1 0 auto',
                           padding: '6px 12px',
-                          backgroundColor: exportFormat === format ? '#3388ff' : buttonBg,
+                          backgroundColor: exportFormat === format ? '#2563eb' : buttonBg,
                           color: exportFormat === format ? '#fff' : darkMode ? '#ccc' : '#666',
-                          border: `1px solid ${exportFormat === format ? '#3388ff' : borderColor}`,
+                          border: `1px solid ${exportFormat === format ? '#2563eb' : borderColor}`,
                           borderRadius: '4px',
                           cursor: 'pointer',
                           fontSize: '11px',
@@ -4040,9 +4068,9 @@ ${kmlFeatures}
                     style={{
                       width: '100%',
                       padding: '12px 10px',
-                      backgroundColor: drawnFeatures.length > 0 ? '#3388ff' : buttonBg,
+                      backgroundColor: drawnFeatures.length > 0 ? '#2563eb' : buttonBg,
                       color: drawnFeatures.length > 0 ? '#fff' : darkMode ? '#666' : '#999',
-                      border: `1px solid ${drawnFeatures.length > 0 ? '#3388ff' : borderColor}`,
+                      border: `1px solid ${drawnFeatures.length > 0 ? '#2563eb' : borderColor}`,
                       borderRadius: '6px',
                       cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
                       fontSize: '13px',
@@ -4129,9 +4157,9 @@ ${kmlFeatures}
                     style={{
                       width: '100%',
                       padding: '10px',
-                      backgroundColor: isImporting ? buttonBg : '#7e57c2',
+                      backgroundColor: isImporting ? buttonBg : '#6366f1',
                       color: isImporting ? (darkMode ? '#666' : '#999') : '#fff',
-                      border: `1px solid ${isImporting ? borderColor : '#7e57c2'}`,
+                      border: `1px solid ${isImporting ? borderColor : '#6366f1'}`,
                       borderRadius: '6px',
                       cursor: isImporting ? 'not-allowed' : 'pointer',
                       fontSize: '12px',
@@ -4342,7 +4370,7 @@ ${kmlFeatures}
               onClick={handleDownload}
               style={{
                 padding: '8px 16px',
-                backgroundColor: '#3388ff',
+                backgroundColor: '#2563eb',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '4px',

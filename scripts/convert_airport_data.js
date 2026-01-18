@@ -109,7 +109,7 @@ try {
   notifier.notify({
     title: '空港データ変換完了',
     message: 'Shapefileの変換が完了しました',
-    sound: true
+    sound: false
   });
 
 } catch (error) {
@@ -117,7 +117,7 @@ try {
   notifier.notify({
     title: '空港データ変換失敗',
     message: 'エラーが発生しました',
-    sound: true
+    sound: false
   });
 } finally {
   // Cleanup

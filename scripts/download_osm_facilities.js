@@ -221,7 +221,7 @@ run().catch((error) => {
   notifier.notify({
     title: 'OSM施設データダウンロード失敗',
     message: 'エラーが発生しました',
-    sound: true
+    sound: false
   })
   process.exit(1)
 })

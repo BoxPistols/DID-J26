@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import MapboxDraw from '@mapbox/mapbox-gl-draw'
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 import type maplibregl from 'maplibre-gl'
-import { createCirclePolygon } from '../lib/utils/geo'
+import { createCirclePolygon, convertDecimalToDMS } from '../lib/utils/geo'
 import { Modal } from './Modal'
 import { showToast } from '../utils/toast'
 import { showConfirm } from '../utils/dialog'
@@ -2242,19 +2242,6 @@ ${kmlFeatures}
     return rows.join('\n')
   }
 
-  // 10進数座標を度分秒（DMS）に変換
-  const decimalToDMS = (decimal: number, isLatitude: boolean): string => {
-    const absolute = Math.abs(decimal)
-    const degrees = Math.floor(absolute)
-    const minutesDecimal = (absolute - degrees) * 60
-    const minutes = Math.floor(minutesDecimal)
-    const seconds = Math.floor((minutesDecimal - minutes) * 60)
-
-    const direction = isLatitude ? (decimal >= 0 ? '北緯' : '南緯') : decimal >= 0 ? '東経' : '西経'
-
-    return `${direction}${degrees}°${minutes}'${seconds}"`
-  }
-
   // NOTAMフォーマットに変換
   const convertToDMS = (features: GeoJSON.Feature[]): string => {
     const lines: string[] = []
@@ -2291,8 +2278,9 @@ ${kmlFeatures}
       if (coords.length > 0) {
         lines.push(`【${name}】${altitudeStr}`)
         coords.forEach((coord, index) => {
-          const lat = decimalToDMS(coord[1], true)
-          const lng = decimalToDMS(coord[0], false)
+          // 日本語形式で出力 (ja)
+          const lat = convertDecimalToDMS(coord[1], true, 'ja')
+          const lng = convertDecimalToDMS(coord[0], false, 'ja')
           const wpNumber = index + 1
           lines.push(`WP${wpNumber}: ${lat}  ${lng}`)
         })
@@ -2477,29 +2465,9 @@ ${kmlFeatures}
 
   // 座標をDMS形式（NOTAM対応）でクリップボードにコピー
   const handleCopyCoordinates = async () => {
-    // 緯度経度をDMS形式に変換
-    const toDMS = (decimal: number, isLat: boolean): string => {
-      const abs = Math.abs(decimal)
-      let degrees = Math.floor(abs)
-      let minutes = Math.floor((abs - degrees) * 60)
-      let seconds = ((abs - degrees) * 60 - minutes) * 60
-
-      // 丸め処理による繰り上がり対応
-      if (parseFloat(seconds.toFixed(2)) >= 60) {
-        seconds = 0
-        minutes++
-        if (minutes >= 60) {
-          minutes = 0
-          degrees++
-        }
-      }
-
-      const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : decimal >= 0 ? 'E' : 'W'
-      return `${degrees}°${minutes.toString().padStart(2, '0')}'${seconds.toFixed(2).padStart(5, '0')}"${dir}`
-    }
-
     const formatCoordDMS = (lat: number, lng: number): string => {
-      return `${toDMS(lat, true)} ${toDMS(lng, false)}`
+      // 標準形式で出力 (en: N/E suffix)
+      return `${convertDecimalToDMS(lat, true, 'en')} ${convertDecimalToDMS(lng, false, 'en')}`
     }
 
     const coordText = drawnFeatures

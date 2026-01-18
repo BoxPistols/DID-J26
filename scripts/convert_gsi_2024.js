@@ -194,14 +194,14 @@ try {
   notifier.notify({
     title: 'GSI 2024データ変換完了',
     message: '標高データの変換が完了しました',
-    sound: false
+    sound: true
   });
 } catch (error) {
   console.error('Conversion failed:', error);
   notifier.notify({
     title: 'GSI 2024データ変換失敗',
     message: 'エラーが発生しました',
-    sound: false
+    sound: true
   });
   process.exit(1);
 }

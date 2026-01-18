@@ -212,7 +212,7 @@ const run = async () => {
   notifier.notify({
     title: 'OSM施設データダウンロード完了',
     message: 'すべてのデータ取得が完了しました',
-    sound: false
+    sound: true
   })
 }
 
@@ -221,7 +221,7 @@ run().catch((error) => {
   notifier.notify({
     title: 'OSM施設データダウンロード失敗',
     message: 'エラーが発生しました',
-    sound: false
+    sound: true
   })
   process.exit(1)
 })

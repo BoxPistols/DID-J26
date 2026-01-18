@@ -1,5 +1,12 @@
 # Vercelデプロイメントガイド
 
+## プロジェクト構成
+
+このリポジトリは2つのVercelプロジェクトにデプロイされます：
+
+- **本番アプリ**: https://didj.vercel.app/ (mainブランチ)
+- **Storybook**: https://didj-docs.vercel.app/ (専用プロジェクト)
+
 ## 環境変数設定
 
 ### 現在のバージョン（v1.0）
@@ -11,6 +18,8 @@
 - **OpenMapTiles** - フォントグリフ
 
 ### Vercelデプロイ手順
+
+#### 本番アプリ (didj.vercel.app)
 
 1. **GitHubリポジトリに接続**
    ```bash
@@ -27,9 +36,35 @@
    - Framework Preset: **Vite**（自動検出）
    - Build Command: `npm run build`（自動設定）
    - Output Directory: `dist`（自動設定）
+   - Production Branch: `main`
 
 3. **環境変数は設定不要**
    - 現在は環境変数なしで動作します
+
+#### Storybook (didj-docs.vercel.app)
+
+1. **別のVercelプロジェクトとして作成**
+   - Vercelダッシュボードで「New Project」をクリック
+   - 同じGitHubリポジトリを選択
+   - プロジェクト名: `didj-docs`
+
+2. **ビルド設定をオーバーライド**
+   - Settings → General → Build & Development Settings
+   - Override: Yes
+   - Build Command: `npm run build-storybook`
+   - Output Directory: `storybook-static`
+   - Install Command: `npm install`
+
+3. **Production Branchを設定**
+   - Settings → Git → Production Branch
+   - Branch: `main` (または専用ブランチ)
+
+#### Vercel CLI での設定例
+
+```bash
+# Storybookプロジェクトのデプロイ
+vercel --prod --build-env VERCEL_PROJECT_NAME=didj-docs
+```
 
 ### 将来的な拡張（オプション）
 

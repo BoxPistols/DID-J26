@@ -110,7 +110,7 @@ try {
   notifier.notify({
     title: 'DID 2020データ変換完了',
     message: 'すべての都道府県データの変換が完了しました',
-    sound: false
+    sound: true
   });
 
 } catch (error) {
@@ -118,7 +118,7 @@ try {
   notifier.notify({
     title: 'DID 2020データ変換失敗',
     message: 'エラーが発生しました',
-    sound: false
+    sound: true
   });
   process.exit(1);
 }

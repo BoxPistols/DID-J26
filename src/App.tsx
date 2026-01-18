@@ -201,6 +201,8 @@ function App() {
   })
   const previousFeaturesRef = useRef<DrawnFeature[]>([])
   const enableCoordinateDisplayRef = useRef(true)
+  const coordClickTypeRef = useRef<'right' | 'left' | 'both'>('right')
+  const coordDisplayPositionRef = useRef<'click' | 'fixed'>('click')
   const comparisonLayerBoundsRef = useRef<Map<string, [[number, number], [number, number]]>>(
     new Map()
   )
@@ -571,6 +573,49 @@ function App() {
     return 'square' // デフォルト
   })
 
+  // Flexible coordinate settings
+  type CoordClickType = 'right' | 'left' | 'both'
+  type CoordDisplayPosition = 'click' | 'fixed'
+
+  const [coordClickType, setCoordClickType] = useState<CoordClickType>(() => {
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      if (stored) {
+        const { coordClickType: saved } = JSON.parse(stored)
+        if (saved === 'right' || saved === 'left' || saved === 'both') return saved
+      }
+    } catch {
+      // ignore
+    }
+    return 'right' // デフォルト: 右クリックのみ
+  })
+
+  const [coordDisplayPosition, setCoordDisplayPosition] = useState<CoordDisplayPosition>(() => {
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      if (stored) {
+        const { coordDisplayPosition: saved } = JSON.parse(stored)
+        if (saved === 'click' || saved === 'fixed') return saved
+      }
+    } catch {
+      // ignore
+    }
+    return 'click' // デフォルト: クリック位置
+  })
+
+  const [crosshairClickCapture, setCrosshairClickCapture] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      if (stored) {
+        const { crosshairClickCapture: saved } = JSON.parse(stored)
+        return saved ?? false
+      }
+    } catch {
+      // ignore
+    }
+    return false // デフォルト: 装飾のみ
+  })
+
   // 2D/3D切り替え
   const toggle3DMode = useCallback(() => {
     const map = mapRef.current
@@ -689,13 +734,25 @@ function App() {
         enableCoordinateDisplay,
         showFocusCrosshair,
         crosshairDesign,
+        coordClickType,
+        coordDisplayPosition,
+        crosshairClickCapture,
         timestamp: Date.now()
       }
       localStorage.setItem('ui-settings', JSON.stringify(settings))
     } catch (e) {
       console.error('Failed to save UI settings:', e)
     }
-  }, [darkMode, baseMap, enableCoordinateDisplay, showFocusCrosshair, crosshairDesign])
+  }, [
+    darkMode,
+    baseMap,
+    enableCoordinateDisplay,
+    showFocusCrosshair,
+    crosshairDesign,
+    coordClickType,
+    coordDisplayPosition,
+    crosshairClickCapture
+  ])
 
   // ============================================
   // Save comparison settings (persist across baseMap reload)
@@ -759,6 +816,14 @@ function App() {
   useEffect(() => {
     enableCoordinateDisplayRef.current = enableCoordinateDisplay
   }, [enableCoordinateDisplay])
+
+  useEffect(() => {
+    coordClickTypeRef.current = coordClickType
+  }, [coordClickType])
+
+  useEffect(() => {
+    coordDisplayPositionRef.current = coordDisplayPosition
+  }, [coordDisplayPosition])
 
   // 座標表示をOFFにしたら、表示中の座標パネルも連動して閉じる（UX改善）
   useEffect(() => {
@@ -838,10 +903,19 @@ function App() {
           toggleRestriction('facility-fire')
           break
 
-        // [P] Physician / Medical
-        // Was: right sidebar (disabled for now or needs remapping)
-        case 'p':
+        // [O] Outpatient / Medical facilities
+        case 'o':
           toggleRestriction('facility-medical')
+          break
+
+        // [S] Left Sidebar toggle
+        case 's':
+          setShowLeftLegend((prev) => !prev)
+          break
+
+        // [P] Right Panel (sidebar) toggle
+        case 'p':
+          setShowRightLegend((prev) => !prev)
           break
 
         // [W] Wind Field (Mock)
@@ -1312,26 +1386,38 @@ function App() {
       }
     })
 
-    // Handle map click to display coordinates
+    // Helper to set coordinates based on display position setting
+    const showCoordinatesAtPosition = (
+      lngLat: { lng: number; lat: number },
+      point: { x: number; y: number }
+    ) => {
+      const isFixed = coordDisplayPositionRef.current === 'fixed'
+      setDisplayCoordinates({
+        lng: lngLat.lng,
+        lat: lngLat.lat,
+        // fixed mode: no screenX/Y = CoordinateDisplay will use default bottom-right
+        screenX: isFixed ? undefined : point.x,
+        screenY: isFixed ? undefined : point.y
+      })
+    }
+
+    // Handle map left-click to display coordinates
     map.on('click', (e) => {
-      if (enableCoordinateDisplayRef.current) {
-        setDisplayCoordinates({
-          lng: e.lngLat.lng,
-          lat: e.lngLat.lat
-        })
+      const clickType = coordClickTypeRef.current
+      // Left-click only works if setting is 'left' or 'both'
+      if (clickType === 'left' || clickType === 'both') {
+        showCoordinatesAtPosition(e.lngLat, e.point)
       }
     })
 
-    // Handle right-click (contextmenu) to display coordinates (Google Maps style)
+    // Handle right-click (contextmenu) to display coordinates
     map.on('contextmenu', (e) => {
-      // Coordinates are always shown on right-click regardless of the enableCoordinateDisplay setting
-      e.preventDefault()
-      setDisplayCoordinates({
-        lng: e.lngLat.lng,
-        lat: e.lngLat.lat,
-        screenX: e.point.x,
-        screenY: e.point.y
-      })
+      const clickType = coordClickTypeRef.current
+      // Right-click works if setting is 'right' or 'both'
+      if (clickType === 'right' || clickType === 'both') {
+        e.preventDefault()
+        showCoordinatesAtPosition(e.lngLat, e.point)
+      }
     })
 
     // Comparison layers click and hover handlers
@@ -3926,25 +4012,23 @@ function App() {
           />
         </div>
 
-        {/* Tooltip / Coordinate toggles (横並び) */}
+        {/* Coordinate & Crosshair Settings */}
         <div
           style={{
             marginBottom: '12px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '8px'
+            flexDirection: 'column',
+            gap: '10px'
           }}
         >
+          {/* Tooltip toggle */}
           <label
             title="マップ上にマウスをホバーした時に、DID情報や制限区域の詳細をポップアップ表示します"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              cursor: 'pointer',
-              minWidth: 0,
-              flex: '0 0 auto'
+              cursor: 'pointer'
             }}
           >
             <input
@@ -3952,98 +4036,129 @@ function App() {
               checked={showTooltip}
               onChange={(e) => setShowTooltip(e.target.checked)}
             />
-            <span
-              style={{
-                fontSize: '13px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              ツールチップ [T]
-            </span>
+            <span style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>ツールチップ [T]</span>
           </label>
 
-          <label
-            title="マップをクリックした時に、クリック位置の緯度経度を10進数と度分秒形式で表示します"
+          {/* Coordinate capture settings */}
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              minWidth: 0,
-              flex: '0 0 auto'
+              padding: '8px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              borderRadius: '6px'
             }}
           >
-            <input
-              type="checkbox"
-              checked={enableCoordinateDisplay}
-              onChange={(e) => {
-                const next = e.target.checked
-                setEnableCoordinateDisplay(next)
-                if (!next) setDisplayCoordinates(null)
-              }}
-            />
-            <span
-              style={{
-                fontSize: '13px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              座標表示 [G]
-            </span>
-          </label>
+            <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+              📍 座標取得
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label
+                style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                取得:
+                <select
+                  value={coordClickType}
+                  onChange={(e) => setCoordClickType(e.target.value as 'right' | 'left' | 'both')}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 4px',
+                    backgroundColor: darkMode ? '#333' : '#fff',
+                    color: darkMode ? '#e0e0e0' : '#333',
+                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="right">右クリック</option>
+                  <option value="left">左クリック</option>
+                  <option value="both">両方</option>
+                </select>
+              </label>
+              <label
+                style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                表示:
+                <select
+                  value={coordDisplayPosition}
+                  onChange={(e) => setCoordDisplayPosition(e.target.value as 'click' | 'fixed')}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 4px',
+                    backgroundColor: darkMode ? '#333' : '#fff',
+                    color: darkMode ? '#e0e0e0' : '#333',
+                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                    borderRadius: '4px'
+                  }}
+                >
+                  <option value="click">クリック位置</option>
+                  <option value="fixed">右下固定</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
-          {/* Focus Crosshair toggle and design selector */}
-          <label
-            title="マップ中央にフォーカス十字を表示します"
+          {/* Crosshair settings */}
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              minWidth: 0,
-              flex: '0 0 auto'
+              padding: '8px',
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+              borderRadius: '6px'
             }}
           >
-            <input
-              type="checkbox"
-              checked={showFocusCrosshair}
-              onChange={(e) => setShowFocusCrosshair(e.target.checked)}
-            />
-            <span
-              style={{
-                fontSize: '13px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              中心十字
-            </span>
-          </label>
-          {showFocusCrosshair && (
-            <select
-              value={crosshairDesign}
-              onChange={(e) => setCrosshairDesign(e.target.value as CrosshairDesign)}
-              style={{
-                fontSize: '11px',
-                padding: '2px 4px',
-                backgroundColor: darkMode ? '#333' : '#fff',
-                color: darkMode ? '#e0e0e0' : '#333',
-                border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-              title="十字デザインを変更"
-            >
-              <option value="square">□ 四角</option>
-              <option value="circle">○ 円形</option>
-              <option value="minimal">＋ シンプル</option>
-            </select>
-          )}
+            <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>⊕ 中心十字</div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label
+                style={{
+                  fontSize: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={showFocusCrosshair}
+                  onChange={(e) => setShowFocusCrosshair(e.target.checked)}
+                />
+                表示
+              </label>
+              {showFocusCrosshair && (
+                <>
+                  <select
+                    value={crosshairDesign}
+                    onChange={(e) => setCrosshairDesign(e.target.value as CrosshairDesign)}
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 4px',
+                      backgroundColor: darkMode ? '#333' : '#fff',
+                      color: darkMode ? '#e0e0e0' : '#333',
+                      border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <option value="square">□ 四角</option>
+                    <option value="circle">○ 円形</option>
+                    <option value="minimal">＋ シンプル</option>
+                  </select>
+                  <label
+                    style={{
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={crosshairClickCapture}
+                      onChange={(e) => setCrosshairClickCapture(e.target.checked)}
+                    />
+                    クリックで座標
+                  </label>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Drawing Tools - サイドバー内に埋め込み */}
@@ -4284,7 +4399,7 @@ function App() {
                       : facility.id === 'facility-fire'
                         ? 'F'
                         : facility.id === 'facility-medical'
-                          ? 'P'
+                          ? 'O'
                           : ''}
                   ]
                 </span>
@@ -5205,7 +5320,7 @@ function App() {
               >
                 H
               </kbd>
-              <span>ヘリポート</span>
+              <span>有人機発着地</span>
               <kbd
                 style={{
                   backgroundColor: darkMode ? '#444' : '#eee',
@@ -5216,35 +5331,9 @@ function App() {
                   fontSize: '12px'
                 }}
               >
-                I
+                J
               </kbd>
-              <span>リモートID特定区域 *</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                V
-              </kbd>
-              <span>有人機発着エリア *</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                U
-              </kbd>
-              <span>有人機発着区域 *</span>
+              <span>駐屯地・基地</span>
               <kbd
                 style={{
                   backgroundColor: darkMode ? '#444' : '#eee',
@@ -5257,7 +5346,20 @@ function App() {
               >
                 F
               </kbd>
-              <span>電波干渉区域 *</span>
+              <span>消防署</span>
+              <kbd
+                style={{
+                  backgroundColor: darkMode ? '#444' : '#eee',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: '12px'
+                }}
+              >
+                O
+              </kbd>
+              <span>医療機関</span>
             </div>
           </div>
 
@@ -5436,32 +5538,6 @@ function App() {
                   fontSize: '12px'
                 }}
               >
-                T
-              </kbd>
-              <span>ツールチップ表示</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                G
-              </kbd>
-              <span>座標表示</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
                 L
               </kbd>
               <span>ダークモード/ライトモード</span>
@@ -5478,58 +5554,6 @@ function App() {
                 2 / 3
               </kbd>
               <span>2D / 3D表示切替</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                R
-              </kbd>
-              <span>レッドゾーン * 未実装</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                Y
-              </kbd>
-              <span>イエローゾーン * 未実装</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                W
-              </kbd>
-              <span>風向・風量 *</span>
-              <kbd
-                style={{
-                  backgroundColor: darkMode ? '#444' : '#eee',
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  textAlign: 'center',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}
-              >
-                C
-              </kbd>
-              <span>LTE *</span>
               <kbd
                 style={{
                   backgroundColor: darkMode ? '#444' : '#eee',
@@ -5864,7 +5888,30 @@ function App() {
       )}
 
       {/* Focus Crosshair - map center target */}
-      <FocusCrosshair visible={showFocusCrosshair} design={crosshairDesign} darkMode={darkMode} />
+      <FocusCrosshair
+        visible={showFocusCrosshair}
+        design={crosshairDesign}
+        darkMode={darkMode}
+        onClick={
+          crosshairClickCapture
+            ? () => {
+                const map = mapRef.current
+                if (!map) return
+                const center = map.getCenter()
+                // 画面中央の座標
+                const screenX = window.innerWidth / 2
+                const screenY = window.innerHeight / 2
+                const isFixed = coordDisplayPosition === 'fixed'
+                setDisplayCoordinates({
+                  lng: center.lng,
+                  lat: center.lat,
+                  screenX: isFixed ? undefined : screenX,
+                  screenY: isFixed ? undefined : screenY
+                })
+              }
+            : undefined
+        }
+      />
     </div>
   )
 }

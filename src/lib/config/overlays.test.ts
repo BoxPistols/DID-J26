@@ -81,7 +81,7 @@ describe('Facility Configuration', () => {
     it('should retrieve layer config by correct ID', () => {
       const layer = getFacilityLayerById('facility-landing')
       expect(layer).toBeDefined()
-      expect(layer?.name).toContain('空港・ヘリポート')
+      expect(layer?.name).toBe('有人機発着地')
     })
 
     it('should return undefined for invalid ID', () => {

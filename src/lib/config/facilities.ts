@@ -3,7 +3,7 @@ import type { FacilityLayerConfig } from '../types'
 export const FACILITY_LAYERS: FacilityLayerConfig[] = [
   {
     id: 'facility-landing',
-    name: '有人機発着地（空港・ヘリポート）',
+    name: '有人機発着地',
     path: '/data/facilities/landing_sites.geojson',
     color: '#4CAF50',
     category: 'landing',

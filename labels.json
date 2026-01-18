@@ -1,0 +1,76 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-01-18T20:40:07.356Z",
+  "labels": [
+    {
+      "name": "API連携",
+      "color": "ffb300",
+      "description": "API・外部サービス連携"
+    },
+    {
+      "name": "BFF",
+      "color": "7057ff",
+      "description": "BFF・バックエンド連携"
+    },
+    {
+      "name": "CI/CD",
+      "color": "00ced1",
+      "description": "CI/CD・自動化"
+    },
+    {
+      "name": "コンポーネント",
+      "color": "008672",
+      "description": "コンポーネントの追加・更新"
+    },
+    {
+      "name": "ドキュメント",
+      "color": "332412",
+      "description": "ドキュメントの追加・更新"
+    },
+    {
+      "name": "緊急対応",
+      "color": "ff6347",
+      "description": "緊急修正・Hotfix"
+    },
+    {
+      "name": "リファクタ",
+      "color": "a9a9a9",
+      "description": "リファクタリング・パフォーマンス最適化・コード整理"
+    },
+    {
+      "name": "テスト",
+      "color": "08a4d6",
+      "description": "テスト・E2E・ユニットテスト"
+    },
+    {
+      "name": "型定義",
+      "color": "e91e63",
+      "description": "TypeScript型定義・型安全性"
+    },
+    {
+      "name": "デザイン",
+      "color": "d876e3",
+      "description": "UIUXデザイン"
+    },
+    {
+      "name": "仕様変更",
+      "color": "d93f0b",
+      "description": "仕様変更"
+    },
+    {
+      "name": "機能追加",
+      "color": "b3fa11",
+      "description": "機能追加"
+    },
+    {
+      "name": "環境構築",
+      "color": "c5def5",
+      "description": "開発環境・パッケージの追加・変更・更新"
+    },
+    {
+      "name": "画面追加",
+      "color": "16c9f5",
+      "description": "画面の追加・更新"
+    }
+  ]
+}

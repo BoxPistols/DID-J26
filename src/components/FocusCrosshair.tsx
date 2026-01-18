@@ -22,6 +22,8 @@ export interface FocusCrosshairProps {
   size?: number
   /** ダークモード対応 */
   darkMode?: boolean
+  /** クリック可能（座標取得モード） */
+  onClick?: () => void
 }
 
 export const FocusCrosshair: React.FC<FocusCrosshairProps> = ({
@@ -30,7 +32,8 @@ export const FocusCrosshair: React.FC<FocusCrosshairProps> = ({
   color = '#e53935',
   strokeWidth = 2,
   size = 40,
-  darkMode = false
+  darkMode = false,
+  onClick
 }) => {
   if (!visible) return null
 
@@ -220,19 +223,24 @@ export const FocusCrosshair: React.FC<FocusCrosshairProps> = ({
     }
   }, [design, size, color, strokeWidth, darkMode])
 
+  const isClickable = !!onClick
+
   return (
     <div
+      onClick={onClick}
       style={{
         position: 'fixed',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
+        pointerEvents: isClickable ? 'auto' : 'none',
+        cursor: isClickable ? 'pointer' : 'default',
         zIndex: 500,
         width: size,
         height: size
       }}
-      aria-hidden="true"
+      aria-hidden={!isClickable}
+      title={isClickable ? 'クリックで中心座標を取得' : undefined}
     >
       {renderCrosshair()}
     </div>

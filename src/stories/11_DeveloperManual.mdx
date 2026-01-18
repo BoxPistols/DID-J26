@@ -141,12 +141,10 @@ const style = {
 
 スタイルは**宣言的**な設計になっています。「何をどう描画するか」を手続き的に書くのではなく、JSONで宣言します。
 
-| 要素 | 役割 | 例 |
-|------|------|-----|
-| `sources` | データの取得元を定義 | タイルURL、GeoJSONパス |
-| `layers` | データの描画方法を定義 | 色、透明度、線幅 |
-| `glyphs` | テキストラベルのフォント | PBF形式フォントのURL |
-| `sprite` | アイコン画像セット | スプライト画像のURL |
+- **`sources`**: データの取得元を定義（例: タイルURL、GeoJSONパス）
+- **`layers`**: データの描画方法を定義（例: 色、透明度、線幅）
+- **`glyphs`**: テキストラベルのフォント（例: PBF形式フォントのURL）
+- **`sprite`**: アイコン画像セット（例: スプライト画像のURL）
 
 **設計上の注意点**:
 
@@ -175,12 +173,10 @@ map.on('load', () => {
 
 ソースには種類があります：
 
-| type | 用途 | 特徴 |
-|------|------|------|
-| `geojson` | ベクターデータ | 柔軟だが大量データで重い |
-| `vector` | ベクタータイル | 大規模データに適する |
-| `raster` | 画像タイル | 背景地図に使用 |
-| `image` | 1枚の画像 | オーバーレイに使用 |
+- **`geojson`**: ベクターデータ。柔軟だが大量データで重い
+- **`vector`**: ベクタータイル。大規模データに適する
+- **`raster`**: 画像タイル。背景地図に使用
+- **`image`**: 1枚の画像。オーバーレイに使用
 
 **なぜ`map.on('load')`の中で実行するのか**:
 
@@ -249,13 +245,11 @@ map.on('load', () => {
 
 **レイヤータイプの選び方**:
 
-| type | 用途 | Geometryタイプ |
-|------|------|-------------|
-| `fill` | ポリゴンの塗りつぶし | Polygon, MultiPolygon |
-| `line` | 線の描画 | LineString, Polygon（境界線） |
-| `circle` | 点を円で表示 | Point |
-| `symbol` | アイコン/テキスト | Point |
-| `heatmap` | ヒートマップ | Point |
+- **`fill`**: ポリゴンの塗りつぶし（Polygon, MultiPolygon）
+- **`line`**: 線の描画（LineString, Polygon境界線）
+- **`circle`**: 点を円で表示（Point）
+- **`symbol`**: アイコン/テキスト（Point）
+- **`heatmap`**: ヒートマップ（Point）
 
 ---
 
@@ -323,10 +317,8 @@ map.setPaintProperty('did-tokyo-fill', 'fill-opacity', 0.8);
 
 MapLibreは**layout**と**paint**を分離しています：
 
-| 種類 | 変更コスト | 例 |
-|------|----------|-----|
-| **layout** | 高い（再レイアウト） | visibility, text-size |
-| **paint** | 低い（再描画のみ） | fill-color, opacity |
+- **layout**: 変更コスト高い（再レイアウト）。例: visibility, text-size
+- **paint**: 変更コスト低い（再描画のみ）。例: fill-color, opacity
 
 頻繁に変更する値は`paint`に、滅多に変わらない値は`layout`に入れるのが設計意図です。
 
@@ -463,12 +455,10 @@ function MapComponent() {
 
 **アーキテクチャ上の意味**:
 
-| 状態の種類 | 管理方法 | 理由 |
-|-----------|---------|------|
-| mapインスタンス | useRef | 再レンダリング不要、参照だけ必要 |
-| ロード完了 | useState | UIの条件分岐に使う |
-| レイヤー表示状態 | useState | サイドバーのチェックボックスに反映 |
-| 座標・ズーム | useRef | 高頻度で変わるがUIに反映しないなら |
+- **mapインスタンス** → `useRef`（再レンダリング不要、参照だけ必要）
+- **ロード完了** → `useState`（UIの条件分岐に使う）
+- **レイヤー表示状態** → `useState`（サイドバーのチェックボックスに反映）
+- **座標・ズーム** → `useRef`（高頻度で変わるがUIに反映しないなら）
 
 **設計の指針**:
 
@@ -506,11 +496,9 @@ function loadDrawnFeatures() {
 
 **アーキテクチャ上の意味**:
 
-| 保存先 | 容量 | 用途 |
-|--------|------|------|
-| localStorage | 5MB | 小さな設定、描画データ |
-| sessionStorage | 5MB | タブ内のみ有効な一時状態 |
-| IndexedDB | 50MB〜 | 大きなGeoJSONのキャッシュ |
+- **localStorage**: 5MB、小さな設定、描画データ
+- **sessionStorage**: 5MB、タブ内のみ有効な一時状態
+- **IndexedDB**: 50MB〜、大きなGeoJSONのキャッシュ
 
 ---
 
@@ -725,10 +713,8 @@ map.addLayer({
 
 **interpolateとstepの違い**:
 
-| 式 | 動作 | 用途 |
-|-----|------|------|
-| `interpolate` | 中間値を滑らかに補間 | サイズ、色の段階的変化 |
-| `step` | 閾値で離散的に変化 | 表示/非表示の切り替え |
+- **`interpolate`**: 中間値を滑らかに補間。サイズや色の段階的変化に使用
+- **`step`**: 閾値で離散的に変化。表示/非表示の切り替えに使用
 
 ---
 
@@ -787,11 +773,9 @@ async function loadLayer(layerId: string, path: string) {
 
 遅延読み込みでは**状態の管理**が重要です：
 
-| 状態 | 意味 | 操作可能な内容 |
-|------|------|--------------|
-| 未ロード | ソースもレイヤーも存在しない | loadLayerでロード |
-| ロード済み・表示 | 両方存在、visible | toggleで非表示に |
-| ロード済み・非表示 | 両方存在、hidden | toggleで表示に |
+- **未ロード**: ソースもレイヤーも存在しない → loadLayerでロード
+- **ロード済み・表示**: 両方存在、visible → toggleで非表示に
+- **ロード済み・非表示**: 両方存在、hidden → toggleで表示に
 
 ### 8.2 キャッシュ戦略
 
@@ -822,11 +806,9 @@ async function fetchWithCache<T>(url: string): Promise<T> {
 
 **なぜIndexedDBか**:
 
-| ストレージ | 容量 | 用途 |
-|-----------|------|------|
-| localStorage | 5MB | 小さな設定値 |
-| sessionStorage | 5MB | セッション中の一時データ |
-| IndexedDB | 50MB〜 | 大きなGeoJSONデータ |
+- **localStorage**: 5MB、小さな設定値
+- **sessionStorage**: 5MB、セッション中の一時データ
+- **IndexedDB**: 50MB〜、大きなGeoJSONデータ
 
 ### 8.3 タイル形式への変換
 
@@ -834,11 +816,9 @@ async function fetchWithCache<T>(url: string): Promise<T> {
 
 **タイル形式の選択肢**:
 
-| 形式 | 特徴 | 用途 |
-|------|------|------|
-| **ラスタータイル** | PNG/JPG画像 | 背景地図 |
-| **ベクタータイル（MVT）** | バイナリ形式 | 大規模ポリゴン/ライン |
-| **PMTiles** | シングルファイル配信 | CDN配信に最適 |
+- **ラスタータイル**: PNG/JPG画像。背景地図に使用
+- **ベクタータイル（MVT）**: バイナリ形式。大規模ポリゴン/ラインに適する
+- **PMTiles**: シングルファイル配信。CDN配信に最適
 
 **PMTilesの使い方**:
 
@@ -898,10 +878,8 @@ map.addControl(draw)
 
 **coldとhotの違い**:
 
-| ソース | 用途 |
-|--------|------|
-| cold | 確定済みの図形（編集していない） |
-| hot | 現在編集中/描画中の図形 |
+- **cold**: 確定済みの図形（編集していない）
+- **hot**: 現在編集中/描画中の図形
 
 描画完了時にhotからcoldへ移動します。
 
@@ -1133,12 +1111,10 @@ function createMap(container: HTMLDivElement): maplibregl.Map {
 
 ### 11.1 テストの分類
 
-| レイヤー | テスト種別 | ツール例 |
-|---------|----------|---------|
-| lib/utils | ユニットテスト | Vitest, Jest |
-| lib/services | ユニットテスト + モック | Vitest + MSW |
-| components | 結合テスト | Testing Library |
-| 地図全体 | E2Eテスト | Playwright |
+- **lib/utils**: ユニットテスト（Vitest, Jest）
+- **lib/services**: ユニットテスト + モック（Vitest + MSW）
+- **components**: 結合テスト（Testing Library）
+- **地図全体**: E2Eテスト（Playwright）
 
 ### 11.2 ユニットテストの例
 
@@ -1586,15 +1562,13 @@ draw.changeMode(mode);
 
 ### レイヤータイプ
 
-| type | 用途 | 対象Geometry |
-|------|------|-------------|
-| fill | 塗りつぶし | Polygon |
-| line | 線 | LineString, Polygon境界 |
-| circle | 点を円表示 | Point |
-| symbol | アイコン/テキスト | Point |
-| heatmap | ヒートマップ | Point |
-| fill-extrusion | 3D建物 | Polygon |
-| raster | ラスター画像 | - |
+- **fill**: 塗りつぶし（Polygon）
+- **line**: 線（LineString, Polygon境界）
+- **circle**: 点を円表示（Point）
+- **symbol**: アイコン/テキスト（Point）
+- **heatmap**: ヒートマップ（Point）
+- **fill-extrusion**: 3D建物（Polygon）
+- **raster**: ラスター画像
 
 ### 式のパターン
 

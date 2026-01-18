@@ -3136,10 +3136,10 @@ function App() {
         width: '14px',
         height: '14px',
         borderRadius: '999px',
-        border: '1px solid #999',
-        fontSize: '10px',
+        border: '1px solid #799',
+        fontSize: '11px',
         lineHeight: 1,
-        color: '#666',
+        color: '#799',
         background: 'transparent',
         cursor: 'pointer'
       }}
@@ -4121,7 +4121,7 @@ function App() {
           >
             <div
               style={{
-                fontSize: '11px',
+                fontSize: '12px',
                 color: darkMode ? '#888' : '#999',
                 marginBottom: '6px',
                 fontWeight: 500,

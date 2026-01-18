@@ -1,0 +1,494 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/13_施設データ取得ロジック" />
+
+# 施設データの自動取得システム
+
+このドキュメントでは、病院・消防署・軍事施設などの**施設データをどのように取得・生成しているか**を解説します。
+
+---
+
+## 概要
+
+施設データは **OpenStreetMap (OSM) の Overpass API** を使用して、日本全国の施設情報を自動取得しています。
+
+### データソース
+
+- **プロバイダ**: OpenStreetMap (OSM)
+- **API**: Overpass API
+- **対象範囲**: 日本全国 (`ISO3166-1=JP`)
+- **データ品質**: コミュニティ編集ベース（網羅性にバラつきあり）
+- **ライセンス**: ODbL (Open Database License)
+
+---
+
+## 取得スクリプト
+
+### 実行方法
+
+```bash
+npm run download:facilities
+```
+
+または
+
+```bash
+node scripts/download_osm_facilities.js
+```
+
+### スクリプトの場所
+
+```
+scripts/download_osm_facilities.js
+```
+
+### 出力先
+
+```
+public/data/facilities/
+├── landing_sites.geojson      # 空港・ヘリポート
+├── medical_facilities.geojson # 病院・診療所
+├── fire_stations.geojson      # 消防署
+└── military_bases.geojson     # 軍事施設
+```
+
+---
+
+## アーキテクチャ
+
+### 1. マルチエンドポイント戦略
+
+Overpass API は公開サーバーのため、負荷分散と可用性向上のため、複数のエンドポイントを使用します。
+
+```javascript
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',       // メイン
+  'https://overpass.kumi.systems/api/interpreter', // バックアップ1
+  'https://overpass.nchc.org.tw/api/interpreter',  // バックアップ2（台湾）
+  'https://overpass.openstreetmap.fr/api/interpreter' // バックアップ3（フランス）
+]
+```
+
+**フェイルオーバーロジック**:
+1. 最初のエンドポイントで試行
+2. エラー時、次のエンドポイントへ自動切り替え
+3. 最大3回までリトライ（`MAX_RETRIES = 3`）
+4. リトライ間隔: 1200ms × 試行回数
+
+### 2. レート制限とポライトネス
+
+OSM Overpass API は公共リソースのため、過度なリクエストを避ける必要があります。
+
+```javascript
+const RETRY_BASE_MS = 1200 // 1.2秒のベース待機時間
+await sleep(1200) // クエリ間に1.2秒の待機
+```
+
+**Polite Crawling (礼儀正しいクロール)**:
+- クエリ間に必ず待機時間を設ける
+- タイムアウト: 180秒（大量データ取得に対応）
+- 重複排除: 同一施設を複数回取得しない
+
+---
+
+## データ取得クエリ
+
+### Overpass QL (Query Language)
+
+Overpass API は専用のクエリ言語を使用します。
+
+#### 基本構造
+
+```javascript
+const buildQuery = (body) => `
+[out:json][timeout:180];
+area["ISO3166-1"="JP"][admin_level=2]->.a;
+(
+${body}
+);
+out center tags;
+`
+```
+
+**解説**:
+- `[out:json]`: JSON形式で出力
+- `[timeout:180]`: 180秒でタイムアウト
+- `area["ISO3166-1"="JP"]`: 日本のエリアを検索範囲に指定
+- `admin_level=2`: 国レベル（都道府県ではなく国全体）
+- `out center tags`: 中心座標とタグ情報を出力
+
+---
+
+### 施設カテゴリ別のクエリ
+
+#### 1. 医療施設（病院・診療所）
+
+```javascript
+{
+  output: 'medical_facilities.geojson',
+  category: 'medical',
+  parts: [
+    // 病院
+    `node["amenity"="hospital"](area.a);
+     way["amenity"="hospital"](area.a);
+     relation["amenity"="hospital"](area.a);`,
+
+    // 診療所・クリニック
+    `node["amenity"="clinic"](area.a);
+     way["amenity"="clinic"](area.a);
+     relation["amenity"="clinic"](area.a);`
+  ]
+}
+```
+
+**OSMタグの意味**:
+- `amenity=hospital`: 総合病院・専門病院
+- `amenity=clinic`: 診療所・クリニック・医院
+
+**取得対象のジオメトリタイプ**:
+- `node`: ポイント（点）
+- `way`: ポリゴン（建物形状）
+- `relation`: 複雑な建物群
+
+#### 2. 消防署
+
+```javascript
+{
+  output: 'fire_stations.geojson',
+  category: 'fire',
+  parts: [
+    `node["amenity"="fire_station"](area.a);
+     way["amenity"="fire_station"](area.a);
+     relation["amenity"="fire_station"](area.a);`
+  ]
+}
+```
+
+**OSMタグ**:
+- `amenity=fire_station`: 消防本部・消防署・出張所
+
+#### 3. 有人機発着地（空港・ヘリポート）
+
+```javascript
+{
+  output: 'landing_sites.geojson',
+  category: 'landing',
+  parts: [
+    // 飛行場（空港）
+    `node["aeroway"="aerodrome"](area.a);
+     way["aeroway"="aerodrome"](area.a);
+     relation["aeroway"="aerodrome"](area.a);`,
+
+    // ヘリポート
+    `node["aeroway"="heliport"](area.a);
+     way["aeroway"="heliport"](area.a);
+     relation["aeroway"="heliport"](area.a);`
+  ]
+}
+```
+
+**OSMタグ**:
+- `aeroway=aerodrome`: 空港・飛行場
+- `aeroway=heliport`: ヘリコプター着陸場
+
+#### 4. 軍事施設（駐屯地・基地）
+
+```javascript
+{
+  output: 'military_bases.geojson',
+  category: 'military',
+  parts: [
+    `node["military"="base"](area.a);
+     way["military"="base"](area.a);
+     relation["military"="base"](area.a);`,
+
+    `node["military"="barracks"](area.a);
+     way["military"="barracks"](area.a);
+     relation["military"="barracks"](area.a);`,
+
+    `node["military"="airfield"](area.a);
+     way["military"="airfield"](area.a);
+     relation["military"="airfield"](area.a);`,
+
+    // 軍用地
+    `node["landuse"="military"](area.a);
+     way["landuse"="military"](area.a);
+     relation["landuse"="military"](area.a);`
+  ]
+}
+```
+
+**OSMタグ**:
+- `military=base`: 軍事基地・駐屯地
+- `military=barracks`: 兵舎・宿舎
+- `military=airfield`: 軍用飛行場
+- `landuse=military`: 演習場・訓練場
+
+---
+
+## データ変換プロセス
+
+### 1. 座標抽出
+
+OSMから取得したデータは、ジオメトリタイプによって座標の位置が異なります。
+
+```javascript
+const toPoint = (element) => {
+  // ノード（点）の場合: lat, lon を直接取得
+  if (element.type === 'node' &&
+      typeof element.lat === 'number' &&
+      typeof element.lon === 'number') {
+    return [element.lon, element.lat]
+  }
+
+  // ウェイ（建物）・リレーション: center（中心座標）を使用
+  if (element.center &&
+      typeof element.center.lat === 'number' &&
+      typeof element.center.lon === 'number') {
+    return [element.center.lon, element.center.lat]
+  }
+
+  return null
+}
+```
+
+**重要**: GeoJSON では `[lon, lat]` の順序（経度が先）
+
+### 2. 施設名の抽出
+
+OSMのタグから最適な施設名を選択します。
+
+```javascript
+const pickName = (tags) => {
+  if (!tags) return '名称不明'
+  return (
+    tags.name ||           // 一般的な名称
+    tags['name:ja'] ||     // 日本語名
+    tags['name:en'] ||     // 英語名
+    tags.operator ||       // 運営者名（公的機関など）
+    tags.ref ||            // 参照番号
+    '名称不明'
+  )
+}
+```
+
+**優先順位**:
+1. `name`: 最も一般的な名称
+2. `name:ja`: 日本語名（多言語対応施設）
+3. `name:en`: 英語名
+4. `operator`: 運営者名（自衛隊駐屯地など）
+5. `ref`: 参照番号
+6. デフォルト: `'名称不明'`
+
+### 3. GeoJSON Feature への変換
+
+```javascript
+const toFeature = (element, category) => {
+  const coord = toPoint(element)
+  if (!coord) return null
+
+  const tags = element.tags || {}
+  return {
+    type: 'Feature',
+    properties: {
+      id: `${element.type}/${element.id}`,  // 一意ID
+      name: pickName(tags),
+      category,
+      source: 'OSM',
+      osmType: element.type,
+      osmId: element.id,
+      aeroway: tags.aeroway,
+      military: tags.military,
+      amenity: tags.amenity,
+      landuse: tags.landuse,
+      operator: tags.operator
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: coord
+    }
+  }
+}
+```
+
+### 4. 重複排除
+
+同一施設が複数のクエリで取得される可能性があるため、`Set` で重複排除します。
+
+```javascript
+const seen = new Set()
+for (const element of json.elements || []) {
+  const key = `${element.type}/${element.id}`
+  if (seen.has(key)) continue  // 既に処理済み
+  seen.add(key)
+
+  const feature = toFeature(element, config.category)
+  if (feature) features.push(feature)
+}
+```
+
+---
+
+## エラーハンドリング
+
+### パーシャルフェイルセーフ
+
+一部のクエリが失敗しても、取得できたデータは保存します。
+
+```javascript
+const failures = []
+for (let index = 0; index < config.parts.length; index += 1) {
+  const part = config.parts[index]
+  const query = buildQuery(part)
+  const label = `${config.output}#${index + 1}`
+
+  try {
+    const json = await fetchOverpass(query, label)
+    // データ処理...
+  } catch (error) {
+    failures.push({ label, error })
+    console.warn(`Failed part ${label}:`, error?.message || error)
+  }
+  await sleep(1200) // 次のクエリまで待機
+}
+
+// 部分的な失敗を記録
+if (failures.length > 0) {
+  console.warn(
+    `Partial failures for ${config.output}: ${failures.map((f) => f.label).join(', ')}`
+  )
+}
+```
+
+### デスクトップ通知
+
+処理完了時に macOS/Windows の通知を表示します（`node-notifier`）。
+
+```javascript
+notifier.notify({
+  title: 'OSM施設データダウンロード完了',
+  message: 'すべてのデータ取得が完了しました',
+  sound: true
+})
+```
+
+---
+
+## データ品質と注意事項
+
+### OSMデータの特性
+
+| 項目 | 詳細 |
+|------|------|
+| **更新頻度** | コミュニティ編集により随時更新 |
+| **網羅性** | 地域によりバラつきあり（都市部は充実） |
+| **精度** | ±数m〜数十m（GPS測量ベース） |
+| **信頼性** | 公的機関データではない（参考情報） |
+
+### 推奨される使用方法
+
+✅ **適切な用途**:
+- 地図上での視覚的な参考情報
+- 概算の施設分布把握
+- デモ・プロトタイプ開発
+
+❌ **不適切な用途**:
+- 公式な飛行申請の根拠資料
+- 法的効力を持つドキュメント
+- 生命・安全に関わる判断材料
+
+### データ更新の推奨頻度
+
+- **月次**: 都市部の新規施設対応
+- **四半期**: 全国的な更新
+- **年次**: 大規模な見直し
+
+---
+
+## カスタマイズ方法
+
+### 新しい施設カテゴリを追加する
+
+`scripts/download_osm_facilities.js` の `QUERIES` 配列に追加します。
+
+```javascript
+// 例: 学校を追加
+{
+  output: 'schools.geojson',
+  category: 'education',
+  parts: [
+    `node["amenity"="school"](area.a);
+     way["amenity"="school"](area.a);
+     relation["amenity"="school"](area.a);`,
+
+    `node["amenity"="university"](area.a);
+     way["amenity"="university"](area.a);
+     relation["amenity"="university"](area.a);`
+  ]
+}
+```
+
+### 対象エリアを変更する
+
+都道府県単位で絞り込む場合:
+
+```javascript
+// 東京都のみ
+area["ISO3166-2"="JP-13"][admin_level=4]->.a;
+
+// 石川県のみ
+area["ISO3166-2"="JP-17"][admin_level=4]->.a;
+```
+
+---
+
+## Overpass API の詳細
+
+### 公式ドキュメント
+
+- [Overpass API User's Manual](https://wiki.openstreetmap.org/wiki/Overpass_API)
+- [Overpass QL Language Guide](https://wiki.openstreetmap.org/wiki/Overpass_API/Language_Guide)
+- [Overpass Turbo (インタラクティブエディタ)](https://overpass-turbo.eu/)
+
+### よく使うOSMタグ
+
+医療・救急:
+- `amenity=hospital` - 病院
+- `amenity=clinic` - 診療所
+- `amenity=doctors` - 医師
+- `emergency=yes` - 救急対応
+
+公共施設:
+- `amenity=police` - 警察署
+- `amenity=fire_station` - 消防署
+- `amenity=townhall` - 市役所
+- `amenity=post_office` - 郵便局
+
+交通:
+- `aeroway=aerodrome` - 空港
+- `aeroway=heliport` - ヘリポート
+- `railway=station` - 鉄道駅
+- `amenity=ferry_terminal` - フェリーターミナル
+
+完全なタグリスト: [OSM Map Features](https://wiki.openstreetmap.org/wiki/Map_features)
+
+---
+
+## まとめ
+
+このシステムは以下の設計原則に基づいています:
+
+1. **自動化**: 手動作業を排除し、スクリプト一発で全データ取得
+2. **ロバストネス**: 一部失敗しても処理続行、リトライ機能
+3. **ポライトネス**: 公共APIへの配慮（レート制限、待機時間）
+4. **透明性**: データソースと品質を明示
+5. **拡張性**: 新しい施設カテゴリを容易に追加可能
+
+**重要**: このデータは**参考情報**です。公式データが必要な場合は、各管轄機関から直接取得してください。
+
+---
+
+**最終更新**: 2026-01-19
+**作成者**: DID-J26 Development Team
+**データソース**: OpenStreetMap contributors
+**ライセンス**: ODbL (OpenStreetMap), MIT (スクリプト)

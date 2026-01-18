@@ -645,6 +645,7 @@ export function DrawingTools({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([])
   const [selectedCount, setSelectedCount] = useState(0)
+  const [isDeleteAllMode, setIsDeleteAllMode] = useState(false)
   const [editingNameId, setEditingNameId] = useState<string | null>(null)
   const [editingNameValue, setEditingNameValue] = useState('')
   const [editingNameError, setEditingNameError] = useState<string | null>(null)
@@ -1857,15 +1858,27 @@ export function DrawingTools({
 
   // 削除後にチェック状態をクリア
   const handleConfirmDeleteWithClear = useCallback(() => {
-    if (!drawRef.current || pendingDeleteIds.length === 0) return
-    pendingDeleteIds.forEach((id) => {
-      drawRef.current?.delete(id)
-    })
+    if (!drawRef.current) return
+
+    if (isDeleteAllMode) {
+      // 全削除モード
+      drawRef.current.deleteAll()
+      setDrawnFeatures([])
+      onFeaturesChange?.([])
+    } else {
+      // 個別削除モード
+      if (pendingDeleteIds.length === 0) return
+      pendingDeleteIds.forEach((id) => {
+        drawRef.current?.delete(id)
+      })
+      updateFeatures()
+    }
+
     setShowDeleteConfirm(false)
     setPendingDeleteIds([])
+    setIsDeleteAllMode(false)
     updateSelectionState([])
-    updateFeatures()
-  }, [pendingDeleteIds, updateFeatures, updateSelectionState])
+  }, [isDeleteAllMode, pendingDeleteIds, updateFeatures, updateSelectionState, onFeaturesChange])
 
   // 描画モード変更
   const handleModeChange = (mode: DrawMode) => {
@@ -1929,11 +1942,11 @@ export function DrawingTools({
 
   // 全削除
   const handleDeleteAll = () => {
-    if (!drawRef.current) return
-    drawRef.current.deleteAll()
-    setDrawnFeatures([])
-    updateSelectionState([])
-    onFeaturesChange?.([])
+    if (!drawRef.current || drawnFeatures.length === 0) return
+    // 確認モーダルを表示
+    setIsDeleteAllMode(true)
+    setSelectedCount(drawnFeatures.length)
+    setShowDeleteConfirm(true)
   }
 
   // フィーチャー名変更
@@ -2132,6 +2145,7 @@ export function DrawingTools({
             type: 'Feature',
             properties: {
               type: 'circle',
+              name: props.name,
               radiusM: (props.radiusKm as number) * 1000,
               center: props.center,
               ...(props.maxAltitude !== undefined && { maxAltitude: props.maxAltitude }),
@@ -3185,7 +3199,9 @@ ${kmlFeatures}
                       <li>移動: 図形をドラッグ</li>
                       <li>選択: Shift+ドラッグで複数選択</li>
                       <li>削除: 図形選択後、Delete/Backspaceキー（確認あり）</li>
-                      <li style={{ marginTop: '4px' }}>座標名: リスト内の名前をダブルクリックで編集</li>
+                      <li style={{ marginTop: '4px' }}>
+                        座標名: リスト内の名前をダブルクリックで編集
+                      </li>
                     </ul>
                     <div
                       style={{
@@ -3906,7 +3922,7 @@ ${kmlFeatures}
                   disabled={!selectedFeatureId}
                   style={{
                     flex: 1,
-                    padding: '8px',
+                    padding: '10px',
                     backgroundColor: selectedFeatureId
                       ? darkMode
                         ? '#4a2020'
@@ -4008,19 +4024,27 @@ ${kmlFeatures}
                   }}
                 >
                   エクスポート形式
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 400
+                    }}
+                  >
+                    &nbsp;/&nbsp;プレビュー表示
+                  </span>
                 </label>
 
                 {/* エクスポート形式選択 */}
-                <div style={{ marginBottom: '8px' }}>
+                <div style={{ marginBottom: '6px' }}>
                   {/* Row 1: GeoJSON, KML, CSV */}
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
                     {(['geojson', 'kml', 'csv'] as ExportFormat[]).map((format) => (
                       <button
                         key={format}
                         onClick={() => setExportFormat(format)}
                         style={{
                           flex: 1,
-                          padding: '6px 12px',
+                          padding: '6px 10px',
                           backgroundColor:
                             exportFormat === format
                               ? darkMode
@@ -4059,7 +4083,7 @@ ${kmlFeatures}
                       onClick={() => setExportFormat('dms')}
                       style={{
                         width: '100%',
-                        padding: '6px 12px',
+                        padding: '6px 10px',
                         backgroundColor:
                           exportFormat === 'dms'
                             ? darkMode
@@ -4090,7 +4114,7 @@ ${kmlFeatures}
                 </div>
 
                 {/* 出力ボタン */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <button
                     onClick={handleShowPreview}
                     disabled={drawnFeatures.length === 0}
@@ -4101,7 +4125,7 @@ ${kmlFeatures}
                     }
                     style={{
                       width: '100%',
-                      padding: '12px 10px',
+                      padding: '10px',
                       backgroundColor:
                         drawnFeatures.length > 0
                           ? darkMode
@@ -4204,7 +4228,17 @@ ${kmlFeatures}
                     fontWeight: 600
                   }}
                 >
-                  ファイル読み込み(GeoJSON/KML/CSV)
+                  ファイル読込
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: darkMode ? '#ffd54f' : '#ff8f00',
+                      fontWeight: 400,
+                      paddingLeft: '4px'
+                    }}
+                  >
+                    &nbsp;GeoJSON&nbsp;/&nbsp;KML&nbsp;/&nbsp;CSV
+                  </span>
                 </label>
                 <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
                   <button
@@ -4212,7 +4246,7 @@ ${kmlFeatures}
                     disabled={isImporting}
                     style={{
                       width: '100%',
-                      padding: '10px',
+                      padding: '8px',
                       backgroundColor: isImporting
                         ? buttonBg
                         : darkMode
@@ -4278,6 +4312,7 @@ ${kmlFeatures}
           onClick={() => {
             setShowDeleteConfirm(false)
             setPendingDeleteIds([])
+            setIsDeleteAllMode(false)
           }}
         >
           <div
@@ -4348,7 +4383,9 @@ ${kmlFeatures}
                   lineHeight: 1.5
                 }}
               >
-                選択された {selectedCount} 個のオブジェクトを削除します
+                {isDeleteAllMode
+                  ? `全ての ${selectedCount} 個のオブジェクトを削除します`
+                  : `選択された ${selectedCount} 個のオブジェクトを削除します`}
               </p>
             </div>
             <div
@@ -4362,6 +4399,7 @@ ${kmlFeatures}
                 onClick={() => {
                   setShowDeleteConfirm(false)
                   setPendingDeleteIds([])
+                  setIsDeleteAllMode(false)
                 }}
                 style={{
                   flex: 1,

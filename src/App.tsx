@@ -67,6 +67,7 @@ import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
 import { getAppTheme } from './styles/theme'
 import { generateRealWeatherGeoJSON } from './lib/services/weatherApi'
+import { WeatherForecastPanel } from './components/weather/WeatherForecastPanel'
 
 // ============================================
 // Zone ID Constants
@@ -332,6 +333,10 @@ function App() {
   // Drone Operation Dashboard
   const [showDroneDashboard, setShowDroneDashboard] = useState(false)
   const [droneSelectedPoint, setDroneSelectedPoint] = useState<{ lat: number; lng: number } | undefined>()
+
+  // Weather Forecast Panel
+  const [showWeatherForecast, setShowWeatherForecast] = useState(false)
+  const [selectedPrefectureId, setSelectedPrefectureId] = useState<string | undefined>()
 
   const getGeoJSONBounds = (
     geojson: GeoJSON.FeatureCollection
@@ -2054,6 +2059,12 @@ function App() {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
+    // Wait for style to be fully loaded before adding layers
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => toggleOverlay(overlay))
+      return
+    }
+
     const isVisible = overlayStates.get(overlay.id) ?? false
     if (!isVisible) {
       if (!map.getSource(overlay.id)) {
@@ -2106,21 +2117,69 @@ function App() {
           // First show loading state with mock data
           const initialGeojson = generateWeatherIconsGeoJSON()
           map.addSource(overlay.id, { type: 'geojson', data: initialGeojson })
+
+          // Weather type to color mapping
+          const weatherColors: Record<string, string> = {
+            sunny: '#FFD700',
+            partly_cloudy: '#87CEEB',
+            cloudy: '#A9A9A9',
+            rainy: '#4169E1',
+            snowy: '#E0FFFF',
+            stormy: '#8B008B'
+          }
+
+          // Add colored circles based on weather type
+          map.addLayer({
+            id: `${overlay.id}-bg`,
+            type: 'circle',
+            source: overlay.id,
+            paint: {
+              'circle-radius': 22,
+              'circle-color': [
+                'match',
+                ['get', 'weather'],
+                'sunny', weatherColors.sunny,
+                'partly_cloudy', weatherColors.partly_cloudy,
+                'cloudy', weatherColors.cloudy,
+                'rainy', weatherColors.rainy,
+                'snowy', weatherColors.snowy,
+                'stormy', weatherColors.stormy,
+                '#CCCCCC' // default
+              ],
+              'circle-stroke-color': '#FFFFFF',
+              'circle-stroke-width': 3,
+              'circle-opacity': 0.9
+            }
+          })
+
+          // Add inner circle with temperature indicator
           map.addLayer({
             id: overlay.id,
-            type: 'symbol',
+            type: 'circle',
             source: overlay.id,
-            layout: {
-              'text-field': ['concat', ['get', 'icon'], '\n', ['get', 'label']],
-              'text-size': 18,
-              'text-anchor': 'center',
-              'text-allow-overlap': true
-            },
             paint: {
-              'text-color': darkMode ? '#fff' : '#333',
-              'text-halo-color': darkMode ? '#333' : '#fff',
-              'text-halo-width': 2
+              'circle-radius': 10,
+              'circle-color': '#FFFFFF',
+              'circle-stroke-color': '#333333',
+              'circle-stroke-width': 1
             }
+          })
+
+          // Add click handler to open weather forecast panel
+          map.on('click', overlay.id, (e) => {
+            if (!e.features || e.features.length === 0) return
+            const props = e.features[0].properties
+            // Open forecast panel with selected prefecture
+            setSelectedPrefectureId(props.id as string)
+            setShowWeatherForecast(true)
+          })
+
+          // Cursor change on hover
+          map.on('mouseenter', overlay.id, () => {
+            map.getCanvas().style.cursor = 'pointer'
+          })
+          map.on('mouseleave', overlay.id, () => {
+            map.getCanvas().style.cursor = ''
           })
 
           // Then fetch real weather data asynchronously
@@ -2154,6 +2213,9 @@ function App() {
         if (map.getLayer(`${overlay.id}-outline`)) {
           map.setLayoutProperty(`${overlay.id}-outline`, 'visibility', 'visible')
         }
+        if (map.getLayer(`${overlay.id}-bg`)) {
+          map.setLayoutProperty(`${overlay.id}-bg`, 'visibility', 'visible')
+        }
       }
       setOverlayStates((prev) => new Map(prev).set(overlay.id, true))
     } else {
@@ -2162,6 +2224,9 @@ function App() {
       }
       if (map.getLayer(`${overlay.id}-outline`)) {
         map.setLayoutProperty(`${overlay.id}-outline`, 'visibility', 'none')
+      }
+      if (map.getLayer(`${overlay.id}-bg`)) {
+        map.setLayoutProperty(`${overlay.id}-bg`, 'visibility', 'none')
       }
       setOverlayStates((prev) => new Map(prev).set(overlay.id, false))
     }
@@ -4535,7 +4600,7 @@ function App() {
           </label>
 
           <label
-            title="天気アイコン：各地域の天気予報をアイコンで表示（見本データ）"
+            title="天気アイコン：各都道府県の天気を地図上に表示"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -4550,8 +4615,28 @@ function App() {
               checked={isOverlayVisible('weather-icons')}
               onChange={() => toggleOverlay({ id: 'weather-icons', name: '天気アイコン' })}
             />
-            <span>☀️ 天気予報 *</span>
+            <span>☀️ 天気マップ</span>
           </label>
+
+          <button
+            onClick={() => setShowWeatherForecast(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '4px',
+              marginLeft: '20px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              backgroundColor: darkMode ? '#2563eb' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            📊 詳細予報パネル（7日間）
+          </button>
 
           <div
             style={{
@@ -5667,6 +5752,18 @@ function App() {
           onClose={() => {
             setShowDroneDashboard(false)
             setDroneSelectedPoint(undefined)
+          }}
+        />
+      )}
+
+      {/* Weather Forecast Panel */}
+      {showWeatherForecast && (
+        <WeatherForecastPanel
+          selectedPrefectureId={selectedPrefectureId}
+          darkMode={darkMode}
+          onClose={() => {
+            setShowWeatherForecast(false)
+            setSelectedPrefectureId(undefined)
           }}
         />
       )}

@@ -63,44 +63,48 @@ export const WeatherTimeSlider: React.FC<WeatherTimeSliderProps> = ({
     return `+${diffHours}時間`
   }
 
+  const FIVE_MINUTES_MS = 5 * 60 * 1000
+  const totalSteps = Math.floor((maxTime - minTime) / FIVE_MINUTES_MS)
+  const currentStep = Math.max(0, Math.min(totalSteps, Math.floor((currentTime - minTime) / FIVE_MINUTES_MS)))
+
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseInt(e.target.value, 10)
-      onChange(value)
+      const step = parseInt(e.target.value, 10)
+      const newTime = minTime + step * FIVE_MINUTES_MS
+      onChange(newTime)
     },
-    [onChange]
+    [minTime, onChange, FIVE_MINUTES_MS]
   )
 
   const handlePrevious = useCallback(() => {
-    const fiveMinutes = 5 * 60 * 1000
-    const newTime = Math.max(minTime, currentTime - fiveMinutes)
+    const newTime = Math.max(minTime, currentTime - FIVE_MINUTES_MS)
     onChange(newTime)
-  }, [currentTime, minTime, onChange])
+  }, [currentTime, minTime, onChange, FIVE_MINUTES_MS])
 
   const handleNext = useCallback(() => {
-    const fiveMinutes = 5 * 60 * 1000
-    const newTime = Math.min(maxTime, currentTime + fiveMinutes)
+    const newTime = Math.min(maxTime, currentTime + FIVE_MINUTES_MS)
     onChange(newTime)
-  }, [currentTime, maxTime, onChange])
+  }, [currentTime, maxTime, onChange, FIVE_MINUTES_MS])
 
   const handleReset = useCallback(() => {
     onChange(Date.now())
   }, [onChange])
 
   // Calculate slider percentage
-  const percentage = ((currentTime - minTime) / (maxTime - minTime)) * 100
+  const percentage = (currentStep / totalSteps) * 100
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.timeDisplay}>
-          <div className={styles.currentTime}>{formatTime(currentTime)}</div>
+          <div className={styles.currentTime} id="weather-time-display">{formatTime(currentTime)}</div>
           <div className={styles.relativeTime}>{formatRelativeTime(currentTime)}</div>
         </div>
         <button
           className={styles.resetButton}
           onClick={handleReset}
           title="現在時刻に戻る"
+          aria-label="現在時刻にリセット"
         >
           現在
         </button>
@@ -112,6 +116,7 @@ export const WeatherTimeSlider: React.FC<WeatherTimeSliderProps> = ({
           onClick={handlePrevious}
           disabled={currentTime <= minTime}
           title="5分前"
+          aria-label="5分前の予報を表示"
         >
           ◀
         </button>
@@ -120,11 +125,13 @@ export const WeatherTimeSlider: React.FC<WeatherTimeSliderProps> = ({
           <input
             type="range"
             className={styles.slider}
-            min={minTime}
-            max={maxTime}
-            step={5 * 60 * 1000} // 5 minutes in milliseconds
-            value={currentTime}
+            min={0}
+            max={totalSteps}
+            step={1}
+            value={currentStep}
             onChange={handleSliderChange}
+            aria-label="予報時刻の選択"
+            aria-labelledby="weather-time-display"
           />
           <div className={styles.sliderProgress} style={{ width: `${percentage}%` }} />
           <div className={styles.sliderTicks}>
@@ -147,6 +154,7 @@ export const WeatherTimeSlider: React.FC<WeatherTimeSliderProps> = ({
           onClick={handleNext}
           disabled={currentTime >= maxTime}
           title="5分後"
+          aria-label="5分後の予報を表示"
         >
           ▶
         </button>

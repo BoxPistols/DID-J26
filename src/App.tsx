@@ -3243,18 +3243,11 @@ function App() {
       if (restrictionId === 'airport-airspace') {
         const zone = getAllRestrictionZones().find((z) => z.id === restrictionId)
 
-        // 衝突検出用にGeoJSONを常に取得してキャッシュ（kokuareaタイル使用時も）
-        let airportGeoJSON: GeoJSON.FeatureCollection | null = null
-        if (zone?.path) {
-          try {
-            airportGeoJSON = await fetchGeoJSONWithCache(zone.path)
-          } catch (e) {
-            console.error('Failed to load airport GeoJSON:', e)
-            airportGeoJSON = generateAirportGeoJSON()
-          }
-        } else {
-          airportGeoJSON = generateAirportGeoJSON()
-        }
+        // 衝突検出用にGeoJSONを取得してキャッシュ（kokuareaタイル使用時も）
+        // 注意: zone.pathのローカルファイルは滑走路表面の小さなポリゴンを含むが、
+        // kokuareaタイルは大きな円形制限区域を表示する。衝突検出はkokuareaタイルの
+        // 表示と一致させるため、常にgenerateAirportGeoJSON()（円形ポリゴン生成）を使用
+        const airportGeoJSON: GeoJSON.FeatureCollection = generateAirportGeoJSON()
 
         // 衝突検出用にゾーンタイプを追加してキャッシュに保存
         if (airportGeoJSON) {

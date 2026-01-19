@@ -119,22 +119,40 @@ export const FlightPlanChecker: React.FC<FlightPlanCheckerProps> = ({
         <SafetyIndicator
           level={getWindLevel()}
           label="風速"
-          value={currentForecast ? `${currentForecast.windSpeed.toFixed(1)} m/s` : windReason?.message.match(/[\d.]+\s*m\/s/)?.[0]}
+          value={
+            currentForecast 
+              ? `${currentForecast.windSpeed.toFixed(1)} m/s` 
+              : safety.weatherData?.windSpeed 
+                ? `${safety.weatherData.windSpeed.toFixed(1)} m/s`
+                : 'データなし'
+          }
         />
         <SafetyIndicator
           level={getPrecipLevel()}
           label="降水確率"
-          value={currentForecast ? `${currentForecast.precipitationProbability}%` : precipReason?.message.match(/\d+%/)?.[0]}
+          value={
+            currentForecast 
+              ? `${currentForecast.precipitationProbability}%` 
+              : safety.weatherData?.precipitationProbability 
+                ? `${safety.weatherData.precipitationProbability}%`
+                : 'データなし'
+          }
         />
         <SafetyIndicator
           level={getNetworkLevel()}
           label="LTE通信"
-          value={networkReason ? 'カバレッジなし' : 'カバレッジあり'}
+          value={safety.networkData?.hasLTE ? 'カバレッジあり' : 'カバレッジなし'}
         />
         <SafetyIndicator
           level={getDaylightLevel()}
           label="飛行可能時間"
-          value={daylightReason?.message.match(/\d+\s*分/)?.[0] || '十分'}
+          value={
+            safety.flightWindowData?.minutesRemaining 
+              ? `${safety.flightWindowData.minutesRemaining}分` 
+              : safety.flightWindowData?.flightAllowedNow 
+                ? '十分'
+                : '不可'
+          }
         />
       </div>
 

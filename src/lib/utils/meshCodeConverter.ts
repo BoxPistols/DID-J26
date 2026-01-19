@@ -30,6 +30,9 @@ export function latLngToMeshCode(lat: number, lng: number): string {
     throw new Error('Coordinates out of Japan bounds')
   }
 
+  // JMA mesh system constants:
+  // - 1.5 = conversion factor for latitude (1° = 1.5 mesh units)
+  // - 100 = base longitude offset for Japan region
   // 1st level mesh (2 digits each)
   const p = Math.floor(lat * 1.5)
   const q = Math.floor(lng - 100)

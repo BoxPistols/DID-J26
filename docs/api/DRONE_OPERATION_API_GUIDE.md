@@ -121,6 +121,6 @@ Storybook ドキュメントを参照:
 
 ## 参考リンク
 
-- [気象庁メッシュ情報](https://www.jma.go.jp/bosai/mesh/)
+- [気象庁 気象データ高度利用ポータル](https://www.data.jma.go.jp/developer/index.html)
 - [Sunrise-Sunset API](https://sunrise-sunset.org/api)
 - [MLIT 無人航空機規制](https://www.mlit.go.jp/koku/koku_tk10_000003.html)

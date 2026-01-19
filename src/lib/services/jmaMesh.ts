@@ -3,14 +3,14 @@
  * Provides mesh-based weather forecasts for Japan
  */
 
-import { latLngToMeshCode as convertLatLngToMeshCode } from '../utils/meshCodeConverter'
+import { latLngToMeshCode } from '../utils/meshCodeConverter'
 
 interface JmaMeshWeatherData {
-  windSpeed: number // m/s
-  windDirection: number // degrees (0-360)
-  precipitationProbability: number // percentage (0-100)
-  temperature: number // celsius
-  timestamp: string // ISO 8601
+  windSpeed: number
+  windDirection: number
+  precipitationProbability: number
+  temperature: number
+  timestamp: string
   meshCode: string
 }
 
@@ -20,26 +20,18 @@ interface JmaTimeSeriesData {
 }
 
 /**
- * Fetch current weather data for a specific mesh code
- * @param meshCode JMA mesh code (e.g., "53394547")
- * @returns Weather data (currently returns mock data with "(見本)" marker)
- *
- * Note: JMA public API requires specific endpoint format.
- * For production, integrate with actual JMA data distribution service.
+ * Fetch weather data for a specific mesh code
+ * Currently uses mock data - replace with actual JMA API integration
  */
 export async function fetchMeshWeather(meshCode: string): Promise<JmaMeshWeatherData> {
-  // Currently using mock data - JMA public API integration pending
-  // Real implementation would use: https://www.jma.go.jp/bosai/forecast/data/forecast/{areaCode}.json
+  // TODO: Replace with actual JMA API integration
+  // For now, return mock data
   return createMockWeatherData(meshCode)
 }
 
 /**
- * Fetch time series weather forecast (5-minute intervals, up to 72 hours)
- * @param meshCode JMA mesh code
- * @param hours Number of hours to forecast (max 72)
- * @returns Time series forecast data (currently returns mock data with "(見本)" marker)
- *
- * Note: JMA public API integration pending. Returns mock data for now.
+ * Fetch time series weather data for a specific mesh code
+ * Currently uses mock data - replace with actual JMA API integration
  */
 export async function fetchMeshTimeSeries(
   meshCode: string,
@@ -48,22 +40,6 @@ export async function fetchMeshTimeSeries(
   const maxHours = Math.min(hours, 72)
   // Currently using mock data - JMA public API integration pending
   return createMockTimeSeries(meshCode, maxHours)
-}
-
-/**
- * Convert lat/lng to JMA mesh code (3rd mesh - approximately 1km)
- * @param lat Latitude
- * @param lng Longitude
- * @returns JMA mesh code
- */
-export function latLngToMeshCode(lat: number, lng: number): string {
-  try {
-    return convertLatLngToMeshCode(lat, lng)
-  } catch (error) {
-    console.error('Mesh code conversion failed:', error)
-    // Fallback or re-throw
-    throw error
-  }
 }
 
 /**

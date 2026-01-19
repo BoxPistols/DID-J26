@@ -131,7 +131,7 @@ export const WeatherTimeSlider: React.FC<WeatherTimeSliderProps> = ({
             step={1}
             value={currentStep}
             onChange={handleSliderChange}
-            aria-label="予報時刻 of the selection"
+            aria-label="予報時刻の選択"
             aria-labelledby="weather-time-display"
           />
           <div className={styles.sliderProgress} style={{ width: `${percentage}%` }} />

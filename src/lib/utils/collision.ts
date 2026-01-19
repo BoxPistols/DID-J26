@@ -169,56 +169,22 @@ export const checkPolygonCollision = (
   for (const feature of prohibitedAreas.features) {
     if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
       try {
-        const overlap = turf.intersect(
-          polygon,
-          feature as turf.Feature<turf.Polygon | turf.MultiPolygon>
-        )
-        if (overlap) {
-          overlapArea += turf.area(overlap)
+        if (turf.booleanIntersects(polygon, feature)) {
           intersects = true
-          continue
-        }
-
-        // Fallback: if polygons overlap but intersect returns null (common with some edge cases),
-        // treat as overlapping and approximate with small area.
-        const overlaps = turf.booleanIntersects(polygon, feature)
-        if (overlaps) {
-          intersects = true
-          const candidateArea = Math.min(polygonArea, turf.area(feature))
-          overlapArea += candidateArea
-          continue
-        }
-
-        const centroid = turf.centroid(polygon)
-        if (turf.booleanPointInPolygon(centroid, feature)) {
-          intersects = true
-          overlapArea += Math.min(polygonArea, turf.area(feature))
-          continue
-        }
-
-        if (
-          turf.booleanWithin(polygon, feature) ||
-          turf.booleanContains(feature as turf.Feature<turf.Polygon | turf.MultiPolygon>, polygon)
-        ) {
-          intersects = true
-          overlapArea += Math.min(polygonArea, turf.area(feature))
+          const intersection = turf.intersection(
+            polygon,
+            feature as turf.Feature<turf.Polygon | turf.MultiPolygon>
+          )
+          const areaEstimate =
+            intersection && intersection.geometry.type !== 'GeometryCollection'
+              ? turf.area(intersection)
+              : Math.min(polygonArea, turf.area(feature)) * 0.01
+          overlapArea += areaEstimate
         }
       } catch {
         // skip invalid geometries
       }
     }
-  }
-
-  if (!intersects) {
-    intersects = prohibitedAreas.features.some((feature) =>
-      feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon'
-        ? turf.booleanIntersects(polygon, feature as turf.Feature<turf.Polygon | turf.MultiPolygon>)
-        : false
-    )
-  }
-
-  if (intersects && overlapArea === 0) {
-    overlapArea = polygonArea
   }
 
   const overlapRatio = polygonArea === 0 ? 0 : overlapArea / polygonArea

@@ -235,6 +235,8 @@ function App() {
   )
   // DID GeoJSONキャッシュ（衝突検出用）
   const didGeoJSONCacheRef = useRef<Map<string, GeoJSON.FeatureCollection>>(new Map())
+  // 禁止エリアGeoJSONキャッシュ（空港、レッド/イエローゾーン用）
+  const restrictionGeoJSONCacheRef = useRef<Map<string, GeoJSON.FeatureCollection>>(new Map())
   const [didCacheVersion, setDidCacheVersion] = useState(0) // キャッシュ更新検知用
   const debugRunIdRef = useRef<string>('')
   const comparisonIdleDebugKeysRef = useRef<Set<string>>(new Set())
@@ -1115,12 +1117,12 @@ function App() {
 
         // [S] Left Sidebar toggle
         case 's':
-          setShowLeftLegend((prev) => !prev)
+          setShowLeftLegend((prev: boolean) => !prev)
           break
 
         // [P] Right Panel (sidebar) toggle
         case 'p':
-          setShowRightLegend((prev) => !prev)
+          setShowRightLegend((prev: boolean) => !prev)
           break
 
         // [W] Wind Field (Mock)
@@ -3246,12 +3248,42 @@ function App() {
         } else {
           geojson = generateAirportGeoJSON()
         }
+        // 衝突検出用にゾーンタイプを追加してキャッシュに保存
+        if (geojson) {
+          const taggedFeatures = geojson.features.map((f) => ({
+            ...f,
+            properties: { ...f.properties, zoneType: 'AIRPORT' }
+          }))
+          const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
+          restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          setDidCacheVersion((v) => v + 1)
+        }
         color = RESTRICTION_COLORS.airport
       } else if (restrictionId === 'ZONE_IDS.NO_FLY_RED') {
         geojson = generateRedZoneGeoJSON()
+        // 衝突検出用にゾーンタイプを追加してキャッシュに保存
+        if (geojson) {
+          const taggedFeatures = geojson.features.map((f) => ({
+            ...f,
+            properties: { ...f.properties, zoneType: 'RED_ZONE' }
+          }))
+          const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
+          restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          setDidCacheVersion((v) => v + 1)
+        }
         color = RESTRICTION_COLORS.no_fly_red
       } else if (restrictionId === 'ZONE_IDS.NO_FLY_YELLOW') {
         geojson = generateYellowZoneGeoJSON()
+        // 衝突検出用にゾーンタイプを追加してキャッシュに保存
+        if (geojson) {
+          const taggedFeatures = geojson.features.map((f) => ({
+            ...f,
+            properties: { ...f.properties, zoneType: 'YELLOW_ZONE' }
+          }))
+          const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
+          restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          setDidCacheVersion((v) => v + 1)
+        }
         color = RESTRICTION_COLORS.no_fly_yellow
       } else if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
         // DID全国一括表示モード - 全47都道府県を赤色で表示
@@ -3376,6 +3408,11 @@ function App() {
       } else if (restrictionId === 'airport-airspace') {
         // kokuarea（タイルGeoJSON）表示の場合
         disableKokuarea(map)
+        // 衝突検出用キャッシュからも削除
+        if (restrictionGeoJSONCacheRef.current.has(restrictionId)) {
+          restrictionGeoJSONCacheRef.current.delete(restrictionId)
+          setDidCacheVersion((v) => v + 1)
+        }
       } else {
         if (map.getLayer(restrictionId)) {
           map.setLayoutProperty(restrictionId, 'visibility', 'none')
@@ -3383,6 +3420,11 @@ function App() {
         }
         if (map.getLayer(`${restrictionId}-labels`)) {
           map.setLayoutProperty(`${restrictionId}-labels`, 'visibility', 'none')
+        }
+        // 衝突検出用キャッシュからも削除（レッド/イエローゾーン）
+        if (restrictionGeoJSONCacheRef.current.has(restrictionId)) {
+          restrictionGeoJSONCacheRef.current.delete(restrictionId)
+          setDidCacheVersion((v) => v + 1)
         }
       }
       if (syncState) {
@@ -4584,7 +4626,7 @@ function App() {
               ズーム8未満は空港位置を点で簡易表示（現在 Z{' '}
               {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
               <div style={{ marginTop: '2px' }}>
-                点の色：緑=民間空港（国際/国内） / 赤=軍用基地 / 橙=ヘリポート
+                点の色：紫=民間空港（国際/国内） / 赤=軍用基地 / 橙=ヘリポート
               </div>
             </div>
           )}

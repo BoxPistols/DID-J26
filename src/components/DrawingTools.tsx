@@ -697,13 +697,28 @@ export function DrawingTools({
     prohibitedIndexRef.current = prohibitedIndex
   }, [prohibitedIndex])
 
+  const spatialIndexTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     prohibitedAreasRef.current = prohibitedAreas
-    // 禁止エリアが変更されたら空間インデックスを再構築
-    if (prohibitedAreas) {
-      setProhibitedIndex(createSpatialIndex(prohibitedAreas))
+
+    // 前回のタイマーをクリア
+    if (spatialIndexTimerRef.current) {
+      clearTimeout(spatialIndexTimerRef.current)
+    }
+
+    // 禁止エリアが変更されたら空間インデックスを再構築（デバウンス付き）
+    if (prohibitedAreas && prohibitedAreas.features.length > 0) {
+      spatialIndexTimerRef.current = setTimeout(() => {
+        setProhibitedIndex(createSpatialIndex(prohibitedAreas))
+      }, 200)
     } else {
       setProhibitedIndex(null)
+    }
+
+    return () => {
+      if (spatialIndexTimerRef.current) {
+        clearTimeout(spatialIndexTimerRef.current)
+      }
     }
   }, [prohibitedAreas])
 
@@ -772,32 +787,22 @@ export function DrawingTools({
         }
 
         if (result) {
-          const displayColor = result.isColliding
-            ? result.severity === 'DANGER'
-              ? '#f44336'
-              : '#ff9800'
-            : '#2563eb'
-
+          // 衝突情報をプロパティに保存（管理タブでの表示用）
           feature.properties = {
             ...feature.properties,
-            collision: result,
-            _displayColor: displayColor
+            collision: result
           }
 
           if (drawRef.current) {
-            // DrawnFeatureからGeoJSON.Featureに変換して更新
-            const geoJsonFeature: GeoJSON.Feature = {
-              type: 'Feature',
-              id: feature.id,
-              properties: feature.properties,
-              geometry:
-                feature.type === 'point'
-                  ? { type: 'Point', coordinates: feature.coordinates as GeoJSON.Position }
-                  : feature.type === 'line'
-                    ? { type: 'LineString', coordinates: feature.coordinates as GeoJSON.Position[] }
-                    : { type: 'Polygon', coordinates: feature.coordinates as GeoJSON.Position[][] }
+            drawRef.current.setFeatureProperty(feature.id, 'collision', result)
+
+            // ウェイポイント（Point）の場合のみ色を変更
+            // ポリゴン/ラインの線の色は変えない（頂点の色のみ変更）
+            if (feature.type === 'point' && result.isColliding) {
+              drawRef.current.setFeatureProperty(feature.id, '_displayColor', '#f44336')
+            } else if (feature.type === 'point') {
+              drawRef.current.setFeatureProperty(feature.id, '_displayColor', '#ff9800')
             }
-            drawRef.current.add(geoJsonFeature)
           }
         }
       })
@@ -805,21 +810,36 @@ export function DrawingTools({
     []
   )
 
-  // 禁止エリアが変更されたら既存フィーチャーの衝突判定を再実行
+  // 禁止エリアが変更されたら既存フィーチャーの衝突判定を再実行（デバウンス付き）
+  const collisionCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
+    // 前回のタイマーをクリア
+    if (collisionCheckTimerRef.current) {
+      clearTimeout(collisionCheckTimerRef.current)
+    }
+
     if (!prohibitedIndex || !prohibitedAreas || !drawRef.current) return
 
-    const allFeatures = drawRef.current.getAll()
-    if (!allFeatures.features.length) return
+    // デバウンス: 300ms後に衝突判定を実行
+    collisionCheckTimerRef.current = setTimeout(() => {
+      if (!drawRef.current) return
+      const allFeatures = drawRef.current.getAll()
+      if (!allFeatures.features.length) return
 
-    const normalized = normalizeDrawnFeatures(allFeatures.features, circlePoints)
-    annotateCollisions(normalized)
+      const normalized = normalizeDrawnFeatures(allFeatures.features, circlePoints)
+      annotateCollisions(normalized)
 
-    // 衝突情報を反映するために頂点ラベルを更新
-    setTimeout(() => {
+      // 衝突情報を反映するために頂点ラベルを更新
       debouncedUpdateVertexLabels.current?.()
-    }, 50)
-  }, [prohibitedIndex, prohibitedAreas, circlePoints, normalizeDrawnFeatures, annotateCollisions])
+    }, 300)
+
+    return () => {
+      if (collisionCheckTimerRef.current) {
+        clearTimeout(collisionCheckTimerRef.current)
+      }
+    }
+  }, [prohibitedIndex, circlePoints, normalizeDrawnFeatures, annotateCollisions])
+  // 注: prohibitedAreasを依存配列から削除（prohibitedIndexの更新で十分）
 
   const mergeDrawnFeatures = useCallback(
     (newFeatures: DrawnFeature[], shouldUpdateMap: boolean) => {
@@ -1265,7 +1285,7 @@ export function DrawingTools({
         }
       })
 
-      // 円形の背景（選択状態でオレンジに変化、衝突状態で赤/オレンジに変化）
+      // 円形の背景（禁止エリア内の頂点は赤、選択状態でオレンジ枠）
       map.addLayer({
         id: 'vertex-labels-background',
         type: 'circle',
@@ -1274,13 +1294,11 @@ export function DrawingTools({
           'circle-radius': ['case', ['get', 'selected'], 14, 12],
           'circle-color': [
             'case',
-            ['==', ['get', 'collisionSeverity'], 'DANGER'], '#f44336',
-            ['==', ['get', 'collisionSeverity'], 'WARNING'], '#ff9800',
-            ['get', 'selected'], '#ff9800',
-            '#2563eb'
+            ['get', 'isInProhibited'], '#f44336',  // 禁止エリア内 → 赤
+            '#2563eb'  // それ以外 → 青
           ],
           'circle-stroke-width': ['case', ['get', 'selected'], 3, 2],
-          'circle-stroke-color': '#ffffff'
+          'circle-stroke-color': ['case', ['get', 'selected'], '#ff9800', '#ffffff']
         }
       })
 
@@ -1343,7 +1361,14 @@ export function DrawingTools({
       // 作成後、自動的に選択状態にして編集しやすく
       if (e.features.length > 0) {
         const newFeatureId = String(e.features[0].id)
+        const newFeature = e.features[0] as unknown as GeoJSON.Feature
         updateSelectionState([newFeatureId], newFeatureId)
+
+        // 円を作成した場合、管理タブに切り替えてサイズ/頂点数を調整できるようにする
+        if (newFeature.properties?.isCircle) {
+          setActiveTab('manage')
+        }
+
         // 作成後、選択モードに戻す
         safeSetTimeout(() => {
           draw.changeMode('simple_select', { featureIds: [newFeatureId] })
@@ -1632,17 +1657,23 @@ export function DrawingTools({
         coords = outerRing.slice(0, -1)
       }
 
-      // 衝突情報を取得（mapbox-gl-drawはuser_プレフィックスを付ける）
-      const collision = (feature.properties?.user_collision || feature.properties?.collision) as { severity?: string } | undefined
-      const collisionSeverity = collision?.severity || null
-
-      // 各頂点にラベルを追加
+      // 各頂点にラベルを追加（頂点ごとに個別に衝突判定）
       coords.forEach((coord, index) => {
         // 選択状態をチェック（座標が一致するか）
         const isSelected =
           selectedCoords !== null &&
           Math.abs(coord[0] - selectedCoords[0]) < 0.0000001 &&
           Math.abs(coord[1] - selectedCoords[1]) < 0.0000001
+
+        // この頂点が禁止エリア内にあるかチェック
+        let isInProhibited = false
+        if (prohibitedIndexRef.current && prohibitedAreasRef.current) {
+          const result = checkWaypointCollisionOptimized(
+            coord,
+            prohibitedIndexRef.current as any
+          )
+          isInProhibited = result.isColliding
+        }
 
         labelFeatures.push({
           type: 'Feature',
@@ -1653,7 +1684,7 @@ export function DrawingTools({
           properties: {
             label: `${index + 1}`,
             selected: isSelected,
-            collisionSeverity
+            isInProhibited
           }
         })
       })
@@ -3618,36 +3649,6 @@ ${kmlFeatures}
                               gap: '2px'
                             }}
                           >
-                            {/* @ts-expect-error collision check */}
-                            {f.properties?.collision?.isColliding && (
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  color: '#f44336',
-                                  fontWeight: 'bold',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '2px'
-                                }}
-                              >
-                                <span>⚠️</span>
-                                <span
-                                  style={{
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  // @ts-expect-error collision check
-                                  title={f.properties.collision.message}
-                                >
-                                  {/* @ts-expect-error collision check */}
-                                  {f.properties.collision.areaName
-                                    ? // @ts-expect-error collision check
-                                      `禁止エリア: ${f.properties.collision.areaName}`
-                                    : '禁止エリア内です'}
-                                </span>
-                              </div>
-                            )}
                             {editingNameId === f.id ? (
                               <input
                                 ref={editingNameInputRef}
@@ -3697,7 +3698,15 @@ ${kmlFeatures}
                                   whiteSpace: 'nowrap',
                                   padding: '2px 4px',
                                   borderRadius: '3px',
-                                  transition: 'background-color 0.2s, color 0.2s'
+                                  transition: 'background-color 0.2s, color 0.2s',
+                                  // @ts-expect-error collision check
+                                  color: f.properties?.collision?.isColliding
+                                    ? '#f44336'
+                                    : 'inherit',
+                                  // @ts-expect-error collision check
+                                  fontWeight: f.properties?.collision?.isColliding
+                                    ? 'bold'
+                                    : 'normal'
                                 }}
                                 onClick={() => handleNameClick(f)}
                                 onDoubleClick={() => handleNameDoubleClick(f)}
@@ -3711,6 +3720,10 @@ ${kmlFeatures}
                                 }}
                                 title={`${f.name}（ダブルクリックで編集）`}
                               >
+                                {/* @ts-expect-error collision check */}
+                                {f.properties?.collision?.isColliding && (
+                                  <span style={{ marginRight: '4px' }}>⚠️</span>
+                                )}
                                 {f.name}
                               </span>
                             )}

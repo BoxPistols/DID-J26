@@ -78,22 +78,29 @@ export function useFlightWindow(
     } finally {
       if (!isSilent) setLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lat, lng, dateKey])
+  }, [lat, lng, date, dateKey])
 
-  // Initial fetch when dependencies change
+  // Initial fetch when location or date changes
   useEffect(() => {
     fetchFlightWindow()
   }, [fetchFlightWindow])
 
-  // Periodic update every minute (silent)
+  // Periodic update every minute (silent) - only depends on location
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchFlightWindow(true)
-    }, 60000) // 60 seconds
+    const interval = setInterval(async () => {
+      try {
+        const isAllowed = await isDaylight(lat, lng, new Date())
+        setFlightAllowedNow(isAllowed)
+        const minutes = await getMinutesUntilTwilightEnd(lat, lng)
+        setMinutesRemaining(minutes)
+      } catch (err) {
+        // Silent failure for background updates
+        console.warn('Background flight window update failed:', err)
+      }
+    }, 60000)
 
     return () => clearInterval(interval)
-  }, [fetchFlightWindow])
+  }, [lat, lng])
 
   const refetch = useCallback(async () => {
     await fetchFlightWindow()

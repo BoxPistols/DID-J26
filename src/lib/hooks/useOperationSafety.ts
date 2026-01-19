@@ -9,6 +9,10 @@ export interface SafetyReason {
   category: 'weather' | 'network' | 'daylight' | 'wind' | 'precipitation'
   severity: 'info' | 'warning' | 'critical'
   message: string
+  // Structured data to avoid string parsing
+  value?: number
+  unit?: string
+  threshold?: number
 }
 
 export interface OperationSafetyResult {
@@ -19,6 +23,21 @@ export interface OperationSafetyResult {
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
+  // Expose raw data for advanced use cases
+  weatherData?: {
+    windSpeed?: number
+    windDirection?: number
+    precipitationProbability?: number
+    temperature?: number
+  }
+  networkData?: {
+    hasLTE: boolean
+    signalStrength: string
+  }
+  flightWindowData?: {
+    flightAllowedNow: boolean
+    minutesRemaining: number | null
+  }
 }
 
 /**
@@ -101,21 +120,30 @@ export function useOperationSafety(
       reasons.push({
         category: 'wind',
         severity: 'critical',
-        message: `Wind speed too high: ${currentForecast.windSpeed.toFixed(1)} m/s (max: 10 m/s)`
+        message: `Wind speed too high: ${currentForecast.windSpeed.toFixed(1)} m/s (max: 10 m/s)`,
+        value: currentForecast.windSpeed,
+        unit: 'm/s',
+        threshold: 10
       })
     } else if (currentForecast.windSpeed >= 5) {
       safetyLevel = 'warning'
       reasons.push({
         category: 'wind',
         severity: 'warning',
-        message: `Moderate wind speed: ${currentForecast.windSpeed.toFixed(1)} m/s (caution advised)`
+        message: `Moderate wind speed: ${currentForecast.windSpeed.toFixed(1)} m/s (caution advised)`,
+        value: currentForecast.windSpeed,
+        unit: 'm/s',
+        threshold: 5
       })
     } else if (currentForecast.windSpeed >= 2) {
       if (safetyLevel === 'safe') safetyLevel = 'caution'
       reasons.push({
         category: 'wind',
         severity: 'info',
-        message: `Light wind: ${currentForecast.windSpeed.toFixed(1)} m/s`
+        message: `Light wind: ${currentForecast.windSpeed.toFixed(1)} m/s`,
+        value: currentForecast.windSpeed,
+        unit: 'm/s',
+        threshold: 2
       })
     }
 
@@ -126,14 +154,20 @@ export function useOperationSafety(
       reasons.push({
         category: 'precipitation',
         severity: 'critical',
-        message: `High precipitation probability: ${currentForecast.precipitationProbability}% (max: 50%)`
+        message: `High precipitation probability: ${currentForecast.precipitationProbability}% (max: 50%)`,
+        value: currentForecast.precipitationProbability,
+        unit: '%',
+        threshold: 50
       })
     } else if (currentForecast.precipitationProbability > 30) {
       if (safetyLevel === 'safe') safetyLevel = 'caution'
       reasons.push({
         category: 'precipitation',
         severity: 'warning',
-        message: `Moderate precipitation probability: ${currentForecast.precipitationProbability}%`
+        message: `Moderate precipitation probability: ${currentForecast.precipitationProbability}%`,
+        value: currentForecast.precipitationProbability,
+        unit: '%',
+        threshold: 30
       })
     }
 
@@ -224,7 +258,22 @@ export function useOperationSafety(
     nextSafeWindow: safetyEvaluation.nextSafeWindow,
     loading,
     error,
-    refetch
+    refetch,
+    // Expose raw data for advanced use cases (avoids string parsing)
+    weatherData: weather.data?.forecasts[0] ? {
+      windSpeed: weather.data.forecasts[0].windSpeed,
+      windDirection: weather.data.forecasts[0].windDirection,
+      precipitationProbability: weather.data.forecasts[0].precipitationProbability,
+      temperature: weather.data.forecasts[0].temperature
+    } : undefined,
+    networkData: {
+      hasLTE: network.hasLTE,
+      signalStrength: network.signalStrength
+    },
+    flightWindowData: {
+      flightAllowedNow: flightWindow.flightAllowedNow,
+      minutesRemaining: flightWindow.minutesRemaining
+    }
   }
 }
 

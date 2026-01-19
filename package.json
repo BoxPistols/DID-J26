@@ -74,7 +74,9 @@
     "react-dom": "^18.0.0"
   },
   "dependencies": {
-    "@mapbox/mapbox-gl-draw": "^1.5.1"
+    "@mapbox/mapbox-gl-draw": "^1.5.1",
+    "@turf/turf": "^7.3.2",
+    "rbush": "^4.0.1"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^8.6.14",

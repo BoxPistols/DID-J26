@@ -1133,13 +1133,15 @@ function App() {
       center: mapStateRef.current.center,
       zoom: mapStateRef.current.zoom,
       pitch: mapStateRef.current.pitch,
-      bearing: mapStateRef.current.bearing
+      bearing: mapStateRef.current.bearing,
+      attributionControl: false
     }
 
     const map = new maplibregl.Map(mapConfig)
 
     map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
 
     // Keep current zoom in React state (for always-visible Zoom UI)
     setMapZoom(map.getZoom())
@@ -4870,11 +4872,11 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.colors.buttonBg,
+            backgroundColor: darkMode ? 'rgba(55, 75, 105, 0.9)' : 'rgba(160, 185, 215, 0.9)',
             color: theme.colors.text,
             border: 'none',
             borderRadius: '4px',
-            boxShadow: theme.shadows.outline,
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
             cursor: undoRedoState.canUndo ? 'pointer' : 'not-allowed',
             opacity: undoRedoState.canUndo ? 1 : 0.45
           }}
@@ -4898,10 +4900,10 @@ function App() {
             padding: '6px 8px',
             minWidth: 52,
             textAlign: 'center',
-            backgroundColor: theme.colors.buttonBg,
+            backgroundColor: darkMode ? 'rgba(55, 75, 105, 0.9)' : 'rgba(160, 185, 215, 0.9)',
             color: theme.colors.text,
             borderRadius: '4px',
-            boxShadow: theme.shadows.outline,
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
             fontSize: '12px',
             fontWeight: 700,
             pointerEvents: 'none'
@@ -4921,11 +4923,11 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.colors.buttonBg,
+            backgroundColor: darkMode ? 'rgba(55, 75, 105, 0.9)' : 'rgba(160, 185, 215, 0.9)',
             color: theme.colors.text,
             border: 'none',
             borderRadius: '4px',
-            boxShadow: theme.shadows.outline,
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
             cursor: undoRedoState.canRedo ? 'pointer' : 'not-allowed',
             opacity: undoRedoState.canRedo ? 1 : 0.45
           }}
@@ -5702,15 +5704,15 @@ function App() {
       <div
         style={{
           position: 'absolute',
-          bottom: 4,
-          left: '50%',
+          bottom: 8,
+          left: '70%',
           transform: 'translateX(-50%)',
           fontSize: '12px',
-          color: '#666',
-          backgroundColor: 'rgba(255,255,255,0.8)',
+          color: '#eeeeeec0',
+          backgroundColor: 'rgba(0,0,0,0.2)',
           padding: '2px 8px',
-          borderRadius: '2px',
-          zIndex: 5
+          borderRadius: '4px',
+          zIndex: 2
         }}
       >
         出典: 政府統計の総合窓口(e-Stat) / 国土地理院

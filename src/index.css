@@ -87,6 +87,12 @@ body {
   bottom: 120px !important;
 }
 
+/* Attribution & Scale を左下（サイドバーの右側）に配置 */
+.maplibregl-ctrl-bottom-left {
+  bottom: 3px !important;
+  left: 280px !important;
+}
+
 /* MapLibre GL Controls - Dark mode support */
 [data-theme="dark"] .maplibregl-ctrl-group {
   background-color: rgba(35, 35, 35, 0.9) !important;

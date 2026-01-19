@@ -136,20 +136,4 @@ describe('meshCodeConverter', () => {
       expect(isValidMeshCode(undefined as any)).toBe(false)
     })
   })
-
-  describe('wind safety thresholds', () => {
-    it('should categorize wind speeds correctly', () => {
-      const safeWind = 1.5 // 0-2 m/s: safe
-      const cautionWind = 3.5 // 2-5 m/s: caution
-      const warningWind = 7.5 // 5-10 m/s: warning
-      const dangerWind = 12.0 // 10+ m/s: danger
-
-      expect(safeWind).toBeLessThan(2)
-      expect(cautionWind).toBeGreaterThanOrEqual(2)
-      expect(cautionWind).toBeLessThan(5)
-      expect(warningWind).toBeGreaterThanOrEqual(5)
-      expect(warningWind).toBeLessThan(10)
-      expect(dangerWind).toBeGreaterThanOrEqual(10)
-    })
-  })
 })

@@ -3,6 +3,8 @@
  * Provides mesh-based weather forecasts for Japan
  */
 
+import { latLngToMeshCode as convertLatLngToMeshCode } from '../utils/meshCodeConverter'
+
 interface JmaMeshWeatherData {
   windSpeed: number // m/s
   windDirection: number // degrees (0-360)
@@ -16,14 +18,6 @@ interface JmaTimeSeriesData {
   meshCode: string
   forecasts: JmaMeshWeatherData[]
 }
-
-interface JmaApiResponse {
-  validTime: string
-  // Simplified structure - actual JMA API has more complex nested data
-  [key: string]: any
-}
-
-const JMA_BASE_URL = 'https://www.jma.go.jp/bosai/jmatile/data/wdist'
 
 /**
  * Fetch current weather data for a specific mesh code
@@ -63,12 +57,13 @@ export async function fetchMeshTimeSeries(
  * @returns JMA mesh code
  */
 export function latLngToMeshCode(lat: number, lng: number): string {
-  // Simplified mesh code calculation
-  // Actual JMA mesh system is more complex
-  const latCode = Math.floor((lat * 60) / 40)
-  const lngCode = Math.floor(((lng - 100) * 60) / 60)
-  
-  return `${latCode}${lngCode}0000`
+  try {
+    return convertLatLngToMeshCode(lat, lng)
+  } catch (error) {
+    console.error('Mesh code conversion failed:', error)
+    // Fallback or re-throw
+    throw error
+  }
 }
 
 /**

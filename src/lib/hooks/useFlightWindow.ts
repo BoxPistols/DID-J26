@@ -50,8 +50,8 @@ export function useFlightWindow(
   // Use stable date reference - only use date's day, not the object itself
   const dateKey = date ? date.toDateString() : new Date().toDateString()
 
-  const fetchFlightWindow = useCallback(async () => {
-    setLoading(true)
+  const fetchFlightWindow = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true)
     setError(null)
 
     try {
@@ -76,17 +76,20 @@ export function useFlightWindow(
       setMinutesRemaining(0)
       setCivilTwilightEnd(null)
     } finally {
-      setLoading(false)
+      if (!isSilent) setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng, dateKey])
 
+  // Initial fetch when dependencies change
   useEffect(() => {
     fetchFlightWindow()
+  }, [fetchFlightWindow])
 
-    // Update every minute to keep minutesRemaining accurate
+  // Periodic update every minute (silent)
+  useEffect(() => {
     const interval = setInterval(() => {
-      fetchFlightWindow()
+      fetchFlightWindow(true)
     }, 60000) // 60 seconds
 
     return () => clearInterval(interval)

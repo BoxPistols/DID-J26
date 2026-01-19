@@ -51,9 +51,7 @@ export const FlightPlanChecker: React.FC<FlightPlanCheckerProps> = ({
     )
   }
 
-  // Extract specific data from reasons
-  // Note: Currently parsing from reason messages due to hook design.
-  // Future improvement: Hook should provide structured numeric data.
+  // Extract status indicators from safety reasons
   const windReason = safety.reasons.find(r => r.category === 'wind')
   const precipReason = safety.reasons.find(r => r.category === 'precipitation')
   const networkReason = safety.reasons.find(r => r.category === 'network')

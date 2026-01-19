@@ -1209,6 +1209,7 @@ export function generateWeatherIconsGeoJSON(): GeoJSON.FeatureCollection {
       precipitation: item.precipitation,
       // アイコン用
       icon: getWeatherIcon(item.weather),
+      weatherLabel: getWeatherLabel(item.weather),
       label: `${item.temperature}°C`
     },
     geometry: {
@@ -1232,6 +1233,21 @@ function getWeatherIcon(weather: string): string {
     case 'snowy': return '❄️'
     case 'stormy': return '⛈️'
     default: return '🌡️'
+  }
+}
+
+/**
+ * Get weather label in Japanese based on weather type
+ */
+function getWeatherLabel(weather: string): string {
+  switch (weather) {
+    case 'sunny': return '晴れ'
+    case 'partly_cloudy': return '一部曇り'
+    case 'cloudy': return '曇り'
+    case 'rainy': return '雨'
+    case 'snowy': return '雪'
+    case 'stormy': return '雷雨'
+    default: return '不明'
   }
 }
 

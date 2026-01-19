@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react'
-import { useWeatherMesh, classifyWindLevel } from './useWeatherMesh'
+import { useWeatherMesh } from './useWeatherMesh'
 import { useNetworkCoverage } from './useNetworkCoverage'
 import { useFlightWindow } from './useFlightWindow'
 
@@ -210,17 +210,34 @@ export function useOperationSafety(
     // Calculate next safe window
     let nextSafeWindow: Date | null = null
     if (!canFly) {
-      if (!flightWindow.flightAllowedNow && flightWindow.civilTwilightEnd) {
-        // Next day's sunrise
+      if (!network.hasLTE) {
+        // No LTE means no flight regardless of weather
+        nextSafeWindow = null
+      } else if (!flightWindow.flightAllowedNow && flightWindow.civilTwilightEnd) {
+        // Night time - next possible window is tomorrow morning
         const tomorrow = new Date(flightWindow.civilTwilightEnd)
         tomorrow.setDate(tomorrow.getDate() + 1)
         tomorrow.setHours(6, 0, 0, 0) // Approximate sunrise
         nextSafeWindow = tomorrow
-      } else if (currentForecast.windSpeed >= 10) {
-        // Check future forecasts for better conditions
-        const betterForecast = weather.data.forecasts.find(f => f.windSpeed < 10)
-        if (betterForecast) {
-          nextSafeWindow = new Date(betterForecast.timestamp)
+      } else {
+        // Check future forecasts for better conditions (wind AND precipitation AND daylight)
+        const safeForecast = weather.data.forecasts.find(f => {
+          const isWeatherSafe = f.windSpeed < 10 && f.precipitationProbability <= 50
+          const forecastTime = new Date(f.timestamp)
+          const isDaylightSafe = flightWindow.civilTwilightEnd 
+            ? forecastTime < flightWindow.civilTwilightEnd 
+            : true
+          return isWeatherSafe && isDaylightSafe
+        })
+
+        if (safeForecast) {
+          nextSafeWindow = new Date(safeForecast.timestamp)
+        } else if (flightWindow.civilTwilightEnd) {
+          // If no safe weather slot today, check tomorrow morning
+          const tomorrow = new Date(flightWindow.civilTwilightEnd)
+          tomorrow.setDate(tomorrow.getDate() + 1)
+          tomorrow.setHours(6, 0, 0, 0)
+          nextSafeWindow = tomorrow
         }
       }
     }
@@ -242,14 +259,18 @@ export function useOperationSafety(
     }
   }, [weather.data, network.hasLTE, network.signalStrength, flightWindow.flightAllowedNow, flightWindow.minutesRemaining, flightWindow.civilTwilightEnd])
 
+  const { refetch: refetchWeather } = weather
+  const { refetch: refetchNetwork } = network
+  const { refetch: refetchFlightWindow } = flightWindow
+
   // Refetch all data
   const refetch = useCallback(async () => {
     await Promise.all([
-      weather.refetch(),
-      network.refetch(),
-      flightWindow.refetch()
+      refetchWeather(),
+      refetchNetwork(),
+      refetchFlightWindow()
     ])
-  }, [weather.refetch, network.refetch, flightWindow.refetch])
+  }, [refetchWeather, refetchNetwork, refetchFlightWindow])
 
   return {
     canFly: safetyEvaluation.canFly,

@@ -1,7 +1,16 @@
 {/* 16_CollisionDetection.mdx */}
 import { Meta } from '@storybook/blocks'
 
-<Meta title="API/Collision Detection" />
+<Meta title="Learning/16_衝突検出" />
+
+export const TableStyle = {
+  table: { width: '100%', borderCollapse: 'collapse', margin: '16px 0' },
+  thead: { backgroundColor: 'rgba(74, 158, 255, 0.1)', borderBottom: '2px solid rgba(74, 158, 255, 0.3)' },
+  th: { padding: '12px', textAlign: 'left', fontWeight: 600 },
+  tr: { borderBottom: '1px solid rgba(255, 255, 255, 0.1)' },
+  td: { padding: '12px' },
+  code: { backgroundColor: 'rgba(255, 255, 255, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }
+}
 
 # Collision Detection（衝突検出）
 
@@ -9,66 +18,129 @@ import { Meta } from '@storybook/blocks'
 
 ---
 
-## 概要
+## 1. 概要
 
-`src/lib/utils/collision.ts` は以下の機能を提供します：
+`src/lib/utils/collision.ts` は以下の機能を提供します。
 
-| 関数名 | 用途 | 計算量 |
-| :--- | :--- | :--- |
-| `checkWaypointCollision` | 単一Waypointの禁止エリア判定 | O(n) |
-| `checkWaypointCollisionOptimized` | 空間インデックスを使った高速判定 | O(log n) |
-| `checkPathCollision` | 飛行経路（LineString）の交差判定 | O(n) |
-| `checkPolygonCollision` | 飛行範囲（Polygon）の重複判定 | O(n) |
-| `createSpatialIndex` | RBush空間インデックスの構築 | O(n log n) |
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>関数名</th>
+      <th style={TableStyle.th}>用途</th>
+      <th style={TableStyle.th}>計算量</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>checkWaypointCollision</code></td>
+      <td style={TableStyle.td}>単一Waypointの禁止エリア判定</td>
+      <td style={TableStyle.td}>O(n)</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>checkWaypointCollisionOptimized</code></td>
+      <td style={TableStyle.td}>空間インデックスを使った高速判定</td>
+      <td style={TableStyle.td}>O(log n)</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>checkPathCollision</code></td>
+      <td style={TableStyle.td}>飛行経路（LineString）の交差判定</td>
+      <td style={TableStyle.td}>O(n)</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>checkPolygonCollision</code></td>
+      <td style={TableStyle.td}>飛行範囲（Polygon）の重複判定</td>
+      <td style={TableStyle.td}>O(n)</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>createSpatialIndex</code></td>
+      <td style={TableStyle.td}>RBush空間インデックスの構築</td>
+      <td style={TableStyle.td}>O(n log n)</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
-## 依存ライブラリ
+## 2. 依存ライブラリ
 
 ```bash
 npm install @turf/turf rbush
 ```
 
-- **@turf/turf**: GeoJSON空間演算ライブラリ
-- **rbush**: 高速R-tree空間インデックス
+- **@turf/turf**: GeoJSON空間演算ライブラリ（Point-in-Polygon、Intersect等）
+- **rbush**: 高速R-tree空間インデックス（大量ポリゴンの高速検索）
 
 ---
 
-## ゾーンタイプと色定義
+## 3. ゾーンタイプと色定義
 
 衝突検出結果は、ゾーンタイプに応じた色と深刻度を返します。
+
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>ゾーンタイプ</th>
+      <th style={TableStyle.th}>色</th>
+      <th style={TableStyle.th}>カラーコード</th>
+      <th style={TableStyle.th}>深刻度</th>
+      <th style={TableStyle.th}>説明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>DID</code></td>
+      <td style={TableStyle.td}>🔴 赤</td>
+      <td style={TableStyle.td}>#f44336</td>
+      <td style={TableStyle.td}>WARNING</td>
+      <td style={TableStyle.td}>人口集中地区（許可取得で飛行可能）</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>AIRPORT</code></td>
+      <td style={TableStyle.td}>🟣 紫</td>
+      <td style={TableStyle.td}>#9C27B0</td>
+      <td style={TableStyle.td}>DANGER</td>
+      <td style={TableStyle.td}>空港周辺空域（原則飛行禁止）</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>RED_ZONE</code></td>
+      <td style={TableStyle.td}>🟥 暗い赤</td>
+      <td style={TableStyle.td}>#b71c1c</td>
+      <td style={TableStyle.td}>DANGER</td>
+      <td style={TableStyle.td}>飛行禁止区域（小型無人機等飛行禁止法）</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}><code style={TableStyle.code}>YELLOW_ZONE</code></td>
+      <td style={TableStyle.td}>🟡 黄色</td>
+      <td style={TableStyle.td}>#ffc107</td>
+      <td style={TableStyle.td}>WARNING</td>
+      <td style={TableStyle.td}>飛行注意区域（事前通報が必要）</td>
+    </tr>
+  </tbody>
+</table>
 
 ```typescript
 import { ZONE_COLORS, ZONE_SEVERITY, CollisionType } from 'japan-drone-map'
 
-// ゾーンタイプ
+// ゾーンタイプの定義
 type CollisionType = 'DID' | 'AIRPORT' | 'RED_ZONE' | 'YELLOW_ZONE' | 'MILITARY' | 'PARK' | string
 
 // 色定義
 const ZONE_COLORS = {
-  DID: '#f44336',        // 赤 - 人口集中地区
-  AIRPORT: '#9C27B0',    // 紫 - 空港周辺空域
-  RED_ZONE: '#b71c1c',   // 暗い赤 - 飛行禁止区域
-  YELLOW_ZONE: '#ffc107', // 黄色 - 飛行注意区域
+  DID: '#f44336',
+  AIRPORT: '#9C27B0',
+  RED_ZONE: '#b71c1c',
+  YELLOW_ZONE: '#ffc107',
   DEFAULT: '#f44336'
-}
-
-// 深刻度
-const ZONE_SEVERITY = {
-  DID: 'WARNING',        // 許可取得で飛行可能
-  AIRPORT: 'DANGER',     // 原則飛行禁止
-  RED_ZONE: 'DANGER',    // 原則飛行禁止
-  YELLOW_ZONE: 'WARNING' // 注意が必要
 }
 ```
 
 ---
 
-## 1. Waypoint衝突検出（基本版）
+## 4. Waypoint衝突検出（基本版）
 
 単一のWaypoint座標が禁止エリア内にあるかを判定します。
 
-### シグネチャ
+### 4.1 シグネチャ
 
 ```typescript
 function checkWaypointCollision(
@@ -77,7 +149,7 @@ function checkWaypointCollision(
 ): WaypointCollisionResult
 ```
 
-### 戻り値
+### 4.2 戻り値の構造
 
 ```typescript
 interface WaypointCollisionResult {
@@ -90,7 +162,7 @@ interface WaypointCollisionResult {
 }
 ```
 
-### 使用例
+### 4.3 使用例
 
 ```typescript
 import { checkWaypointCollision } from 'japan-drone-map'
@@ -128,21 +200,33 @@ if (result.isColliding) {
 }
 ```
 
-### アルゴリズム詳細
+### 4.4 アルゴリズム詳細
 
+```
 1. Waypointの座標からTurf.jsのPointオブジェクトを生成
+   point = turf.point([lng, lat])
+
 2. FeatureCollection内の全Polygon/MultiPolygonをループ
-3. `turf.booleanPointInPolygon()` で包含判定
+   for each feature in prohibitedAreas.features:
+
+3. turf.booleanPointInPolygon() で包含判定
+   isInside = turf.booleanPointInPolygon(point, feature)
+
 4. 最初にヒットしたエリアの情報を返却
-5. ヒットしない場合は `isColliding: false, severity: 'SAFE'` を返却
+   if (isInside):
+     return { isColliding: true, collisionType, areaName, ... }
+
+5. ヒットしない場合はSAFEを返却
+   return { isColliding: false, severity: 'SAFE', ... }
+```
 
 ---
 
-## 2. Waypoint衝突検出（最適化版）
+## 5. Waypoint衝突検出（最適化版）
 
-大量の禁止エリアがある場合、空間インデックスを使って高速に判定します。
+大量の禁止エリアがある場合、空間インデックス（R-tree）を使って高速に判定します。
 
-### 空間インデックスの構築
+### 5.1 空間インデックスの構築
 
 ```typescript
 import { createSpatialIndex, checkWaypointCollisionOptimized } from 'japan-drone-map'
@@ -154,26 +238,76 @@ const spatialIndex = createSpatialIndex(prohibitedAreas)
 const result = checkWaypointCollisionOptimized(waypoint, spatialIndex)
 ```
 
-### パフォーマンス比較
+### 5.2 パフォーマンス比較
 
-| 禁止エリア数 | 基本版 | 最適化版 |
-| :--- | :--- | :--- |
-| 100件 | ~1ms | ~0.1ms |
-| 1,000件 | ~10ms | ~0.2ms |
-| 10,000件 | ~100ms | ~0.3ms |
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>禁止エリア数</th>
+      <th style={TableStyle.th}>基本版</th>
+      <th style={TableStyle.th}>最適化版</th>
+      <th style={TableStyle.th}>高速化率</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>100件</td>
+      <td style={TableStyle.td}>~1ms</td>
+      <td style={TableStyle.td}>~0.1ms</td>
+      <td style={TableStyle.td}>10倍</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>1,000件</td>
+      <td style={TableStyle.td}>~10ms</td>
+      <td style={TableStyle.td}>~0.2ms</td>
+      <td style={TableStyle.td}>50倍</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>10,000件</td>
+      <td style={TableStyle.td}>~100ms</td>
+      <td style={TableStyle.td}>~0.3ms</td>
+      <td style={TableStyle.td}>333倍</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>全国DID（~50,000件）</td>
+      <td style={TableStyle.td}>~500ms</td>
+      <td style={TableStyle.td}>~0.5ms</td>
+      <td style={TableStyle.td}>1000倍</td>
+    </tr>
+  </tbody>
+</table>
 
-### 使用シナリオ
+### 5.3 RBushアルゴリズム
 
-- **基本版**: 禁止エリアが少ない場合、または単発の判定
-- **最適化版**: 全国DIDデータ（数万ポリゴン）を対象にする場合、連続的なWaypoint判定
+RBush（R-tree Bulk loading using Sort-Tile-Recursive）は、空間データの高速検索に特化したデータ構造です。
+
+```
+                    ┌─────────────────────────────────────┐
+                    │            Root Node               │
+                    │  BBox: [minX, minY, maxX, maxY]    │
+                    └─────────────────┬───────────────────┘
+                                      │
+              ┌───────────────────────┼───────────────────────┐
+              ▼                       ▼                       ▼
+    ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+    │   Leaf Node 1   │     │   Leaf Node 2   │     │   Leaf Node 3   │
+    │ [Features...]   │     │ [Features...]   │     │ [Features...]   │
+    └─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+**検索アルゴリズム:**
+
+1. 検索対象の点（Waypoint）をBounding Boxとして表現
+2. ルートノードから再帰的に、BBoxが重なるノードのみを探索
+3. リーフノードに到達したら、実際のPolygonと点の包含判定を実行
 
 ---
 
-## 3. 飛行経路の交差判定
+## 6. 飛行経路の交差判定
 
 飛行経路（LineString）が禁止エリアと交差するかを検出します。
 
-### シグネチャ
+### 6.1 シグネチャ
 
 ```typescript
 function checkPathCollision(
@@ -182,7 +316,7 @@ function checkPathCollision(
 ): PathCollisionResult
 ```
 
-### 戻り値
+### 6.2 戻り値の構造
 
 ```typescript
 interface PathCollisionResult {
@@ -193,7 +327,7 @@ interface PathCollisionResult {
 }
 ```
 
-### 使用例
+### 6.3 使用例
 
 ```typescript
 import { checkPathCollision } from 'japan-drone-map'
@@ -213,20 +347,29 @@ if (result.isColliding) {
 }
 ```
 
-### アルゴリズム詳細
+### 6.4 交差判定の可視化
 
-1. 座標配列からTurf.jsのLineStringを生成
-2. 各禁止エリア（Polygon/MultiPolygon）とのライン交差を計算
-3. `turf.lineIntersect()` で交差点を取得
-4. 全ての交差点を収集して返却
+```
+       禁止エリア (Polygon)
+    ┌────────────────────────┐
+    │                        │
+    │    ×───────────────×   │  ← 交差点 2箇所
+    │    ▲               ▲   │
+    │    │               │   │
+────┼────┼───────────────┼───┼────  飛行経路 (LineString)
+    │    │               │   │
+    │    出発点          到着点│
+    │                        │
+    └────────────────────────┘
+```
 
 ---
 
-## 4. 飛行範囲の重複判定
+## 7. 飛行範囲の重複判定
 
 飛行範囲（Polygon）が禁止エリアと重複するかを検出します。
 
-### シグネチャ
+### 7.1 シグネチャ
 
 ```typescript
 function checkPolygonCollision(
@@ -235,7 +378,7 @@ function checkPolygonCollision(
 ): PolygonCollisionResult
 ```
 
-### 戻り値
+### 7.2 戻り値の構造
 
 ```typescript
 interface PolygonCollisionResult {
@@ -247,7 +390,36 @@ interface PolygonCollisionResult {
 }
 ```
 
-### 使用例
+### 7.3 深刻度の判定基準
+
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>重複割合</th>
+      <th style={TableStyle.th}>深刻度</th>
+      <th style={TableStyle.th}>説明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>0%</td>
+      <td style={TableStyle.td}>SAFE</td>
+      <td style={TableStyle.td}>重複なし - 飛行可能</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>0% ~ 20%</td>
+      <td style={TableStyle.td}>WARNING</td>
+      <td style={TableStyle.td}>一部重複 - 経路変更推奨</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>20%以上</td>
+      <td style={TableStyle.td}>DANGER</td>
+      <td style={TableStyle.td}>大幅重複 - 飛行計画見直し必要</td>
+    </tr>
+  </tbody>
+</table>
+
+### 7.4 使用例
 
 ```typescript
 import { checkPolygonCollision } from 'japan-drone-map'
@@ -267,41 +439,25 @@ if (result.isColliding) {
   console.log(`警告: ${result.message}`)
   console.log(`重複面積: ${result.overlapArea.toFixed(0)} m²`)
   console.log(`重複割合: ${(result.overlapRatio * 100).toFixed(1)}%`)
-  // => 警告: ポリゴンが禁止エリアと25%重複しています
 }
 ```
 
-### 深刻度の判定基準
-
-| 重複割合 | 深刻度 | 説明 |
-| :--- | :--- | :--- |
-| 0% | SAFE | 重複なし |
-| 0% ~ 20% | WARNING | 一部重複（経路変更推奨） |
-| 20%以上 | DANGER | 大幅重複（飛行計画見直し必要） |
-
-### アルゴリズム詳細
-
-1. 座標配列からTurf.jsのPolygonを生成
-2. 入力バリデーション（最低4点必要、最初と最後が同じ座標で閉じる）
-3. 各禁止エリアとの交差判定: `turf.booleanIntersects()`
-4. 交差する場合、`turf.intersect()` で交差部分を計算
-5. `turf.area()` で面積を計算し、重複割合を算出
-
 ---
 
-## 実装パターン: Reactコンポーネントでの使用
+## 8. Reactコンポーネントでの実装パターン
 
-### useRefを使ったキャッシュ戦略
+### 8.1 useRefを使ったキャッシュ戦略
 
 ```typescript
 import { useRef, useMemo, useCallback } from 'react'
 import { createSpatialIndex, checkWaypointCollisionOptimized } from 'japan-drone-map'
 
 function FlightPlanner() {
-  // GeoJSONキャッシュ
+  // GeoJSONキャッシュ（レンダリング間で保持）
   const didGeoJSONCacheRef = useRef<FeatureCollection | null>(null)
+  const restrictionGeoJSONCacheRef = useRef<FeatureCollection | null>(null)
 
-  // 禁止エリアを統合
+  // 禁止エリアを統合（依存が変わったときのみ再計算）
   const prohibitedAreas = useMemo(() => {
     const features = []
 
@@ -313,8 +469,16 @@ function FlightPlanner() {
       })))
     }
 
+    // 空港周辺空域
+    if (restrictionGeoJSONCacheRef.current) {
+      features.push(...restrictionGeoJSONCacheRef.current.features.map(f => ({
+        ...f,
+        properties: { ...f.properties, zoneType: 'AIRPORT' }
+      })))
+    }
+
     return { type: 'FeatureCollection', features }
-  }, [didGeoJSONCacheRef.current])
+  }, [didGeoJSONCacheRef.current, restrictionGeoJSONCacheRef.current])
 
   // 空間インデックス（禁止エリアが変わったら再構築）
   const spatialIndex = useMemo(() => {
@@ -327,7 +491,6 @@ function FlightPlanner() {
     if (spatialIndex) {
       const result = checkWaypointCollisionOptimized(coords, spatialIndex)
       if (result.isColliding) {
-        // 警告表示
         showWarning(result.message)
       }
     }
@@ -339,31 +502,37 @@ function FlightPlanner() {
 
 ---
 
-## エラーハンドリング
+## 9. エラーハンドリング
 
-### 無効な入力への対応
+### 9.1 無効な入力への対応
 
 ```typescript
 // ポリゴンの座標が不十分な場合
 const result = checkPolygonCollision([[]], prohibitedAreas)
 // => { isColliding: false, message: '座標が不十分です' }
 
-// 無効なジオメトリ（自己交差など）
+// 3点未満（ポリゴンには最低4点必要）
+const result = checkPolygonCollision([[[0, 0], [1, 1]]], prohibitedAreas)
+// => { isColliding: false, message: '座標が不十分です' }
+
+// 自己交差などの無効なジオメトリ
 const result = checkPolygonCollision(invalidCoords, prohibitedAreas)
 // => { isColliding: false, message: '無効なポリゴン形状' }
 ```
 
-### GeoJSONプロパティの取得
+### 9.2 GeoJSONプロパティの取得優先順位
 
 ゾーンタイプは以下の優先順位で取得されます：
 
-1. `feature.properties.zoneType`
-2. `feature.properties.type`
+1. `feature.properties.zoneType`（推奨）
+2. `feature.properties.type`（互換性のため）
 3. デフォルト: `'DID'`
 
 ---
 
-## テスト
+## 10. テスト
+
+### 10.1 基本テスト
 
 ```typescript
 import { describe, it, expect } from 'vitest'
@@ -402,9 +571,24 @@ describe('Collision Detection', () => {
 })
 ```
 
+### 10.2 実座標を使った再現性テスト
+
+```typescript
+describe('実座標テスト', () => {
+  const tokyoStationArea = createTestAreaAroundTokyoStation()
+
+  it('東京駅付近のWaypointはDID内と判定', () => {
+    const tokyoStation: [number, number] = [139.7671, 35.6812]
+    const result = checkWaypointCollision(tokyoStation, tokyoStationArea)
+    expect(result.isColliding).toBe(true)
+    expect(result.areaName).toBe('東京駅周辺DID')
+  })
+})
+```
+
 ---
 
-## 関連ドキュメント
+## 11. 関連ドキュメント
 
 - [docs/specifications/COLLISION_DETECTION_SPEC.md](../../docs/specifications/COLLISION_DETECTION_SPEC.md) - 詳細技術仕様書
 - [API/Utilities](./UTILITIES.mdx) - 他の地理計算ユーティリティ

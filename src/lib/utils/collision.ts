@@ -81,6 +81,7 @@ export const checkWaypointCollision = (
   const point = turf.point(waypointCoords)
 
   for (const feature of prohibitedAreas.features) {
+    if (!feature.geometry) continue
     if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
       const isInside = turf.booleanPointInPolygon(point, feature as Feature<Polygon | MultiPolygon>)
 
@@ -156,6 +157,7 @@ export const checkPathCollision = (
   const intersectionPoints: Position[] = []
 
   for (const feature of prohibitedAreas.features) {
+    if (!feature.geometry) continue
     if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
       const intersections = turf.lineIntersect(line, feature as Feature<Polygon | MultiPolygon>)
 
@@ -223,6 +225,7 @@ export const checkPolygonCollision = (
 
   let intersects = false
   for (const feature of prohibitedAreas.features) {
+    if (!feature.geometry) continue
     if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
       try {
         const polyFeature = feature as Feature<Polygon | MultiPolygon>

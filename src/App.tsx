@@ -66,6 +66,7 @@ import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
 import { getAppTheme } from './styles/theme'
+import { generateRealWeatherGeoJSON } from './lib/services/weatherApi'
 
 // ============================================
 // Zone ID Constants
@@ -2466,24 +2467,39 @@ function App() {
             paint: { 'line-color': '#00CED1', 'line-width': 1.5 }
           })
         } else if (overlay.id === 'weather-icons') {
-          const geojson = generateWeatherIconsGeoJSON()
-          map.addSource(overlay.id, { type: 'geojson', data: geojson })
+          // First show loading state with mock data
+          const initialGeojson = generateWeatherIconsGeoJSON()
+          map.addSource(overlay.id, { type: 'geojson', data: initialGeojson })
           map.addLayer({
             id: overlay.id,
             type: 'symbol',
             source: overlay.id,
             layout: {
               'text-field': ['concat', ['get', 'icon'], '\n', ['get', 'label']],
-              'text-size': 16,
+              'text-size': 18,
               'text-anchor': 'center',
               'text-allow-overlap': true
             },
             paint: {
-              'text-color': '#333',
-              'text-halo-color': '#fff',
+              'text-color': darkMode ? '#fff' : '#333',
+              'text-halo-color': darkMode ? '#333' : '#fff',
               'text-halo-width': 2
             }
           })
+
+          // Then fetch real weather data asynchronously
+          generateRealWeatherGeoJSON()
+            .then((realGeojson) => {
+              const source = map.getSource(overlay.id) as maplibregl.GeoJSONSource
+              if (source) {
+                source.setData(realGeojson)
+                toast.success('天気データを取得しました')
+              }
+            })
+            .catch((err) => {
+              console.error('Failed to fetch real weather data:', err)
+              toast.error('天気データの取得に失敗しました')
+            })
         } else if ('tiles' in overlay) {
           // Handle raster tile overlays
           map.addSource(overlay.id, {

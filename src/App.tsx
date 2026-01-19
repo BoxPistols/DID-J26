@@ -438,9 +438,16 @@ function App() {
 
     // 禁止ゾーン（空港、レッドゾーン、イエローゾーン）
     // キャッシュ済みの禁止ゾーンを追加（すでにzoneTypeが設定済み）
-    for (const [, cached] of restrictionGeoJSONCacheRef.current.entries()) {
+    const restrictionKeys = Array.from(restrictionGeoJSONCacheRef.current.keys())
+    console.log('[prohibitedAreas] restrictionGeoJSONCacheRef keys:', restrictionKeys)
+    for (const [key, cached] of restrictionGeoJSONCacheRef.current.entries()) {
+      console.log(`[prohibitedAreas] Adding ${cached.features.length} features from ${key}, zoneTypes:`,
+        [...new Set(cached.features.map(f => f.properties?.zoneType))])
       features.push(...cached.features)
     }
+
+    console.log('[prohibitedAreas] Total features:', features.length,
+      'Zone types:', [...new Set(features.map(f => f.properties?.zoneType))])
 
     if (features.length === 0) return undefined
 
@@ -3242,6 +3249,34 @@ function App() {
 
       if (restrictionId === 'airport-airspace') {
         const zone = getAllRestrictionZones().find((z) => z.id === restrictionId)
+
+        // 衝突検出用にGeoJSONを常に取得してキャッシュ（kokuareaタイル使用時も）
+        let airportGeoJSON: GeoJSON.FeatureCollection | null = null
+        if (zone?.path) {
+          try {
+            airportGeoJSON = await fetchGeoJSONWithCache(zone.path)
+          } catch (e) {
+            console.error('Failed to load airport GeoJSON:', e)
+            airportGeoJSON = generateAirportGeoJSON()
+          }
+        } else {
+          airportGeoJSON = generateAirportGeoJSON()
+        }
+
+        // 衝突検出用にゾーンタイプを追加してキャッシュに保存
+        if (airportGeoJSON) {
+          console.log('[showRestriction] Caching AIRPORT GeoJSON:', airportGeoJSON.features.length, 'features')
+          const taggedFeatures = airportGeoJSON.features.map((f) => ({
+            ...f,
+            properties: { ...f.properties, zoneType: 'AIRPORT' }
+          }))
+          const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
+          restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          console.log('[showRestriction] Cache keys after AIRPORT:', Array.from(restrictionGeoJSONCacheRef.current.keys()))
+          setDidCacheVersion((v) => v + 1)
+        }
+
+        // kokuareaタイルで表示（衝突検出用キャッシュとは別）
         if (zone?.geojsonTileTemplate) {
           try {
             enableKokuarea(map, zone.geojsonTileTemplate)
@@ -3253,29 +3288,13 @@ function App() {
             console.error('Failed to enable kokuarea tiles, fallback to local/circle:', e)
           }
         }
-        if (zone?.path) {
-          try {
-            geojson = await fetchGeoJSONWithCache(zone.path)
-          } catch (e) {
-            console.error('Failed to load airport GeoJSON:', e)
-            geojson = generateAirportGeoJSON() // Fallback to circle if file fails
-          }
-        } else {
-          geojson = generateAirportGeoJSON()
-        }
-        // 衝突検出用にゾーンタイプを追加してキャッシュに保存
-        if (geojson) {
-          const taggedFeatures = geojson.features.map((f) => ({
-            ...f,
-            properties: { ...f.properties, zoneType: 'AIRPORT' }
-          }))
-          const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
-          restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
-          setDidCacheVersion((v) => v + 1)
-        }
+
+        // kokuareaタイルが使えない場合はGeoJSONで表示
+        geojson = airportGeoJSON
         color = RESTRICTION_COLORS.airport
       } else if (restrictionId === 'ZONE_IDS.NO_FLY_RED') {
         geojson = generateRedZoneGeoJSON()
+        console.log('[showRestriction] Generated RED_ZONE GeoJSON:', geojson?.features?.length, 'features')
         // 衝突検出用にゾーンタイプを追加してキャッシュに保存
         if (geojson) {
           const taggedFeatures = geojson.features.map((f) => ({
@@ -3284,11 +3303,13 @@ function App() {
           }))
           const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
           restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          console.log('[showRestriction] Cache keys after RED_ZONE:', Array.from(restrictionGeoJSONCacheRef.current.keys()))
           setDidCacheVersion((v) => v + 1)
         }
         color = RESTRICTION_COLORS.no_fly_red
       } else if (restrictionId === 'ZONE_IDS.NO_FLY_YELLOW') {
         geojson = generateYellowZoneGeoJSON()
+        console.log('[showRestriction] Generated YELLOW_ZONE GeoJSON:', geojson?.features?.length, 'features')
         // 衝突検出用にゾーンタイプを追加してキャッシュに保存
         if (geojson) {
           const taggedFeatures = geojson.features.map((f) => ({
@@ -3297,6 +3318,7 @@ function App() {
           }))
           const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
           restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
+          console.log('[showRestriction] Cache keys after YELLOW_ZONE:', Array.from(restrictionGeoJSONCacheRef.current.keys()))
           setDidCacheVersion((v) => v + 1)
         }
         color = RESTRICTION_COLORS.no_fly_yellow

@@ -5,6 +5,7 @@
 
 import React, { useMemo } from 'react'
 import { useOperationSafety } from '../../lib/hooks'
+import { useWeatherMesh } from '../../lib/hooks/useWeatherMesh'
 import { latLngToMeshCode } from '../../lib/utils/meshCodeConverter'
 import { SafetyIndicator } from './SafetyIndicator'
 import styles from './FlightPlanChecker.module.css'
@@ -19,6 +20,7 @@ export interface FlightPlanCheckerProps {
 /**
  * Flight Plan Checker Component
  * Uses useOperationSafety hook to evaluate flight safety conditions
+ * Also uses useWeatherMesh to access raw weather data for display
  *
  * @example
  * ```tsx
@@ -31,6 +33,10 @@ export const FlightPlanChecker: React.FC<FlightPlanCheckerProps> = ({
 }) => {
   const meshCode = useMemo(() => latLngToMeshCode(lat, lng), [lat, lng])
   const safety = useOperationSafety(lat, lng, meshCode)
+  
+  // Access raw weather data for more robust value extraction
+  const { data: weatherData } = useWeatherMesh(meshCode)
+  const currentForecast = weatherData?.forecasts[0]
 
   if (safety.loading) {
     return (
@@ -51,6 +57,8 @@ export const FlightPlanChecker: React.FC<FlightPlanCheckerProps> = ({
   }
 
   // Extract specific data from reasons
+  // Note: Currently parsing from reason messages due to hook design.
+  // Future improvement: Hook should provide structured numeric data.
   const windReason = safety.reasons.find(r => r.category === 'wind')
   const precipReason = safety.reasons.find(r => r.category === 'precipitation')
   const networkReason = safety.reasons.find(r => r.category === 'network')
@@ -111,12 +119,12 @@ export const FlightPlanChecker: React.FC<FlightPlanCheckerProps> = ({
         <SafetyIndicator
           level={getWindLevel()}
           label="風速"
-          value={windReason?.message.match(/[\d.]+\s*m\/s/)?.[0]}
+          value={currentForecast ? `${currentForecast.windSpeed.toFixed(1)} m/s` : windReason?.message.match(/[\d.]+\s*m\/s/)?.[0]}
         />
         <SafetyIndicator
           level={getPrecipLevel()}
           label="降水確率"
-          value={precipReason?.message.match(/\d+%/)?.[0]}
+          value={currentForecast ? `${currentForecast.precipitationProbability}%` : precipReason?.message.match(/\d+%/)?.[0]}
         />
         <SafetyIndicator
           level={getNetworkLevel()}

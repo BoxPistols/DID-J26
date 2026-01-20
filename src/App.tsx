@@ -241,10 +241,9 @@ function App() {
     new Map()
   )
 // DID GeoJSONキャッシュ（衝突検出用）
-  const didGeoJSONCacheRef = useRef<Map<string, GeoJSON.FeatureCollection>>(new Map())
+  // Removed: didGeoJSONCacheRef - Now retrieve directly from MapLibre GL sources to reduce memory duplication
   // 禁止エリアGeoJSONキャッシュ（空港、レッド/イエローゾーン用）
   const restrictionGeoJSONCacheRef = useRef<Map<string, GeoJSON.FeatureCollection>>(new Map())
-  const [didCacheVersion, setDidCacheVersion] = useState(0) // キャッシュ更新検知用
   const debugRunIdRef = useRef<string>('')
   const comparisonIdleDebugKeysRef = useRef<Set<string>>(new Set())
   const comparisonLayerVisibilityRef = useRef<Set<string>>(new Set())
@@ -416,29 +415,52 @@ function App() {
     const isDIDAllJapanVisible = restrictionStates.get(ZONE_IDS.DID_ALL_JAPAN) ?? false
 
     const features: GeoJSON.Feature[] = []
+    const map = mapRef.current
+    if (!map) return undefined
 
     // DIDレイヤー（zoneType: 'DID'を付与）
+    // Retrieve directly from MapLibre GL sources instead of cache to reduce memory duplication
     if (isDIDAllJapanVisible) {
-      // 全国DIDが有効な場合、キャッシュ内の全DIDを使用
-      for (const [layerId, cached] of didGeoJSONCacheRef.current.entries()) {
-        if (layerId.startsWith('did-')) {
-          const taggedFeatures = cached.features.map((f) => ({
-            ...f,
-            properties: { ...f.properties, zoneType: 'DID' }
-          }))
-          features.push(...taggedFeatures)
+      // 全国DIDが有効な場合、MapLibre GLのソースから全DIDを取得
+      const allLayers = getAllLayers()
+      for (const layer of allLayers) {
+        if (layer.id.startsWith('did-')) {
+          try {
+            const source = map.getSource(layer.id) as maplibregl.GeoJSONSource
+            if (source) {
+              const sourceData = source.serialize().data as GeoJSON.FeatureCollection
+              if (sourceData?.features) {
+                const taggedFeatures = sourceData.features.map((f) => ({
+                  ...f,
+                  properties: { ...f.properties, zoneType: 'DID' }
+                }))
+                features.push(...taggedFeatures)
+              }
+            }
+          } catch {
+            // Source not yet loaded, skip
+          }
         }
       }
     } else {
       // 個別レイヤーのみ
       for (const layerId of visibleLayerIds) {
-        const cached = didGeoJSONCacheRef.current.get(layerId)
-        if (cached) {
-          const taggedFeatures = cached.features.map((f) => ({
-            ...f,
-            properties: { ...f.properties, zoneType: 'DID' }
-          }))
-          features.push(...taggedFeatures)
+        if (layerId.startsWith('did-')) {
+          try {
+            const source = map.getSource(layerId) as maplibregl.GeoJSONSource
+            if (source) {
+              const sourceData = source.serialize().data as GeoJSON.FeatureCollection
+              if (sourceData?.features) {
+                const taggedFeatures = sourceData.features.map((f) => ({
+                  ...f,
+                  properties: { ...f.properties, zoneType: 'DID' }
+                }))
+                features.push(...taggedFeatures)
+              }
+            }
+          } catch {
+            // Source not yet loaded, skip
+          }
         }
       }
     }
@@ -456,7 +478,7 @@ function App() {
       features
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layerStates, restrictionStates, didCacheVersion])
+  }, [layerStates, restrictionStates])
 
   // Weather Forecast Panel
   const [showWeatherForecast, setShowWeatherForecast] = useState(false)
@@ -1353,15 +1375,44 @@ function App() {
       }
     }
 
-    map.on('mousemove', (e) => {
+    // Handle mousemove with requestAnimationFrame throttling for performance
+    let mouseMoveRafId: number | null = null
+    let lastCursorState: string = ''
+
+    const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
       if (!showTooltipRef.current) {
         if (popupRef.current) {
           popupRef.current.remove()
         }
+        if (lastCursorState !== '') {
+          map.getCanvas().style.cursor = ''
+          lastCursorState = ''
+        }
         return
       }
 
-      const features = map.queryRenderedFeatures(e.point)
+      // Build list of visible layers to optimize queryRenderedFeatures
+      const visibleQueryLayers: string[] = []
+      for (const [layerId, state] of layerStates.entries()) {
+        if (state.visible) visibleQueryLayers.push(layerId)
+      }
+      for (const [restrictionId, isVisible] of restrictionStates.entries()) {
+        if (isVisible) {
+          visibleQueryLayers.push(restrictionId)
+          // For DID_ALL_JAPAN, include all prefecture layer IDs
+          if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
+            getAllLayers().forEach((layer) => {
+              visibleQueryLayers.push(`${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`)
+            })
+          }
+        }
+      }
+
+      // Query only visible layers (huge performance gain with 94 total layers)
+      const features = visibleQueryLayers.length > 0
+        ? map.queryRenderedFeatures(e.point, { layers: visibleQueryLayers })
+        : []
+
       const didFeature = features.find(
         (f) => f.layer.id.startsWith('did-') && f.layer.type === 'fill'
       )
@@ -1377,7 +1428,10 @@ function App() {
       )
 
       if (didFeature && popupRef.current) {
-        map.getCanvas().style.cursor = 'pointer'
+        if (lastCursorState !== 'pointer') {
+          map.getCanvas().style.cursor = 'pointer'
+          lastCursorState = 'pointer'
+        }
         const props = didFeature.properties
         if (!props) return
 
@@ -1417,7 +1471,10 @@ function App() {
         popupRef.current.setLngLat(e.lngLat).setHTML(content).addTo(map)
         startPopupAutoCloseTimer()
       } else if (restrictionFeature && popupRef.current) {
-        map.getCanvas().style.cursor = 'pointer'
+        if (lastCursorState !== 'pointer') {
+          map.getCanvas().style.cursor = 'pointer'
+          lastCursorState = 'pointer'
+        }
         const props = restrictionFeature.properties
         if (!props) return
 
@@ -1526,10 +1583,23 @@ function App() {
         popupRef.current.setLngLat(e.lngLat).setHTML(content).addTo(map)
         startPopupAutoCloseTimer()
       } else if (popupRef.current) {
-        map.getCanvas().style.cursor = ''
+        if (lastCursorState !== '') {
+          map.getCanvas().style.cursor = ''
+          lastCursorState = ''
+        }
         popupRef.current.remove()
       }
-    })
+    }
+
+    const throttledMouseMove = (e: maplibregl.MapMouseEvent) => {
+      if (mouseMoveRafId !== null) return
+      mouseMoveRafId = window.requestAnimationFrame(() => {
+        mouseMoveRafId = null
+        handleMouseMove(e)
+      })
+    }
+
+    map.on('mousemove', throttledMouseMove)
 
     map.on('mouseleave', () => {
       map.getCanvas().style.cursor = ''
@@ -1817,9 +1887,7 @@ function App() {
 
         const data = await fetchGeoJSONWithCache<DidFC>(layer.path)
 
-        // DID GeoJSONをキャッシュに保存（衝突検出用）
-        didGeoJSONCacheRef.current.set(layer.id, data as GeoJSON.FeatureCollection)
-        setDidCacheVersion((v) => v + 1)
+        // Data now stored directly in MapLibre GL source (no separate cache needed)
 
         const newItems: SearchIndexItem[] = []
         data.features.forEach((feature) => {
@@ -2897,7 +2965,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
       }))
       const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
       restrictionGeoJSONCacheRef.current.set('airport-airspace', taggedGeoJSON)
-      setDidCacheVersion((v) => v + 1)
     }
 
     const src = map.getSource(KOKUAREA_SOURCE_ID)
@@ -2952,7 +3019,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
     removeAirportOverviewLayers(map)
     // 衝突検出用キャッシュをクリア
     restrictionGeoJSONCacheRef.current.delete('airport-airspace')
-    setDidCacheVersion((v) => v + 1)
   }
 
   type RestrictionSyncOptions = {
@@ -3079,7 +3145,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
           }))
           const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
           restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
-          setDidCacheVersion((v) => v + 1)
         }
         geojson = airportGeoJSON
         color = RESTRICTION_COLORS.airport
@@ -3093,7 +3158,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
           }))
           const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
           restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
-          setDidCacheVersion((v) => v + 1)
         }
         color = RESTRICTION_COLORS.no_fly_red
       } else if (restrictionId === 'ZONE_IDS.NO_FLY_YELLOW') {
@@ -3106,7 +3170,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
           }))
           const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
           restrictionGeoJSONCacheRef.current.set(restrictionId, taggedGeoJSON)
-          setDidCacheVersion((v) => v + 1)
         }
         color = RESTRICTION_COLORS.no_fly_yellow
       } else if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
@@ -3115,52 +3178,68 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         color = '#FF0000'
         let cacheUpdated = false
 
-        for (const layer of allLayers) {
-          if (!map.getSource(`${restrictionId}-${layer.id}`)) {
-            try {
-              const data = await fetchGeoJSONWithCache(layer.path)
-              // 衝突検出用にキャッシュに保存（stateは後でまとめて更新）
-              didGeoJSONCacheRef.current.set(layer.id, data as GeoJSON.FeatureCollection)
-              cacheUpdated = true
-              const sourceId = `${restrictionId}-${layer.id}`
+        // バッチ処理で7個ずつレイヤーを追加（フレーム分割でUIをブロックしない）
+        const BATCH_SIZE = 7
+        let batchIndex = 0
 
-              map.addSource(sourceId, { type: 'geojson', data })
+        const processBatch = async () => {
+          const batch = allLayers.slice(batchIndex, batchIndex + BATCH_SIZE)
+          for (const layer of batch) {
+            if (!map.getSource(`${restrictionId}-${layer.id}`)) {
+              try {
+                const data = await fetchGeoJSONWithCache(layer.path)
+                cacheUpdated = true
+                const sourceId = `${restrictionId}-${layer.id}`
 
-              // レイヤーが既に存在する場合は削除
-              if (map.getLayer(sourceId)) {
-                map.removeLayer(sourceId)
+                map.addSource(sourceId, { type: 'geojson', data })
+
+                if (map.getLayer(sourceId)) {
+                  map.removeLayer(sourceId)
+                }
+                if (map.getLayer(`${sourceId}-outline`)) {
+                  map.removeLayer(`${sourceId}-outline`)
+                }
+
+                map.addLayer({
+                  id: sourceId,
+                  type: 'fill',
+                  source: sourceId,
+                  paint: { 'fill-color': color, 'fill-opacity': opacity }
+                })
+                map.addLayer({
+                  id: `${sourceId}-outline`,
+                  type: 'line',
+                  source: sourceId,
+                  paint: { 'line-color': color, 'line-width': 1 }
+                })
+              } catch (e) {
+                console.error(`Failed to load DID for ${layer.id}:`, e)
               }
-              if (map.getLayer(`${sourceId}-outline`)) {
-                map.removeLayer(`${sourceId}-outline`)
-              }
+            } else {
+              map.setLayoutProperty(`${restrictionId}-${layer.id}`, 'visibility', 'visible')
+              map.setLayoutProperty(`${restrictionId}-${layer.id}-outline`, 'visibility', 'visible')
+            }
+          }
 
-              map.addLayer({
-                id: sourceId,
-                type: 'fill',
-                source: sourceId,
-                paint: { 'fill-color': color, 'fill-opacity': opacity }
-              })
-              map.addLayer({
-                id: `${sourceId}-outline`,
-                type: 'line',
-                source: sourceId,
-                paint: { 'line-color': color, 'line-width': 1 }
-              })
-            } catch (e) {
-              console.error(`Failed to load DID for ${layer.id}:`, e)
+          batchIndex += BATCH_SIZE
+          if (batchIndex < allLayers.length) {
+            // 次のバッチをアイドル時間で処理（UI更新を優先）
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(() => processBatch(), { timeout: 1000 })
+            } else {
+              // requestIdleCallback 非対応時は requestAnimationFrame で遅延
+              requestAnimationFrame(() => processBatch())
             }
           } else {
-            map.setLayoutProperty(`${restrictionId}-${layer.id}`, 'visibility', 'visible')
-            map.setLayoutProperty(`${restrictionId}-${layer.id}-outline`, 'visibility', 'visible')
+            // 全バッチ処理完了
+            if (syncState) {
+              setRestrictionStates((prev: Map<string, boolean>) => new Map(prev).set(restrictionId, true))
+            }
           }
         }
-        // キャッシュが更新された場合、1回だけstate更新
-        if (cacheUpdated) {
-          setDidCacheVersion((v) => v + 1)
-        }
-        if (syncState) {
-          setRestrictionStates((prev: Map<string, boolean>) => new Map(prev).set(restrictionId, true))
-        }
+
+        // 最初のバッチを開始
+        await processBatch()
         return
       }
 
@@ -3235,7 +3314,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         // 衝突検出用キャッシュからも削除
         if (restrictionGeoJSONCacheRef.current.has(restrictionId)) {
           restrictionGeoJSONCacheRef.current.delete(restrictionId)
-          setDidCacheVersion((v) => v + 1)
         }
       } else {
         if (map.getLayer(restrictionId)) {
@@ -3248,7 +3326,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         // 衝突検出用キャッシュからも削除（レッド/イエローゾーン）
         if (restrictionGeoJSONCacheRef.current.has(restrictionId)) {
           restrictionGeoJSONCacheRef.current.delete(restrictionId)
-          setDidCacheVersion((v) => v + 1)
         }
       }
       if (syncState) {

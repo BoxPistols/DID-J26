@@ -103,8 +103,8 @@ npm install @turf/turf rbush
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>RED_ZONE</code></td>
-      <td style={TableStyle.td}>🟥 暗い赤</td>
-      <td style={TableStyle.td}>#b71c1c</td>
+      <td style={TableStyle.td}>🟥 赤</td>
+      <td style={TableStyle.td}>#FF0000</td>
       <td style={TableStyle.td}>DANGER</td>
       <td style={TableStyle.td}>飛行禁止区域（小型無人機等飛行禁止法）</td>
     </tr>
@@ -119,7 +119,7 @@ npm install @turf/turf rbush
 </table>
 
 ```typescript
-import { ZONE_COLORS, ZONE_SEVERITY, CollisionType } from 'japan-drone-map'
+import { ZONE_COLORS, ZONE_SEVERITY, ZONE_PRIORITY, CollisionType } from 'japan-drone-map'
 
 // ゾーンタイプの定義
 type CollisionType = 'DID' | 'AIRPORT' | 'RED_ZONE' | 'YELLOW_ZONE' | 'MILITARY' | 'PARK' | string
@@ -128,11 +128,58 @@ type CollisionType = 'DID' | 'AIRPORT' | 'RED_ZONE' | 'YELLOW_ZONE' | 'MILITARY'
 const ZONE_COLORS = {
   DID: '#f44336',
   AIRPORT: '#9C27B0',
-  RED_ZONE: '#b71c1c',
+  RED_ZONE: '#FF0000',
   YELLOW_ZONE: '#ffc107',
   DEFAULT: '#f44336'
 }
+
+// ゾーン優先順位（数値が小さいほど優先）
+const ZONE_PRIORITY = {
+  RED_ZONE: 1,    // 最優先（飛行禁止）
+  AIRPORT: 2,     // 空港周辺
+  DID: 3,         // 人口集中地区
+  YELLOW_ZONE: 4, // 注意区域
+  DEFAULT: 99
+}
 ```
+
+### 3.1 ゾーン優先順位
+
+複数のゾーンが重なる場合、優先順位に基づいて最も重要なゾーンが返されます。
+
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>優先順位</th>
+      <th style={TableStyle.th}>ゾーンタイプ</th>
+      <th style={TableStyle.th}>説明</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>1（最優先）</td>
+      <td style={TableStyle.td}><code style={TableStyle.code}>RED_ZONE</code></td>
+      <td style={TableStyle.td}>飛行禁止区域 - 法律で禁止されている区域</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>2</td>
+      <td style={TableStyle.td}><code style={TableStyle.code}>AIRPORT</code></td>
+      <td style={TableStyle.td}>空港周辺空域 - 航空法で制限</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>3</td>
+      <td style={TableStyle.td}><code style={TableStyle.code}>DID</code></td>
+      <td style={TableStyle.td}>人口集中地区 - 許可取得で飛行可能</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>4</td>
+      <td style={TableStyle.td}><code style={TableStyle.code}>YELLOW_ZONE</code></td>
+      <td style={TableStyle.td}>注意区域 - 事前通報が必要</td>
+    </tr>
+  </tbody>
+</table>
+
+**使用例:** RED_ZONEとYELLOW_ZONEが重なるエリアでは、RED_ZONEが返されます。
 
 ---
 
@@ -212,13 +259,20 @@ if (result.isColliding) {
 3. turf.booleanPointInPolygon() で包含判定
    isInside = turf.booleanPointInPolygon(point, feature)
 
-4. 最初にヒットしたエリアの情報を返却
+4. 衝突するすべてのゾーンを収集
    if (isInside):
-     return { isColliding: true, collisionType, areaName, ... }
+     collisions.push({ zoneType, areaName, priority })
 
-5. ヒットしない場合はSAFEを返却
+5. 優先順位でソートし、最も優先度の高いゾーンを返却
+   collisions.sort((a, b) => a.priority - b.priority)
+   return { isColliding: true, collisionType: highest.zoneType, ... }
+
+6. ヒットしない場合はSAFEを返却
    return { isColliding: false, severity: 'SAFE', ... }
 ```
+
+**優先順位について:** 複数のゾーンが重なる場合（例：RED_ZONEとYELLOW_ZONEが重複）、
+`ZONE_PRIORITY`に基づいて最も優先度の高いゾーンが返されます。
 
 ---
 

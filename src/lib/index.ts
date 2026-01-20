@@ -174,7 +174,10 @@ export {
   checkWaypointCollisionOptimized,
   checkPathCollision,
   checkPolygonCollision,
-  createSpatialIndex
+  createSpatialIndex,
+  ZONE_COLORS,
+  ZONE_SEVERITY,
+  ZONE_PRIORITY
 } from './utils/collision'
 
 // kokuarea (airport airspace) helpers

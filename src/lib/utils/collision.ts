@@ -8,7 +8,7 @@ export type CollisionType = 'DID' | 'AIRPORT' | 'RED_ZONE' | 'YELLOW_ZONE' | 'MI
 export const ZONE_COLORS: Record<string, string> = {
   DID: '#f44336', // 赤
   AIRPORT: '#9C27B0', // 紫
-  RED_ZONE: '#b71c1c', // 暗い赤（DIDと区別するため）
+  RED_ZONE: '#FF0000', // 赤（飛行禁止）
   YELLOW_ZONE: '#ffc107', // 黄色
   DEFAULT: '#f44336' // デフォルト赤
 }
@@ -19,6 +19,16 @@ export const ZONE_SEVERITY: Record<string, 'DANGER' | 'WARNING'> = {
   AIRPORT: 'DANGER',
   RED_ZONE: 'DANGER',
   YELLOW_ZONE: 'WARNING'
+}
+
+// ゾーンタイプの優先順位（数値が小さいほど優先）
+// 複数のゾーンが重なる場合、優先度の高いゾーンが返される
+export const ZONE_PRIORITY: Record<string, number> = {
+  RED_ZONE: 1,    // 最優先（飛行禁止）
+  AIRPORT: 2,     // 空港周辺
+  DID: 3,         // 人口集中地区
+  YELLOW_ZONE: 4, // 注意区域
+  DEFAULT: 99
 }
 
 export interface WaypointCollisionResult {
@@ -80,6 +90,9 @@ export const checkWaypointCollision = (
 ): WaypointCollisionResult => {
   const point = turf.point(waypointCoords)
 
+  // 全ての衝突するゾーンを収集
+  const collisions: Array<{ zoneType: CollisionType; areaName: string; priority: number }> = []
+
   for (const feature of prohibitedAreas.features) {
     if (!feature.geometry) continue
     if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
@@ -88,18 +101,27 @@ export const checkWaypointCollision = (
       if (isInside) {
         const zoneType = (feature.properties?.zoneType as CollisionType | undefined) ??
           (feature.properties?.type as CollisionType | undefined) ?? 'DID'
-        const uiColor = ZONE_COLORS[zoneType] ?? ZONE_COLORS.DEFAULT
-        const severity = ZONE_SEVERITY[zoneType] ?? 'DANGER'
-
-        return {
-          isColliding: true,
-          collisionType: zoneType,
-          areaName: (feature.properties?.name as string | undefined) ?? '不明なエリア',
-          severity,
-          uiColor,
-          message: `このWaypointは${feature.properties?.name ?? '禁止エリア'}内にあります`
-        }
+        const areaName = (feature.properties?.name as string | undefined) ?? '不明なエリア'
+        const priority = ZONE_PRIORITY[zoneType] ?? ZONE_PRIORITY.DEFAULT
+        collisions.push({ zoneType, areaName, priority })
       }
+    }
+  }
+
+  // 優先度でソートして最も優先度の高いゾーンを返す
+  if (collisions.length > 0) {
+    collisions.sort((a, b) => a.priority - b.priority)
+    const highest = collisions[0]
+    const uiColor = ZONE_COLORS[highest.zoneType] ?? ZONE_COLORS.DEFAULT
+    const severity = ZONE_SEVERITY[highest.zoneType] ?? 'DANGER'
+
+    return {
+      isColliding: true,
+      collisionType: highest.zoneType,
+      areaName: highest.areaName,
+      severity,
+      uiColor,
+      message: `このWaypointは${highest.areaName}内にあります`
     }
   }
 
@@ -121,22 +143,34 @@ export const checkWaypointCollisionOptimized = (
 
   const candidates = spatialIndex.search({ minX: lon, minY: lat, maxX: lon, maxY: lat })
 
+  // 全ての衝突するゾーンを収集
+  const collisions: Array<{ zoneType: CollisionType; areaName: string; priority: number }> = []
+
   for (const candidate of candidates) {
     const isInside = turf.booleanPointInPolygon(point, candidate.feature)
     if (isInside) {
       const zoneType = (candidate.feature.properties?.zoneType as CollisionType | undefined) ??
         (candidate.feature.properties?.type as CollisionType | undefined) ?? 'DID'
-      const uiColor = ZONE_COLORS[zoneType] ?? ZONE_COLORS.DEFAULT
-      const severity = ZONE_SEVERITY[zoneType] ?? 'DANGER'
+      const areaName = (candidate.feature.properties?.name as string | undefined) ?? '不明'
+      const priority = ZONE_PRIORITY[zoneType] ?? ZONE_PRIORITY.DEFAULT
+      collisions.push({ zoneType, areaName, priority })
+    }
+  }
 
-      return {
-        isColliding: true,
-        collisionType: zoneType,
-        areaName: (candidate.feature.properties?.name as string | undefined) ?? '不明',
-        severity,
-        uiColor,
-        message: '禁止エリア内です'
-      }
+  // 優先度でソートして最も優先度の高いゾーンを返す
+  if (collisions.length > 0) {
+    collisions.sort((a, b) => a.priority - b.priority)
+    const highest = collisions[0]
+    const uiColor = ZONE_COLORS[highest.zoneType] ?? ZONE_COLORS.DEFAULT
+    const severity = ZONE_SEVERITY[highest.zoneType] ?? 'DANGER'
+
+    return {
+      isColliding: true,
+      collisionType: highest.zoneType,
+      areaName: highest.areaName,
+      severity,
+      uiColor,
+      message: '禁止エリア内です'
     }
   }
 

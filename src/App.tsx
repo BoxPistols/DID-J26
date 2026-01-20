@@ -2863,6 +2863,23 @@ if (map.getLayer(`${overlay.id}-bg`)) {
       features: keys.flatMap((k) => kokuareaRef.current.tiles.get(k)?.features ?? [])
     }
 
+    // 衝突検出用: kokuareaのフィーチャーをAIRPORTゾーンとしてキャッシュに追加
+    const validFeatures = merged.features.filter((f): f is typeof f & { geometry: GeoJSON.Geometry } => f.geometry !== null)
+    if (validFeatures.length > 0) {
+      const taggedFeatures: GeoJSON.Feature[] = validFeatures.map((f) => ({
+        type: 'Feature',
+        geometry: f.geometry,
+        properties: {
+          ...(f.properties ?? {}),
+          zoneType: 'AIRPORT',
+          name: (f.properties as Record<string, unknown> | null)?.__koku_label ?? '空港周辺空域'
+        }
+      }))
+      const taggedGeoJSON: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: taggedFeatures }
+      restrictionGeoJSONCacheRef.current.set('airport-airspace', taggedGeoJSON)
+      setDidCacheVersion((v) => v + 1)
+    }
+
     const src = map.getSource(KOKUAREA_SOURCE_ID)
     if (src && 'setData' in src) {
       // setDataは重いので、次フレームに回して入力/描画の詰まりを軽減
@@ -2913,6 +2930,9 @@ if (map.getLayer(`${overlay.id}-bg`)) {
     state.detach = null
     removeKokuareaLayers(map)
     removeAirportOverviewLayers(map)
+    // 衝突検出用キャッシュをクリア
+    restrictionGeoJSONCacheRef.current.delete('airport-airspace')
+    setDidCacheVersion((v) => v + 1)
   }
 
   type RestrictionSyncOptions = {
@@ -3015,17 +3035,15 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         const zone = getAllRestrictionZones().find((z) => z.id === restrictionId)
 
         // kokuareaタイルで表示を試みる
-        // 注意: kokuareaタイルはベクタータイルで正確な制限区域を表示するが、
-        // その形状データを直接取得できないため、衝突検出には使用しない。
-        // generateAirportGeoJSON()の円形領域はkokuareaタイルの表示と一致しないため、
-        // kokuarea使用時は空港領域の衝突検出を行わない（DID等他のゾーンは検出可能）
+        // kokuareaタイルはベクタータイルで正確な制限区域を表示する
+        // 衝突検出用のキャッシュはupdateKokuareaData()内で動的に更新される
         if (zone?.geojsonTileTemplate) {
           try {
             enableKokuarea(map, zone.geojsonTileTemplate)
             if (syncState) {
               setRestrictionStates((prev: Map<string, boolean>) => new Map(prev).set(restrictionId, true))
             }
-            // kokuareaタイル使用時は衝突検出用キャッシュを設定しない
+            // 衝突検出用キャッシュはupdateKokuareaData()で設定される
             return
           } catch (e) {
             console.error('Failed to enable kokuarea tiles, fallback to local/circle:', e)
@@ -3288,8 +3306,7 @@ if (map.getLayer(`${overlay.id}-bg`)) {
       bullets: [
         '空港周辺空域は国土地理院の空域タイルと国土数値情報の空港敷地を併用しています。',
         '空港周辺空域はズーム8未満では位置の簡易表示（点）に切り替わります。',
-        'DID（人口集中地区）は国勢調査（e-Stat）に基づく統計データです。',
-        'レッド/イエローは現状サンプルで、最終判断は必ずDIPS/NOTAMで確認してください。'
+        'DID（人口集中地区）は国勢調査（e-Stat）に基づく統計データです。'
       ]
     },
 

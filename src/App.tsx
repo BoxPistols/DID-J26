@@ -426,7 +426,9 @@ function App() {
       for (const layer of allLayers) {
         if (layer.id.startsWith('did-')) {
           try {
-            const source = map.getSource(layer.id) as maplibregl.GeoJSONSource
+            // Batch processing creates sources with ZONE_IDS.DID_ALL_JAPAN prefix
+            const sourceId = `${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`
+            const source = map.getSource(sourceId) as maplibregl.GeoJSONSource
             if (source) {
               const sourceData = source.serialize().data as GeoJSON.FeatureCollection
               if (sourceData?.features) {
@@ -1602,6 +1604,11 @@ function App() {
     map.on('mousemove', throttledMouseMove)
 
     map.on('mouseleave', () => {
+      // Cancel pending mousemove RAF to prevent memory leaks
+      if (mouseMoveRafId !== null) {
+        window.cancelAnimationFrame(mouseMoveRafId)
+        mouseMoveRafId = null
+      }
       map.getCanvas().style.cursor = ''
       if (popupRef.current) {
         popupRef.current.remove()
@@ -3176,7 +3183,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         // DID全国一括表示モード - 全47都道府県を赤色で表示
         const allLayers = getAllLayers()
         color = '#FF0000'
-        let cacheUpdated = false
 
         // バッチ処理で7個ずつレイヤーを追加（フレーム分割でUIをブロックしない）
         const BATCH_SIZE = 7
@@ -3188,7 +3194,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
             if (!map.getSource(`${restrictionId}-${layer.id}`)) {
               try {
                 const data = await fetchGeoJSONWithCache(layer.path)
-                cacheUpdated = true
                 const sourceId = `${restrictionId}-${layer.id}`
 
                 map.addSource(sourceId, { type: 'geojson', data })

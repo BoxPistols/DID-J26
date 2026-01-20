@@ -355,15 +355,15 @@ await processBatch()
   didGeoJSONCacheRef: 58.68 MB
   ブラウザ Cache:    58.68 MB
   ───────────────────────────
-  合計: ~117 MB
+  合計: ~176 MB
 
 改善後:
   MapLibre GL source: 58.68 MB
   ブラウザ Cache:    58.68 MB
   ───────────────────────────
-  合計: ~117 MB → 58.68 MB
+  合計: ~117 MB
 
-削減: 50% ✨
+削減: 約 33% ✨
 ```
 
 ### JavaScript 実行時間（DID全国表示時）
@@ -521,6 +521,6 @@ performance.measure('DID Load', 'did-load-start', 'did-load-end')
 ## 7. 実装ファイル
 
 主要な実装ファイル:
-- `src/App.tsx` (L1378-1580): mousemove スロットリング + queryRenderedFeatures 最適化
-- `src/App.tsx` (L3139-3229): DID バッチ処理
+- `src/App.tsx` (L1378-1616): mousemove スロットリング + queryRenderedFeatures 最適化
+- `src/App.tsx` (L3182-3243): DID バッチ処理
 - `src/App.tsx` (L420-466): メモリ最適化（MapLibre GL 直接参照）

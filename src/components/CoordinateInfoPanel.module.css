@@ -59,7 +59,7 @@
 
 :global([data-theme="light"]) .value {
   color: #2563eb;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(32, 84, 199, 0.1);
 }
 
 .largeValue {
@@ -158,14 +158,14 @@
 }
 
 :global([data-theme="light"]) .copyBtn {
-  background: rgba(37, 99, 235, 0.12);
-  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(32, 84, 199, 0.12);
+  border-color: rgba(32, 84, 199, 0.3);
   color: #2563eb;
 }
 
 :global([data-theme="light"]) .copyBtn:hover {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.5);
+  background: rgba(32, 84, 199, 0.18);
+  border-color: rgba(32, 84, 199, 0.5);
 }
 
 /* Guide list */

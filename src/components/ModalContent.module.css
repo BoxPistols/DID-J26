@@ -67,8 +67,8 @@
 }
 
 :global([data-theme="light"]) .infoBox {
-  background: rgba(37, 99, 235, 0.08);
-  border-left-color: rgba(37, 99, 235, 0.4);
+  background: rgba(32, 84, 199, 0.08);
+  border-left-color: rgba(32, 84, 199, 0.4);
   color: rgba(0, 0, 0, 0.75);
 }
 
@@ -78,7 +78,7 @@
 }
 
 :global([data-theme="light"]) .infoBox strong {
-  color: rgba(37, 99, 235, 0.95);
+  color: rgba(32, 84, 199, 0.95);
 }
 
 /* Warning/highlight text */

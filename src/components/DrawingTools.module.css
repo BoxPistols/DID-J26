@@ -26,14 +26,14 @@
 
 /* Primary Button */
 .buttonPrimary {
-  background-color: rgba(37, 99, 235, 0.1);
+  background-color: rgba(32, 84, 199, 0.1);
   color: #2563eb;
-  border-color: rgba(37, 99, 235, 0.2);
+  border-color: rgba(32, 84, 199, 0.2);
 }
 
 .buttonPrimary:hover:not(:disabled) {
-  background-color: rgba(37, 99, 235, 0.2);
-  border-color: rgba(37, 99, 235, 0.4);
+  background-color: rgba(32, 84, 199, 0.2);
+  border-color: rgba(32, 84, 199, 0.4);
 }
 
 :global([data-theme="dark"]) .buttonPrimary {

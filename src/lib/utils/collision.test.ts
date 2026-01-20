@@ -8,7 +8,8 @@ import {
   createSpatialIndex,
   checkWaypointCollisionOptimized,
   ZONE_COLORS,
-  ZONE_SEVERITY
+  ZONE_SEVERITY,
+  ZONE_PRIORITY
 } from './collision'
 
 const square: Feature<Polygon> = turf.polygon([
@@ -177,6 +178,43 @@ describe('ZONE_COLORS定数', () => {
 
   it('DIDとRED_ZONEは異なる色を持つ', () => {
     expect(ZONE_COLORS.DID).not.toBe(ZONE_COLORS.RED_ZONE)
+  })
+})
+
+describe('ZONE_PRIORITY定数', () => {
+  it('全てのゾーンタイプに優先順位が定義されている', () => {
+    expect(ZONE_PRIORITY.RED_ZONE).toBeDefined()
+    expect(ZONE_PRIORITY.AIRPORT).toBeDefined()
+    expect(ZONE_PRIORITY.DID).toBeDefined()
+    expect(ZONE_PRIORITY.YELLOW_ZONE).toBeDefined()
+    expect(ZONE_PRIORITY.DEFAULT).toBeDefined()
+  })
+
+  it('RED_ZONEが最も高い優先順位を持つ', () => {
+    expect(ZONE_PRIORITY.RED_ZONE).toBeLessThan(ZONE_PRIORITY.AIRPORT)
+    expect(ZONE_PRIORITY.RED_ZONE).toBeLessThan(ZONE_PRIORITY.DID)
+    expect(ZONE_PRIORITY.RED_ZONE).toBeLessThan(ZONE_PRIORITY.YELLOW_ZONE)
+  })
+
+  it('AIRPORTがDIDより高い優先順位を持つ', () => {
+    expect(ZONE_PRIORITY.AIRPORT).toBeLessThan(ZONE_PRIORITY.DID)
+  })
+
+  it('DIDがYELLOW_ZONEより高い優先順位を持つ', () => {
+    expect(ZONE_PRIORITY.DID).toBeLessThan(ZONE_PRIORITY.YELLOW_ZONE)
+  })
+
+  it('優先順位の順序: RED_ZONE > AIRPORT > DID > YELLOW_ZONE', () => {
+    const priorities = [
+      ZONE_PRIORITY.RED_ZONE,
+      ZONE_PRIORITY.AIRPORT,
+      ZONE_PRIORITY.DID,
+      ZONE_PRIORITY.YELLOW_ZONE
+    ]
+    // 昇順にソートされていることを確認
+    for (let i = 0; i < priorities.length - 1; i++) {
+      expect(priorities[i]).toBeLessThan(priorities[i + 1])
+    }
   })
 })
 

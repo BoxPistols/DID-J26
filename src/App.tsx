@@ -85,6 +85,7 @@ const ZONE_IDS = {
 // ============================================
 // UI Settings Constants
 // ============================================
+const DID_BATCH_LOAD_SIZE = 7
 const SETTINGS_EXPIRATION_DAYS = 30
 const SETTINGS_EXPIRATION_MS = SETTINGS_EXPIRATION_DAYS * 24 * 60 * 60 * 1000
 
@@ -247,6 +248,8 @@ function App() {
   const debugRunIdRef = useRef<string>('')
   const comparisonIdleDebugKeysRef = useRef<Set<string>>(new Set())
   const comparisonLayerVisibilityRef = useRef<Set<string>>(new Set())
+  // Ref to keep layerStates current in event handlers (avoid stale closures)
+  const layerStatesRef = useRef<Map<string, LayerState>>(new Map())
 
   // State
   const [layerStates, setLayerStates] = useState<Map<string, LayerState>>(new Map())
@@ -418,52 +421,40 @@ function App() {
     const map = mapRef.current
     if (!map) return undefined
 
+    // Helper function to extract DID features from MapLibre GL source
+    const addDidFeaturesFromSource = (sourceId: string) => {
+      if (!sourceId.startsWith('did-')) return
+      try {
+        const source = map.getSource(sourceId) as maplibregl.GeoJSONSource
+        if (source) {
+          const sourceData = source.serialize().data as GeoJSON.FeatureCollection
+          if (sourceData?.features) {
+            const taggedFeatures = sourceData.features.map((f) => ({
+              ...f,
+              properties: { ...f.properties, zoneType: 'DID' }
+            }))
+            features.push(...taggedFeatures)
+          }
+        }
+      } catch {
+        // Source not yet loaded, skip
+      }
+    }
+
     // DIDレイヤー（zoneType: 'DID'を付与）
     // Retrieve directly from MapLibre GL sources instead of cache to reduce memory duplication
     if (isDIDAllJapanVisible) {
       // 全国DIDが有効な場合、MapLibre GLのソースから全DIDを取得
       const allLayers = getAllLayers()
       for (const layer of allLayers) {
-        if (layer.id.startsWith('did-')) {
-          try {
-            // Batch processing creates sources with ZONE_IDS.DID_ALL_JAPAN prefix
-            const sourceId = `${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`
-            const source = map.getSource(sourceId) as maplibregl.GeoJSONSource
-            if (source) {
-              const sourceData = source.serialize().data as GeoJSON.FeatureCollection
-              if (sourceData?.features) {
-                const taggedFeatures = sourceData.features.map((f) => ({
-                  ...f,
-                  properties: { ...f.properties, zoneType: 'DID' }
-                }))
-                features.push(...taggedFeatures)
-              }
-            }
-          } catch {
-            // Source not yet loaded, skip
-          }
-        }
+        // Batch processing creates sources with ZONE_IDS.DID_ALL_JAPAN prefix
+        const sourceId = `${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`
+        addDidFeaturesFromSource(sourceId)
       }
     } else {
       // 個別レイヤーのみ
       for (const layerId of visibleLayerIds) {
-        if (layerId.startsWith('did-')) {
-          try {
-            const source = map.getSource(layerId) as maplibregl.GeoJSONSource
-            if (source) {
-              const sourceData = source.serialize().data as GeoJSON.FeatureCollection
-              if (sourceData?.features) {
-                const taggedFeatures = sourceData.features.map((f) => ({
-                  ...f,
-                  properties: { ...f.properties, zoneType: 'DID' }
-                }))
-                features.push(...taggedFeatures)
-              }
-            }
-          } catch {
-            // Source not yet loaded, skip
-          }
-        }
+        addDidFeaturesFromSource(layerId)
       }
     }
 
@@ -615,6 +606,15 @@ function App() {
     initialComparison.opacity.forEach((v, k) => base.set(k, v))
     return base
   })
+
+  // Sync state values to refs to avoid stale closures in event handlers
+  useEffect(() => {
+    layerStatesRef.current = layerStates
+  }, [layerStates])
+
+  useEffect(() => {
+    restrictionStatesRef.current = restrictionStates
+  }, [restrictionStates])
 
   // 最新の比較可視状態をrefに同期（地図切替の直前退避でクロージャが古くならないように）
   useEffect(() => {
@@ -1394,11 +1394,12 @@ function App() {
       }
 
       // Build list of visible layers to optimize queryRenderedFeatures
+      // Use refs to ensure we have current state values (avoid stale closures)
       const visibleQueryLayers: string[] = []
-      for (const [layerId, state] of layerStates.entries()) {
+      for (const [layerId, state] of layerStatesRef.current.entries()) {
         if (state.visible) visibleQueryLayers.push(layerId)
       }
-      for (const [restrictionId, isVisible] of restrictionStates.entries()) {
+      for (const [restrictionId, isVisible] of restrictionStatesRef.current.entries()) {
         if (isVisible) {
           visibleQueryLayers.push(restrictionId)
           // For DID_ALL_JAPAN, include all prefecture layer IDs
@@ -3184,17 +3185,32 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         const allLayers = getAllLayers()
         color = '#FF0000'
 
-        // バッチ処理で7個ずつレイヤーを追加（フレーム分割でUIをブロックしない）
-        const BATCH_SIZE = 7
+        // 楽観的UI更新: 処理開始前にStateを更新してUIの反応を良くする
+        if (syncState) {
+          setRestrictionStates((prev: Map<string, boolean>) => new Map(prev).set(restrictionId, true))
+        }
+
+        // バッチ処理でレイヤーを追加（フレーム分割でUIをブロックしない）
         let batchIndex = 0
 
         const processBatch = async () => {
-          const batch = allLayers.slice(batchIndex, batchIndex + BATCH_SIZE)
+          // 処理中にユーザーがOFFにした場合は中断
+          if (!restrictionStatesRef.current.get(restrictionId)) return
+
+          const batch = allLayers.slice(batchIndex, batchIndex + DID_BATCH_LOAD_SIZE)
           for (const layer of batch) {
+            // ループ内でもチェック
+            if (!restrictionStatesRef.current.get(restrictionId)) return
+
             if (!map.getSource(`${restrictionId}-${layer.id}`)) {
               try {
                 const data = await fetchGeoJSONWithCache(layer.path)
+                // データの取得待ち中にキャンセルされた場合も考慮
+                if (!restrictionStatesRef.current.get(restrictionId)) return
+
                 const sourceId = `${restrictionId}-${layer.id}`
+
+                if (map.getSource(sourceId)) continue
 
                 map.addSource(sourceId, { type: 'geojson', data })
 
@@ -3221,12 +3237,16 @@ if (map.getLayer(`${overlay.id}-bg`)) {
                 console.error(`Failed to load DID for ${layer.id}:`, e)
               }
             } else {
-              map.setLayoutProperty(`${restrictionId}-${layer.id}`, 'visibility', 'visible')
-              map.setLayoutProperty(`${restrictionId}-${layer.id}-outline`, 'visibility', 'visible')
+              if (map.getLayer(`${restrictionId}-${layer.id}`)) {
+                map.setLayoutProperty(`${restrictionId}-${layer.id}`, 'visibility', 'visible')
+              }
+              if (map.getLayer(`${restrictionId}-${layer.id}-outline`)) {
+                map.setLayoutProperty(`${restrictionId}-${layer.id}-outline`, 'visibility', 'visible')
+              }
             }
           }
 
-          batchIndex += BATCH_SIZE
+          batchIndex += DID_BATCH_LOAD_SIZE
           if (batchIndex < allLayers.length) {
             // 次のバッチをアイドル時間で処理（UI更新を優先）
             if ('requestIdleCallback' in window) {
@@ -3234,11 +3254,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
             } else {
               // requestIdleCallback 非対応時は requestAnimationFrame で遅延
               requestAnimationFrame(() => processBatch())
-            }
-          } else {
-            // 全バッチ処理完了
-            if (syncState) {
-              setRestrictionStates((prev: Map<string, boolean>) => new Map(prev).set(restrictionId, true))
             }
           }
         }

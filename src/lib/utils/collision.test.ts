@@ -114,12 +114,12 @@ describe('ゾーンタイプ別衝突検出', () => {
     expect(result.severity).toBe('DANGER')
   })
 
-  it('レッドゾーンの衝突を検出し、暗い赤色を返す', () => {
+  it('レッドゾーンの衝突を検出し、赤色を返す', () => {
     const result = checkWaypointCollision([4.5, 0.5], multiZoneProhibited)
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
     expect(result.uiColor).toBe(ZONE_COLORS.RED_ZONE)
-    expect(result.uiColor).toBe('#b71c1c') // 暗い赤
+    expect(result.uiColor).toBe('#FF0000') // 赤（飛行禁止）
     expect(result.severity).toBe('DANGER')
   })
 
@@ -154,7 +154,7 @@ describe('空間インデックスを使用したゾーンタイプ別衝突検�
     const result = checkWaypointCollisionOptimized([4.5, 0.5], index)
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
-    expect(result.uiColor).toBe('#b71c1c')
+    expect(result.uiColor).toBe('#FF0000')
   })
 
   it('空間インデックスでイエローゾーンの衝突を検出', () => {
@@ -177,6 +177,61 @@ describe('ZONE_COLORS定数', () => {
 
   it('DIDとRED_ZONEは異なる色を持つ', () => {
     expect(ZONE_COLORS.DID).not.toBe(ZONE_COLORS.RED_ZONE)
+  })
+})
+
+describe('ゾーン優先順位', () => {
+  // RED_ZONEとYELLOW_ZONEが重なるテストケース
+  const overlappingZones = turf.featureCollection([
+    {
+      ...turf.polygon([
+        [
+          [0, 0],
+          [2, 0],
+          [2, 2],
+          [0, 2],
+          [0, 0]
+        ]
+      ]),
+      properties: { name: 'イエローゾーン', zoneType: 'YELLOW_ZONE' }
+    },
+    {
+      ...turf.polygon([
+        [
+          [0.5, 0.5],
+          [1.5, 0.5],
+          [1.5, 1.5],
+          [0.5, 1.5],
+          [0.5, 0.5]
+        ]
+      ]),
+      properties: { name: 'レッドゾーン', zoneType: 'RED_ZONE' }
+    }
+  ])
+
+  it('RED_ZONEとYELLOW_ZONEが重なる場合、RED_ZONEが優先される', () => {
+    // 両方のゾーン内にあるポイント
+    const result = checkWaypointCollision([1, 1], overlappingZones)
+    expect(result.isColliding).toBe(true)
+    expect(result.collisionType).toBe('RED_ZONE')
+    expect(result.uiColor).toBe('#FF0000')
+    expect(result.severity).toBe('DANGER')
+  })
+
+  it('YELLOW_ZONEのみにある場合はYELLOW_ZONEが返される', () => {
+    // YELLOW_ZONEのみにあるポイント
+    const result = checkWaypointCollision([0.2, 0.2], overlappingZones)
+    expect(result.isColliding).toBe(true)
+    expect(result.collisionType).toBe('YELLOW_ZONE')
+    expect(result.uiColor).toBe('#ffc107')
+  })
+
+  it('空間インデックスでもRED_ZONEが優先される', () => {
+    const index = createSpatialIndex(overlappingZones)
+    const result = checkWaypointCollisionOptimized([1, 1], index)
+    expect(result.isColliding).toBe(true)
+    expect(result.collisionType).toBe('RED_ZONE')
+    expect(result.uiColor).toBe('#FF0000')
   })
 })
 

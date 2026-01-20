@@ -3,114 +3,150 @@ import { Meta } from '@storybook/blocks'
 
 <Meta title="Introduction" />
 
-# Japan Drone Map Library
+export const LinkStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 16px',
+  backgroundColor: 'rgba(74, 158, 255, 0.1)',
+  borderRadius: '8px',
+  textDecoration: 'none',
+  color: '#4a9eff',
+  fontWeight: 500,
+  marginRight: '12px',
+  marginBottom: '12px'
+}
 
-日本のドローン飛行禁止エリア・地理データをオーバーレイ表示できる汎用地図ライブラリです。
+export const TableStyle = {
+  table: { width: '100%', borderCollapse: 'collapse', margin: '16px 0' },
+  thead: { backgroundColor: 'rgba(74, 158, 255, 0.1)', borderBottom: '2px solid rgba(74, 158, 255, 0.3)' },
+  th: { padding: '12px', textAlign: 'left', fontWeight: 600 },
+  tr: { borderBottom: '1px solid rgba(255, 255, 255, 0.1)' },
+  td: { padding: '12px' }
+}
+
+# Japan Overlay Map
+
+日本の各種地理データをオーバーレイ表示できる汎用地図ライブラリです。
+
+<div style={{ marginTop: '16px', marginBottom: '24px' }}>
+  <a href="https://github.com/BoxPistols/DID-J26" target="_blank" rel="noopener noreferrer" style={LinkStyle}>
+    GitHub Repository
+  </a>
+  <a href="https://didj.netlify.app/" target="_blank" rel="noopener noreferrer" style={LinkStyle}>
+    Live Demo
+  </a>
+</div>
+
+---
 
 ## 概要
 
-このライブラリは、日本国内でのドローン飛行に関連する各種制限エリアや地理情報を地図上に表示するための機能を提供します。
+このライブラリは、日本国内の各種地理情報・規制エリア・気象データを地図上に表示するための機能を提供します。
 
-### 主な機能
+**主なユースケース:**
+- 地理情報の可視化・分析
+- 規制エリア（DID、空港周辺等）の確認
+- 気象情報のオーバーレイ表示
+- カスタムGeoJSONデータの管理
 
-#### 飛行制限エリア
-- **空港周辺空域** - 32の主要空港と周辺の飛行制限区域
-- **DID（人口集中地区）** - 47都道府県のDIDエリア
-- **緊急用務空域** - 災害時等の緊急用務空域
-- **有人航空機発着エリア** - ヘリポート等
-- **リモートID特定区域** - リモートID免除区域
+---
+
+## 主な機能
+
+### 規制エリア表示
+- **空港周辺空域** - 32の主要空港と周辺の制限区域
+- **DID（人口集中地区）** - 47都道府県のDIDエリア（国勢調査ベース）
 - **飛行禁止法エリア** - 小型無人機等飛行禁止法に基づく区域
 
-#### 地理情報オーバーレイ
+### 地理情報オーバーレイ
 - **陰影起伏図** - 地形の陰影表現
-- **標高図** - 標高による色分け
+- **色別標高図** - 標高による色分け
 - **傾斜量図** - 地形の傾斜度
 
-#### 気象情報
-- **雨雲レーダー [C]** - RainViewer API連携（リアルタイム、5分更新）
-- **天気予報クリックモード [W]** - 地図クリックで都道府県の天気を表示
-- **詳細予報パネル** - 48時間予報 + 7日間週間予報（Open-Meteo API）
+### 気象情報
+- **雨雲レーダー** - RainViewer API連携（リアルタイム、5分更新）
+- **天気予報** - Open-Meteo API連携（48時間予報 + 7日間週間予報）
 
-#### カスタムレイヤー
-- **GeoJSONインポート** - 独自のデータを追加
+### データ管理
+- **GeoJSONインポート/エクスポート** - 独自データの追加
 - **LocalStorage永続化** - ブラウザに保存
-- **カテゴリ分類** - 用途別に分類
+- **衝突検出** - 規制エリアとの重複判定
 
-## インストール
+---
 
-```bash
-npm install japan-drone-map
-```
+## 技術スタック
 
-## 基本的な使い方
+- **React 18** + **TypeScript**
+- **MapLibre GL JS** - 地図レンダリング
+- **Turf.js** - GeoJSON空間演算
+- **Vite** - ビルドツール
+- **Storybook 8** - ドキュメント
 
-```tsx
-import {
-  BASE_MAPS,
-  TOKYO_DID_LAYER,
-  RESTRICTION_COLORS,
-  AirportService,
-  NoFlyZoneService,
-  RainViewerService
-} from 'japan-drone-map'
-
-// ベースマップの取得
-const osmMap = BASE_MAPS.osm
-
-// DIDレイヤーの取得
-const tokyoDid = TOKYO_DID_LAYER
-
-// 空港データの取得
-const airports = AirportService.getAll()
-const naritaZone = AirportService.getRestrictionZone('narita')
-
-// 飛行禁止区域の取得
-const noFlyZones = NoFlyZoneService.getAll()
-const redZones = NoFlyZoneService.getByType('red')
-
-// 雨雲レーダーのタイルURL
-const radarUrl = RainViewerService.buildTileUrl('some-path')
-```
+---
 
 ## データソース
 
-<table>
+<table style={TableStyle.table}>
   <thead>
-    <tr>
-      <th>データ種別</th>
-      <th>ソース</th>
-      <th>更新頻度</th>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>データ種別</th>
+      <th style={TableStyle.th}>ソース</th>
+      <th style={TableStyle.th}>備考</th>
     </tr>
   </thead>
   <tbody>
-    <tr>
-      <td>DIDエリア</td>
-      <td>国土数値情報</td>
-      <td>5年ごと</td>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>DIDエリア</td>
+      <td style={TableStyle.td}>e-Stat（国勢調査）</td>
+      <td style={TableStyle.td}>5年ごと更新</td>
     </tr>
-    <tr>
-      <td>空港データ</td>
-      <td>国土交通省</td>
-      <td>静的データ</td>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>空港周辺空域</td>
+      <td style={TableStyle.td}>国土地理院タイル</td>
+      <td style={TableStyle.td}>kokuareaタイル</td>
     </tr>
-    <tr>
-      <td>飛行禁止区域</td>
-      <td>各種公開情報</td>
-      <td>適宜更新</td>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>地理院タイル</td>
+      <td style={TableStyle.td}>国土地理院</td>
+      <td style={TableStyle.td}>標準地図、航空写真等</td>
     </tr>
-    <tr>
-      <td>雨雲レーダー</td>
-      <td>RainViewer API</td>
-      <td>5分ごと</td>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>雨雲レーダー</td>
+      <td style={TableStyle.td}>RainViewer API</td>
+      <td style={TableStyle.td}>5分ごと更新</td>
     </tr>
-    <tr>
-      <td>天気予報</td>
-      <td>Open-Meteo API</td>
-      <td>1時間ごと</td>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>天気予報</td>
+      <td style={TableStyle.td}>Open-Meteo API</td>
+      <td style={TableStyle.td}>1時間ごと更新</td>
     </tr>
   </tbody>
 </table>
 
+---
+
+## クイックスタート
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/BoxPistols/DID-J26.git
+cd DID-J26
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバーを起動
+npm run dev
+
+# Storybookを起動
+npm run storybook
+```
+
+---
+
 ## ライセンス
 
 MIT License
+
+本プロジェクトは [dronebird/DIDinJapan](https://github.com/dronebird/DIDinJapan) をベースにしています。

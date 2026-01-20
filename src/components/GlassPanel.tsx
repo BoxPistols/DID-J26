@@ -4,7 +4,7 @@
  * Provides consistent styling and behavior across the application
  */
 
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useEffect } from 'react'
 import styles from './GlassPanel.module.css'
 
 export interface GlassPanelProps {
@@ -67,6 +67,20 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
     return String(value)
   }
 
+  // ESCキーで閉じる
+  useEffect(() => {
+    if (!onClose) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
   return (
     <div
       className={`${styles.container} ${className || ''}`}
@@ -87,10 +101,10 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
             <button
               onClick={onClose}
               className={styles.closeButton}
-              aria-label="Close panel"
-              title="Close"
+              aria-label="閉じる (Escキーでも閉じられます)"
             >
               ×
+              <span className={styles.tooltip}>Esc</span>
             </button>
           )}
         </div>

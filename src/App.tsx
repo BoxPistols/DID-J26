@@ -989,6 +989,18 @@ function App() {
     return () => window.removeEventListener('openWeatherPanel', handleOpenWeatherPanel as EventListener)
   }, [])
 
+  // Listen for weather popup close event from popup close button
+  useEffect(() => {
+    const handleCloseWeatherPopup = () => {
+      if (weatherPopupRef.current) {
+        weatherPopupRef.current.remove()
+        weatherPopupRef.current = null
+      }
+    }
+    window.addEventListener('closeWeatherPopup', handleCloseWeatherPopup)
+    return () => window.removeEventListener('closeWeatherPopup', handleCloseWeatherPopup)
+  }, [])
+
   // ============================================
   // Keyboard shortcuts
   // ============================================
@@ -1561,7 +1573,7 @@ function App() {
           }
 
           // Show loading popup
-          const loadingPopup = new maplibregl.Popup({ closeOnClick: true })
+          const loadingPopup = new maplibregl.Popup({ closeOnClick: true, closeButton: false })
             .setLngLat([lng, lat])
             .setHTML(`
               <div style="padding: 12px; font-family: system-ui, sans-serif; min-width: 200px;">
@@ -1585,8 +1597,16 @@ function App() {
 
               loadingPopup.setHTML(`
                 <div style="padding: 16px; font-family: system-ui, sans-serif; min-width: auto; background: rgba(20, 20, 30, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); color: #e5e5e5;">
-                  <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">
-                    ${prefecture.name} (${prefecture.capital})
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;">
+                    <span>${prefecture.name} (${prefecture.capital})</span>
+                    <button onclick="window.dispatchEvent(new CustomEvent('closeWeatherPopup'));"
+                            onmouseenter="this.querySelector('.esc-tooltip').style.opacity='1'; this.querySelector('.esc-tooltip').style.visibility='visible';"
+                            onmouseleave="this.querySelector('.esc-tooltip').style.opacity='0'; this.querySelector('.esc-tooltip').style.visibility='hidden';"
+                            style="position: relative; background: none; border: none; color: rgba(255, 255, 255, 0.7); cursor: pointer; font-size: 20px; padding: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease;"
+                            aria-label="閉じる (Escキーでも閉じられます)">
+                      ×
+                      <span class="esc-tooltip" style="position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; opacity: 0; visibility: hidden; transition: opacity 0.2s ease 0.5s, visibility 0.2s ease 0.5s; pointer-events: none; z-index: 10;">Esc</span>
+                    </button>
                   </div>
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                     <span style="font-size: 36px;">${currentWeather.icon}</span>

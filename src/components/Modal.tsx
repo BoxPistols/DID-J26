@@ -102,9 +102,10 @@ export function Modal({
           <button
             onClick={onClose}
             className={styles.closeButton}
-            aria-label="閉じる"
+            aria-label="閉じる (Escキーでも閉じられます)"
           >
             ×
+            <span className={styles.tooltip}>Esc</span>
           </button>
         </div>
 

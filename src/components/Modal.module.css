@@ -110,6 +110,56 @@
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Tooltip for ESC key hint */
+.tooltip {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition-delay: 0.5s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 4px 4px 4px;
+  border-style: solid;
+  border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+}
+
+.closeButton {
+  position: relative;
+}
+
+.closeButton:hover .tooltip,
+.closeButton:focus .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+:global([data-theme="light"]) .tooltip {
+  background: rgba(50, 50, 50, 0.9);
+}
+
+:global([data-theme="light"]) .tooltip::before {
+  border-color: transparent transparent rgba(50, 50, 50, 0.9) transparent;
+}
+
 .content {
   flex: 1;
   overflow-y: auto;

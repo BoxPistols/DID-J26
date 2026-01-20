@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   getPrefectureForecast,
   getWeatherDescription,
@@ -22,8 +22,25 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
   const [prefecture, setPrefecture] = useState<typeof JAPAN_PREFECTURES[0] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
 
   const regions = getAllRegions()
+
+  // ESCキーで閉じる
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose()
+      }
+    },
+    [onClose]
+  )
+
+  useEffect(() => {
+    if (!onClose) return
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [onClose, handleEscape])
 
   // Dark mode color scheme - Glassmorphism style
   const colors = {
@@ -102,17 +119,50 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
         {onClose && (
           <button
             onClick={onClose}
+            onMouseEnter={() => setIsCloseHovered(true)}
+            onMouseLeave={() => setIsCloseHovered(false)}
             style={{
+              position: 'relative',
               background: 'none',
               border: 'none',
               color: 'white',
               cursor: 'pointer',
               fontSize: '28px',
               padding: '0 8px',
-              lineHeight: 1
+              lineHeight: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '6px',
+              transition: 'background-color 0.2s ease'
             }}
+            aria-label="閉じる (Escキーでも閉じられます)"
           >
             ×
+            <span
+              style={{
+                position: 'absolute',
+                bottom: '-28px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: '#fff',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                opacity: isCloseHovered ? 1 : 0,
+                visibility: isCloseHovered ? 'visible' : 'hidden',
+                transition: 'opacity 0.2s ease 0.5s, visibility 0.2s ease 0.5s',
+                pointerEvents: 'none',
+                zIndex: 10
+              }}
+            >
+              Esc
+            </span>
           </button>
         )}
       </div>

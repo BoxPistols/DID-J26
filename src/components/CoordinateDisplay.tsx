@@ -356,7 +356,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
         {/* DMS format with inline copy button */}
         <div>
           <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 700 }}>度分秒表記</span>（DMS）- NOTAM申請用
+            <span style={{ fontWeight: 700 }}>度分秒表記 / 60進数</span>（DMS）
           </div>
           <div
             style={{

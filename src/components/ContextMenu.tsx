@@ -87,9 +87,10 @@ interface SubmenuTimerContext {
 }
 
 /**
- * Menu Item Component
+ * Context Menu Item Component
+ * Named ContextMenuItem to avoid ambiguity with MenuItem interface
  */
-const MenuItem: React.FC<{
+const ContextMenuItem: React.FC<{
   item: MenuItem
   onAction: (action: string, data?: any, keepOpen?: boolean) => void
   expandedSubmenuId: string | null
@@ -195,7 +196,7 @@ const MenuItem: React.FC<{
         >
           <div className={styles.submenu}>
             {item.submenu!.map((subitem) => (
-              <MenuItem
+              <ContextMenuItem
                 key={subitem.id}
                 item={subitem}
                 onAction={onAction}
@@ -465,7 +466,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       >
         <div className={styles.menu}>
           {menuItems.map((item) => (
-            <MenuItem
+            <ContextMenuItem
               key={item.id}
               item={item}
               onAction={(action, data, keepOpen) => {

@@ -70,8 +70,7 @@ import {
   formatDailyDate
 } from './lib/services/weatherApi'
 import { WeatherForecastPanel } from './components/weather/WeatherForecastPanel'
-import { convertDecimalToDMS, pointInPolygon } from './lib/utils/geo'
-import { checkWaypointCollision, type WaypointCollisionResult } from './lib/utils/collision'
+import { convertDecimalToDMS } from './lib/utils/geo'
 
 // ============================================
 // Zone ID Constants
@@ -82,6 +81,15 @@ const ZONE_IDS = {
   NO_FLY_RED: 'ZONE_IDS.NO_FLY_RED',
   NO_FLY_YELLOW: 'ZONE_IDS.NO_FLY_YELLOW'
 } as const
+
+// ============================================
+// Helper Functions
+// ============================================
+/**
+ * Check if a layer ID represents a DID layer (regional 'did-XX' or batch-loaded)
+ */
+const isDIDLayer = (layerId: string): boolean =>
+  layerId.startsWith('did-') || layerId.startsWith(ZONE_IDS.DID_ALL_JAPAN)
 
 // ============================================
 // UI Settings Constants
@@ -1678,10 +1686,6 @@ function App() {
         ? map.queryRenderedFeatures(e.point, { layers: visibleQueryLayers })
         : []
 
-      // Check if layer ID is a DID layer (regional 'did-XX' or batch-loaded)
-      const isDIDLayer = (layerId: string) =>
-        layerId.startsWith('did-') || layerId.startsWith(ZONE_IDS.DID_ALL_JAPAN)
-
       const didFeature = features.find(
         (f) => isDIDLayer(f.layer.id) && f.layer.type === 'fill'
       )
@@ -1860,11 +1864,17 @@ function App() {
       }
     }
 
+    // Store latest mouse event to ensure we always process the most recent position
+    let latestMouseEvent: maplibregl.MapMouseEvent | null = null
+
     const throttledMouseMove = (e: maplibregl.MapMouseEvent) => {
+      latestMouseEvent = e
       if (mouseMoveRafId !== null) return
       mouseMoveRafId = window.requestAnimationFrame(() => {
         mouseMoveRafId = null
-        handleMouseMove(e)
+        if (latestMouseEvent) {
+          handleMouseMove(latestMouseEvent)
+        }
       })
     }
 
@@ -2013,12 +2023,9 @@ function App() {
           // Query all rendered features at click point
           const allFeatures = map.queryRenderedFeatures(e.point)
 
-          // Check if layer ID is a DID layer (regional 'did-XX' or batch-loaded)
-          // Must be a fill layer (not outline) to have CITYNAME property
+          // Check if feature is a DID fill layer (not outline) to have CITYNAME property
           const isDIDFillLayer = (f: maplibregl.MapGeoJSONFeature) =>
-            (f.layer.id.startsWith('did-') || f.layer.id.startsWith(ZONE_IDS.DID_ALL_JAPAN)) &&
-            f.layer.type === 'fill' &&
-            !f.layer.id.includes('-outline')
+            isDIDLayer(f.layer.id) && f.layer.type === 'fill' && !f.layer.id.includes('-outline')
 
           // Find restriction features by layer ID pattern
           const restrictionFeature = allFeatures.find(
@@ -2202,7 +2209,10 @@ function App() {
 
         const data = await fetchGeoJSONWithCache<DidFC>(layer.path)
 
-        // Data now stored directly in MapLibre GL source (no separate cache needed)
+        // Store GeoJSON only in the MapLibre GL source instead of keeping a separate
+        // in-memory cache. This avoids duplicating large feature collections in memory
+        // and lets MapLibre manage lifecycle/eviction for the underlying data.
+        // See docs/stories/17_PerformanceOptimization.mdx for details.
 
         const newItems: SearchIndexItem[] = []
         data.features.forEach((feature) => {
@@ -2614,9 +2624,20 @@ function App() {
         next.set(layer.id, { id: layer.id, visible: true })
         return next
       })
-      void addLayer(layer, true).then(() => {
-        applyDidLayerColor(layer.id, groupMode === 'red' ? '#ff0000' : layer.color)
-      })
+      void (async () => {
+        try {
+          await addLayer(layer, true)
+          applyDidLayerColor(layer.id, groupMode === 'red' ? '#ff0000' : layer.color)
+        } catch (error) {
+          // Revert optimistic state if adding the layer fails
+          setLayerStates((prev: Map<string, LayerState>) => {
+            const next = new Map(prev)
+            next.delete(layer.id)
+            return next
+          })
+          console.error('Failed to add layer', layer.id, error)
+        }
+      })()
       return
     }
 
@@ -3519,6 +3540,8 @@ if (map.getLayer(`${overlay.id}-bg`)) {
         let batchIndex = 0
 
         const processBatch = async () => {
+          // Check if map still exists (component may have unmounted during async processing)
+          if (!map || !mapRef.current) return
           // 処理中にユーザーがOFFにした場合は中断
           if (!restrictionStatesRef.current.get(restrictionId)) return
 

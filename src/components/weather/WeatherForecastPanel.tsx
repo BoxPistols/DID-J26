@@ -251,7 +251,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
             {/* Hourly Forecast */}
             <div style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}` }}>
               <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
-                時間ごとの予報（24時間）
+                時間ごとの予報（12時間）
               </div>
               <div style={{
                 display: 'flex',

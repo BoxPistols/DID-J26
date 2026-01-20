@@ -70,7 +70,8 @@ import {
   formatDailyDate
 } from './lib/services/weatherApi'
 import { WeatherForecastPanel } from './components/weather/WeatherForecastPanel'
-import { convertDecimalToDMS } from './lib/utils/geo'
+import { convertDecimalToDMS, pointInPolygon } from './lib/utils/geo'
+import { checkWaypointCollision, type WaypointCollisionResult } from './lib/utils/collision'
 
 // ============================================
 // Zone ID Constants
@@ -423,8 +424,10 @@ function App() {
     if (!map) return undefined
 
     // Helper function to extract DID features from MapLibre GL source
+    // Accepts both 'did-XX' (individual) and 'ZONE_IDS.DID_ALL_JAPAN-did-XX' (batch) patterns
     const addDidFeaturesFromSource = (sourceId: string) => {
-      if (!sourceId.startsWith('did-')) return
+      const isDIDSource = sourceId.startsWith('did-') || sourceId.startsWith(ZONE_IDS.DID_ALL_JAPAN)
+      if (!isDIDSource) return
       try {
         const source = map.getSource(sourceId) as maplibregl.GeoJSONSource
         if (source) {
@@ -686,6 +689,7 @@ function App() {
     isOpen: boolean
     position: { x: number; y: number }
     lngLat: { lng: number; lat: number }
+    restrictionInfo?: string
   } | null>(null)
 
   // Track active drawing mode to prevent context menu while drawing
@@ -1110,6 +1114,14 @@ function App() {
           // ダーク/ライトモード切り替え
           setDarkMode((prev: boolean) => !prev)
           break
+        case 'x':
+          // 中心十字表示切り替え
+          setShowFocusCrosshair((prev: boolean) => !prev)
+          break
+        case 't':
+          // ツールチップ表示切り替え
+          setShowTooltip((prev: boolean) => !prev)
+          break
         case '?':
         case '/':
           e.preventDefault()
@@ -1215,9 +1227,22 @@ function App() {
         action: 'copy-coordinates'
       },
       {
-        id: 'coord-format',
-        label: `座標形式: ${coordFormat === 'dms' ? 'DMS' : '十進法'}`,
-        action: 'toggle-coord-format'
+        id: 'coord-format-menu',
+        label: '座標形式',
+        submenu: [
+          {
+            id: 'format-decimal',
+            label: '10進数 (例: 35.6812)',
+            checked: coordFormat === 'decimal',
+            action: 'set-coord-format-decimal'
+          },
+          {
+            id: 'format-dms',
+            label: '60進数 (例: 35°40\'53")',
+            checked: coordFormat === 'dms',
+            action: 'set-coord-format-dms'
+          }
+        ]
       },
       { id: 'divider-1', divider: true },
       {
@@ -1227,6 +1252,95 @@ function App() {
         action: 'show-weather'
       },
       { id: 'divider-2', divider: true },
+      {
+        id: 'restriction-areas',
+        label: '禁止エリア',
+        icon: '⚠️',
+        submenu: [
+          {
+            id: 'restriction-header',
+            type: 'header',
+            label: '制限区域'
+          },
+          {
+            id: 'toggle-airport',
+            label: '空港など周辺空域',
+            shortcut: 'A',
+            checked: restrictionStates.get('airport-airspace') ?? false,
+            action: 'toggle-restriction',
+            data: 'airport-airspace'
+          },
+          {
+            id: 'toggle-did',
+            label: '人口集中地区（全国）',
+            shortcut: 'D',
+            checked: restrictionStates.get(ZONE_IDS.DID_ALL_JAPAN) ?? false,
+            action: 'toggle-restriction',
+            data: ZONE_IDS.DID_ALL_JAPAN
+          },
+          { id: 'divider-zones', divider: true },
+          {
+            id: 'facility-header',
+            type: 'header',
+            label: '施設データ'
+          },
+          {
+            id: 'toggle-landing',
+            label: '有人機発着地',
+            shortcut: 'H',
+            checked: restrictionStates.get('facility-landing') ?? false,
+            action: 'toggle-restriction',
+            data: 'facility-landing'
+          },
+          {
+            id: 'toggle-military',
+            label: '駐屯地・基地',
+            shortcut: 'J',
+            checked: restrictionStates.get('facility-military') ?? false,
+            action: 'toggle-restriction',
+            data: 'facility-military'
+          },
+          {
+            id: 'toggle-fire',
+            label: '消防署',
+            shortcut: 'F',
+            checked: restrictionStates.get('facility-fire') ?? false,
+            action: 'toggle-restriction',
+            data: 'facility-fire'
+          },
+          {
+            id: 'toggle-medical',
+            label: '医療機関',
+            shortcut: 'O',
+            checked: restrictionStates.get('facility-medical') ?? false,
+            action: 'toggle-restriction',
+            data: 'facility-medical'
+          },
+          { id: 'divider-nofly', divider: true },
+          {
+            id: 'nofly-header',
+            type: 'header',
+            label: '小型無人機等飛行禁止法'
+          },
+          {
+            id: 'toggle-red-zone',
+            label: 'レッドゾーン',
+            shortcut: 'R',
+            checked: restrictionStates.get(ZONE_IDS.NO_FLY_RED) ?? false,
+            action: 'toggle-restriction',
+            data: ZONE_IDS.NO_FLY_RED
+          },
+          {
+            id: 'toggle-yellow-zone',
+            label: 'イエローゾーン',
+            shortcut: 'Y',
+            checked: restrictionStates.get(ZONE_IDS.NO_FLY_YELLOW) ?? false,
+            action: 'toggle-restriction',
+            data: ZONE_IDS.NO_FLY_YELLOW
+          }
+        ]
+      },
+      { id: 'divider-3', divider: true },
       {
         id: 'ui-controls',
         label: 'UI設定',
@@ -1253,10 +1367,26 @@ function App() {
             checked: darkMode,
             action: 'toggle-dark-mode'
           },
+          { id: 'divider-ui-1', divider: true },
+          {
+            id: 'tooltip',
+            label: 'ツールチップ',
+            shortcut: 'T',
+            checked: showTooltip,
+            action: 'toggle-tooltip'
+          },
+          { id: 'divider-ui-2', divider: true },
+          {
+            id: 'crosshair-visible',
+            label: '⊕ 中心十字',
+            shortcut: 'X',
+            checked: showFocusCrosshair,
+            action: 'toggle-crosshair'
+          }
         ]
       }
     ]
-  }, [contextMenu, showLeftLegend, showRightLegend, darkMode, coordFormat])
+  }, [contextMenu, showLeftLegend, showRightLegend, darkMode, coordFormat, restrictionStates, showTooltip, showFocusCrosshair])
 
   // Handle context menu actions
   const handleContextMenuAction = useCallback((action: string, data?: any) => {
@@ -1278,8 +1408,13 @@ function App() {
         break
       }
 
-      case 'toggle-coord-format': {
-        setCoordFormat((prev) => (prev === 'decimal' ? 'dms' : 'decimal'))
+      case 'set-coord-format-decimal': {
+        setCoordFormat('decimal')
+        break
+      }
+
+      case 'set-coord-format-dms': {
+        setCoordFormat('dms')
         break
       }
 
@@ -1309,9 +1444,27 @@ function App() {
         break
       }
 
+      case 'toggle-restriction': {
+        if (data) {
+          toggleRestriction(data)
+        }
+        break
+      }
+
+      case 'toggle-tooltip': {
+        setShowTooltip((prev: boolean) => !prev)
+        break
+      }
+
+      case 'toggle-crosshair': {
+        setShowFocusCrosshair((prev: boolean) => !prev)
+        break
+      }
+
       default:
         break
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextMenu, coordFormat])
 
   // Persist coordFormat to localStorage
@@ -1495,17 +1648,26 @@ function App() {
 
       // Build list of visible layers to optimize queryRenderedFeatures
       // Use refs to ensure we have current state values (avoid stale closures)
+      // IMPORTANT: Only include layers that actually exist in the map
       const visibleQueryLayers: string[] = []
       for (const [layerId, state] of layerStatesRef.current.entries()) {
-        if (state.visible) visibleQueryLayers.push(layerId)
+        if (state.visible && map.getLayer(layerId)) {
+          visibleQueryLayers.push(layerId)
+        }
       }
       for (const [restrictionId, isVisible] of restrictionStatesRef.current.entries()) {
         if (isVisible) {
-          visibleQueryLayers.push(restrictionId)
-          // For DID_ALL_JAPAN, include all prefecture layer IDs
+          // Check if the layer exists before adding to query list
+          if (map.getLayer(restrictionId)) {
+            visibleQueryLayers.push(restrictionId)
+          }
+          // For DID_ALL_JAPAN (batch loaded), check for prefecture layers
           if (restrictionId === ZONE_IDS.DID_ALL_JAPAN) {
             getAllLayers().forEach((layer) => {
-              visibleQueryLayers.push(`${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`)
+              const batchLayerId = `${ZONE_IDS.DID_ALL_JAPAN}-${layer.id}`
+              if (map.getLayer(batchLayerId)) {
+                visibleQueryLayers.push(batchLayerId)
+              }
             })
           }
         }
@@ -1516,14 +1678,18 @@ function App() {
         ? map.queryRenderedFeatures(e.point, { layers: visibleQueryLayers })
         : []
 
+      // Check if layer ID is a DID layer (regional 'did-XX' or batch-loaded)
+      const isDIDLayer = (layerId: string) =>
+        layerId.startsWith('did-') || layerId.startsWith(ZONE_IDS.DID_ALL_JAPAN)
+
       const didFeature = features.find(
-        (f) => f.layer.id.startsWith('did-') && f.layer.type === 'fill'
+        (f) => isDIDLayer(f.layer.id) && f.layer.type === 'fill'
       )
       const restrictionFeature = features.find(
         (f) =>
           f.layer.id.startsWith('airport-') ||
           f.layer.id.startsWith('no-fly-') ||
-          f.layer.id.startsWith(ZONE_IDS.DID_ALL_JAPAN) ||
+          isDIDLayer(f.layer.id) ||
           f.layer.id.startsWith('emergency-') ||
           f.layer.id.startsWith('manned-') ||
           f.layer.id.startsWith('remote-') ||
@@ -1611,7 +1777,7 @@ function App() {
           areaType = 'リモートID特定区域'
           description = 'リモートID機能の搭載が必須'
           category = '航空法'
-        } else if (layerId.includes('DID_ALL_JAPAN')) {
+        } else if (layerId.startsWith('did-') || layerId.includes('DID_ALL_JAPAN')) {
           areaType = '人口集中地区（DID）'
           description = '航空法により無人機飛行には許可が必要'
           category = '航空法'
@@ -1840,10 +2006,63 @@ function App() {
       // Right-click works if setting is 'right' or 'both'
       if (clickType === 'right' || clickType === 'both') {
         e.preventDefault()
+
+        // Detect restriction zones at click location
+        let restrictionInfo: string | undefined
+        try {
+          // Query all rendered features at click point
+          const allFeatures = map.queryRenderedFeatures(e.point)
+
+          // Check if layer ID is a DID layer (regional 'did-XX' or batch-loaded)
+          // Must be a fill layer (not outline) to have CITYNAME property
+          const isDIDFillLayer = (f: maplibregl.MapGeoJSONFeature) =>
+            (f.layer.id.startsWith('did-') || f.layer.id.startsWith(ZONE_IDS.DID_ALL_JAPAN)) &&
+            f.layer.type === 'fill' &&
+            !f.layer.id.includes('-outline')
+
+          // Find restriction features by layer ID pattern
+          const restrictionFeature = allFeatures.find(
+            (f) =>
+              f.layer.id.startsWith('airport-') ||
+              f.layer.id.startsWith('no-fly-') ||
+              isDIDFillLayer(f) ||
+              f.layer.id.startsWith('emergency-') ||
+              f.layer.id.startsWith('manned-') ||
+              f.layer.id.startsWith('remote-') ||
+              f.layer.id.startsWith('facility-')
+          )
+
+          if (restrictionFeature) {
+            const props = restrictionFeature.properties
+            const layerId = restrictionFeature.layer.id
+
+            // Determine area name based on layer type
+            if (isDIDFillLayer(restrictionFeature)) {
+              const cityName = props?.CITYNAME || ''
+              restrictionInfo = `⚠️ DID: ${cityName}`
+            } else if (layerId.startsWith('airport-')) {
+              const name = props?.name || props?.空港名 || '空港周辺'
+              restrictionInfo = `⚠️ ${name}`
+            } else if (layerId.startsWith('no-fly-')) {
+              const zone = layerId.includes('red') ? 'レッドゾーン' : 'イエローゾーン'
+              restrictionInfo = `⚠️ ${zone}`
+            } else if (layerId.startsWith('facility-')) {
+              const name = props?.name || props?.施設名 || '施設'
+              restrictionInfo = `⚠️ ${name}`
+            } else {
+              const areaName = (props?.name as string) || (props?.title as string) || '禁止エリア'
+              restrictionInfo = `⚠️ ${areaName}`
+            }
+          }
+        } catch (err) {
+          // Silently fail if zone detection fails
+        }
+
         setContextMenu({
           isOpen: true,
           position: { x: e.point.x, y: e.point.y },
-          lngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat }
+          lngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat },
+          restrictionInfo
         })
       }
     })
@@ -2389,6 +2608,12 @@ function App() {
 
     if (!state) {
       // 未ロード: ロードして表示
+      // Set optimistic state immediately for UI responsiveness
+      setLayerStates((prev: Map<string, LayerState>) => {
+        const next = new Map(prev)
+        next.set(layer.id, { id: layer.id, visible: true })
+        return next
+      })
       void addLayer(layer, true).then(() => {
         applyDidLayerColor(layer.id, groupMode === 'red' ? '#ff0000' : layer.color)
       })
@@ -2457,6 +2682,12 @@ function App() {
         }
       } else {
         // 未ロード: ロードして表示
+        // Set optimistic state immediately for UI responsiveness
+        setLayerStates((prev: Map<string, LayerState>) => {
+          const next = new Map(prev)
+          next.set(layer.id, { id: layer.id, visible: true })
+          return next
+        })
         addLayer(layer, true)
       }
     })
@@ -2482,6 +2713,12 @@ function App() {
         }
         applyDidLayerColor(layer.id, '#ff0000')
       } else {
+        // Set optimistic state immediately for UI responsiveness
+        setLayerStates((prev: Map<string, LayerState>) => {
+          const next = new Map(prev)
+          next.set(layer.id, { id: layer.id, visible: true })
+          return next
+        })
         void addLayer(layer, true).then(() => {
           applyDidLayerColor(layer.id, '#ff0000')
         })
@@ -3593,7 +3830,7 @@ if (map.getLayer(`${overlay.id}-bg`)) {
     if (layerId.startsWith('airport-airspace')) {
       return zones.find((zone) => zone.id === 'airport-airspace')
     }
-    if (layerId.includes('DID_ALL_JAPAN')) {
+    if (layerId.startsWith('did-') || layerId.includes('DID_ALL_JAPAN')) {
       return zones.find((zone) => zone.id === 'did-area')
     }
     if (layerId.includes('NO_FLY_RED') || layerId.includes('no-fly-red')) {
@@ -4305,6 +4542,24 @@ if (map.getLayer(`${overlay.id}-bg`)) {
                     />
                     クリックで座標
                   </label>
+                  {crosshairClickCapture && (
+                    <select
+                      value={coordFormat}
+                      onChange={(e) => setCoordFormat(e.target.value as 'decimal' | 'dms')}
+                      style={{
+                        fontSize: '11px',
+                        padding: '2px 4px',
+                        backgroundColor: darkMode ? '#333' : '#fff',
+                        color: darkMode ? '#e0e0e0' : '#333',
+                        border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
+                        borderRadius: '4px'
+                      }}
+                      title="座標形式"
+                    >
+                      <option value="decimal">10進数</option>
+                      <option value="dms">60進数</option>
+                    </select>
+                  )}
                 </>
               )}
             </div>
@@ -5988,7 +6243,7 @@ if (map.getLayer(`${overlay.id}-bg`)) {
               </li>
               <li style={{ marginBottom: '6px' }}>
                 <strong>表示モード切替:</strong> L キー（ダークモード）、2/3
-                キー（2D/3D表示）で切り替え可能です。
+                キー（2D/3D表示）、X キー（中心十字表示）で切り替え可能です。
               </li>
               <li>
                 <strong>表示設定:</strong>{' '}
@@ -6087,8 +6342,15 @@ if (map.getLayer(`${overlay.id}-bg`)) {
                 const map = mapRef.current
                 if (!map) return
                 const center = map.getCenter()
-                // Copy center coordinates to clipboard
-                const coordStr = `${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`
+                // Copy center coordinates to clipboard in selected format
+                let coordStr: string
+                if (coordFormatRef.current === 'dms') {
+                  const latDMS = convertDecimalToDMS(center.lat, true, 'ja')
+                  const lngDMS = convertDecimalToDMS(center.lng, false, 'ja')
+                  coordStr = `${latDMS} ${lngDMS}`
+                } else {
+                  coordStr = `${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`
+                }
                 navigator.clipboard.writeText(coordStr).then(() => {
                   toast.success('中心座標をコピーしました')
                 })
@@ -6119,6 +6381,9 @@ if (map.getLayer(`${overlay.id}-bg`)) {
           menuItems={buildContextMenuItems()}
           onClose={() => setContextMenu(null)}
           onAction={handleContextMenuAction}
+          showCrosshair={true}
+          showTooltip={true}
+          restrictionInfo={contextMenu.restrictionInfo}
         />
       )}
     </div>

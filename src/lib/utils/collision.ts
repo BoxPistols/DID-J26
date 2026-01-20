@@ -6,10 +6,10 @@ export type CollisionType = 'DID' | 'AIRPORT' | 'RED_ZONE' | 'YELLOW_ZONE' | 'MI
 
 // ゾーンタイプに基づく色定義
 export const ZONE_COLORS: Record<string, string> = {
-  DID: '#f44336', // 赤
-  AIRPORT: '#9C27B0', // 紫
-  RED_ZONE: '#FF0000', // 赤（飛行禁止）
-  YELLOW_ZONE: '#ffc107', // 黄色
+  DID: '#f44336', // 赤（人口集中地区）
+  AIRPORT: '#9C27B0', // 紫（空港周辺）
+  RED_ZONE: '#B71C1C', // 暗い赤（飛行禁止 - DIDより深刻）
+  YELLOW_ZONE: '#ffc107', // 黄色（注意区域）
   DEFAULT: '#f44336' // デフォルト赤
 }
 

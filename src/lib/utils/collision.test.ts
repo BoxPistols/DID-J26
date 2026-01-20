@@ -120,7 +120,7 @@ describe('ゾーンタイプ別衝突検出', () => {
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
     expect(result.uiColor).toBe(ZONE_COLORS.RED_ZONE)
-    expect(result.uiColor).toBe('#FF0000') // 赤（飛行禁止）
+    expect(result.uiColor).toBe('#B71C1C') // 暗い赤（飛行禁止 - DIDより深刻）
     expect(result.severity).toBe('DANGER')
   })
 
@@ -155,7 +155,7 @@ describe('空間インデックスを使用したゾーンタイプ別衝突検�
     const result = checkWaypointCollisionOptimized([4.5, 0.5], index)
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
-    expect(result.uiColor).toBe('#FF0000')
+    expect(result.uiColor).toBe('#B71C1C')
   })
 
   it('空間インデックスでイエローゾーンの衝突を検出', () => {
@@ -252,7 +252,7 @@ describe('ゾーン優先順位', () => {
     const result = checkWaypointCollision([1, 1], overlappingZones)
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
-    expect(result.uiColor).toBe('#FF0000')
+    expect(result.uiColor).toBe('#B71C1C')
     expect(result.severity).toBe('DANGER')
   })
 
@@ -269,7 +269,7 @@ describe('ゾーン優先順位', () => {
     const result = checkWaypointCollisionOptimized([1, 1], index)
     expect(result.isColliding).toBe(true)
     expect(result.collisionType).toBe('RED_ZONE')
-    expect(result.uiColor).toBe('#FF0000')
+    expect(result.uiColor).toBe('#B71C1C')
   })
 })
 

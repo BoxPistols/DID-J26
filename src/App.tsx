@@ -48,14 +48,13 @@ import type {
   KokuareaFeatureProperties,
   RestrictionZone
 } from './lib'
-import { AppHeader, CustomLayerManager } from './components'
+import { AppHeader, CustomLayerManager, ContextMenu, type MenuItem } from './components'
 import {
   DrawingTools,
   type DrawnFeature,
   type UndoRedoHandlers,
   type UndoRedoState
 } from './components/DrawingTools'
-import { CoordinateDisplay } from './components/CoordinateDisplay'
 import { FocusCrosshair, type CrosshairDesign } from './components/FocusCrosshair'
 import { Modal } from './components/Modal'
 // NOTE: 右下の比較パネル（重複ボタン）は廃止し、隆起表示は右上UIに統一
@@ -71,6 +70,7 @@ import {
   formatDailyDate
 } from './lib/services/weatherApi'
 import { WeatherForecastPanel } from './components/weather/WeatherForecastPanel'
+import { convertDecimalToDMS } from './lib/utils/geo'
 
 // ============================================
 // Zone ID Constants
@@ -238,6 +238,7 @@ function App() {
   }
   const coordClickTypeRef = useRef(getStoredCoordClickType())
   const coordDisplayPositionRef = useRef(getStoredCoordDisplayPosition())
+  const coordFormatRef = useRef<'decimal' | 'dms'>('decimal')
   const comparisonLayerBoundsRef = useRef<Map<string, [[number, number], [number, number]]>>(
     new Map()
   )
@@ -680,13 +681,29 @@ function App() {
   // Help modal
   const [showHelp, setShowHelp] = useState(false)
 
-  // Coordinate display (with optional screen coordinates for tooltip positioning)
-  const [displayCoordinates, setDisplayCoordinates] = useState<{
-    lng: number
-    lat: number
-    screenX?: number
-    screenY?: number
+  // Context menu state for right-click menu
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean
+    position: { x: number; y: number }
+    lngLat: { lng: number; lat: number }
   } | null>(null)
+
+  // Track active drawing mode to prevent context menu while drawing
+  const [activeDrawMode, setActiveDrawMode] = useState<'none' | 'polygon' | 'circle' | 'point' | 'line'>('none')
+
+  // Helper to get stored coordinate format
+  const getStoredCoordFormat = (): 'decimal' | 'dms' => {
+    try {
+      const stored = localStorage.getItem('coord-format')
+      if (stored === 'dms' || stored === 'decimal') return stored
+    } catch {
+      /* ignore */
+    }
+    return 'decimal'
+  }
+
+  // Coordinate format selection (decimal or DMS)
+  const [coordFormat, setCoordFormat] = useState<'decimal' | 'dms'>(() => getStoredCoordFormat())
 
   // Zoom level (always-visible UI)
   const [mapZoom, setMapZoom] = useState<number | null>(null)
@@ -761,32 +778,6 @@ function App() {
   type CoordClickType = 'right' | 'left' | 'both'
   type CoordDisplayPosition = 'click' | 'fixed'
 
-  const [coordClickType, setCoordClickType] = useState<CoordClickType>(() => {
-    try {
-      const stored = localStorage.getItem('ui-settings')
-      if (stored) {
-        const { coordClickType: saved } = JSON.parse(stored)
-        if (saved === 'right' || saved === 'left' || saved === 'both') return saved
-      }
-    } catch {
-      // ignore
-    }
-    return 'right' // デフォルト: 右クリックのみ
-  })
-
-  const [coordDisplayPosition, setCoordDisplayPosition] = useState<CoordDisplayPosition>(() => {
-    try {
-      const stored = localStorage.getItem('ui-settings')
-      if (stored) {
-        const { coordDisplayPosition: saved } = JSON.parse(stored)
-        if (saved === 'click' || saved === 'fixed') return saved
-      }
-    } catch {
-      // ignore
-    }
-    return 'fixed' // デフォルト: 右下固定
-  })
-
   const [crosshairClickCapture, setCrosshairClickCapture] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('ui-settings')
@@ -798,19 +789,6 @@ function App() {
       // ignore
     }
     return true // デフォルト: クリック有効
-  })
-
-  const [coordAutoFade, setCoordAutoFade] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('ui-settings')
-      if (stored) {
-        const { coordAutoFade: saved } = JSON.parse(stored)
-        return saved ?? true
-      }
-    } catch {
-      // ignore
-    }
-    return true // デフォルト: 自動で消える
   })
 
   // 2D/3D切り替え
@@ -851,10 +829,7 @@ function App() {
           enableCoordinateDisplay,
           showFocusCrosshair,
           crosshairDesign,
-          coordClickType,
-          coordDisplayPosition,
           crosshairClickCapture,
-          coordAutoFade,
           tooltipAutoFade,
           crosshairColor,
           opacity,
@@ -904,10 +879,7 @@ function App() {
         enableCoordinateDisplay,
         showFocusCrosshair,
         crosshairDesign,
-        coordClickType,
-        coordDisplayPosition,
         crosshairClickCapture,
-        coordAutoFade,
         tooltipAutoFade,
         crosshairColor,
         opacity,
@@ -928,10 +900,7 @@ function App() {
     enableCoordinateDisplay,
     showFocusCrosshair,
     crosshairDesign,
-    coordClickType,
-    coordDisplayPosition,
     crosshairClickCapture,
-    coordAutoFade,
     tooltipAutoFade,
     crosshairColor,
     opacity,
@@ -983,14 +952,6 @@ function App() {
   useEffect(() => {
     enableCoordinateDisplayRef.current = enableCoordinateDisplay
   }, [enableCoordinateDisplay])
-
-  useEffect(() => {
-    coordClickTypeRef.current = coordClickType
-  }, [coordClickType])
-
-  useEffect(() => {
-    coordDisplayPositionRef.current = coordDisplayPosition
-  }, [coordDisplayPosition])
 
   // Ref syncs
   useEffect(() => {
@@ -1226,6 +1187,144 @@ function App() {
     }
   }, [])
 
+  // Build context menu items
+  const buildContextMenuItems = useCallback((): MenuItem[] => {
+    if (!contextMenu) return []
+
+    const { lngLat } = contextMenu
+
+    // Format coordinates based on selected format
+    let coordStr: string
+    if (coordFormat === 'dms') {
+      const latDMS = convertDecimalToDMS(lngLat.lat, true, 'ja')
+      const lngDMS = convertDecimalToDMS(lngLat.lng, false, 'ja')
+      coordStr = `${latDMS} ${lngDMS}`
+    } else {
+      coordStr = `${lngLat.lng.toFixed(4)}, ${lngLat.lat.toFixed(4)}`
+    }
+
+    return [
+      {
+        id: 'coordinates-display',
+        type: 'header',
+        label: `📍 ${coordStr}`
+      },
+      {
+        id: 'copy-coordinates',
+        label: '📋 コピー',
+        action: 'copy-coordinates'
+      },
+      {
+        id: 'coord-format',
+        label: `座標形式: ${coordFormat === 'dms' ? 'DMS' : '十進法'}`,
+        action: 'toggle-coord-format'
+      },
+      { id: 'divider-1', divider: true },
+      {
+        id: 'weather',
+        label: 'この場所の天気予報',
+        icon: '☁️',
+        action: 'show-weather'
+      },
+      { id: 'divider-2', divider: true },
+      {
+        id: 'ui-controls',
+        label: 'UI設定',
+        icon: '⚙️',
+        submenu: [
+          {
+            id: 'left-sidebar',
+            label: '左サイドバー',
+            shortcut: 'S',
+            checked: showLeftLegend,
+            action: 'toggle-left-sidebar'
+          },
+          {
+            id: 'right-sidebar',
+            label: '右サイドバー',
+            shortcut: 'P',
+            checked: showRightLegend,
+            action: 'toggle-right-sidebar'
+          },
+          {
+            id: 'dark-mode',
+            label: 'ダークモード',
+            shortcut: 'L',
+            checked: darkMode,
+            action: 'toggle-dark-mode'
+          },
+        ]
+      }
+    ]
+  }, [contextMenu, showLeftLegend, showRightLegend, darkMode, coordFormat])
+
+  // Handle context menu actions
+  const handleContextMenuAction = useCallback((action: string, data?: any) => {
+    switch (action) {
+      case 'copy-coordinates': {
+        if (contextMenu) {
+          let coordStr: string
+          if (coordFormat === 'dms') {
+            const latDMS = convertDecimalToDMS(contextMenu.lngLat.lat, true, 'ja')
+            const lngDMS = convertDecimalToDMS(contextMenu.lngLat.lng, false, 'ja')
+            coordStr = `${latDMS} ${lngDMS}`
+          } else {
+            coordStr = `${contextMenu.lngLat.lng.toFixed(4)}, ${contextMenu.lngLat.lat.toFixed(4)}`
+          }
+          navigator.clipboard.writeText(coordStr).then(() => {
+            toast.success('座標をコピーしました')
+          })
+        }
+        break
+      }
+
+      case 'toggle-coord-format': {
+        setCoordFormat((prev) => (prev === 'decimal' ? 'dms' : 'decimal'))
+        break
+      }
+
+      case 'show-weather': {
+        if (contextMenu) {
+          const prefecture = findNearestPrefecture(contextMenu.lngLat.lat, contextMenu.lngLat.lng)
+          if (prefecture) {
+            setSelectedPrefectureId(prefecture.id)
+            setShowWeatherForecast(true)
+          }
+        }
+        break
+      }
+
+      case 'toggle-left-sidebar': {
+        setShowLeftLegend((prev: boolean) => !prev)
+        break
+      }
+
+      case 'toggle-right-sidebar': {
+        setShowRightLegend((prev: boolean) => !prev)
+        break
+      }
+
+      case 'toggle-dark-mode': {
+        setDarkMode((prev: boolean) => !prev)
+        break
+      }
+
+      default:
+        break
+    }
+  }, [contextMenu, coordFormat])
+
+  // Persist coordFormat to localStorage
+  useEffect(() => {
+    coordFormatRef.current = coordFormat
+    // Persist to localStorage
+    try {
+      localStorage.setItem('coord-format', coordFormat)
+    } catch {
+      /* ignore */
+    }
+  }, [coordFormat])
+
   // Debounce search with 300ms delay
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -1382,6 +1481,7 @@ function App() {
     let lastCursorState: string = ''
 
     const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+
       if (!showTooltipRef.current) {
         if (popupRef.current) {
           popupRef.current.remove()
@@ -1616,29 +1716,8 @@ function App() {
       }
     })
 
-    // Helper to set coordinates based on display position setting
-    const showCoordinatesAtPosition = (
-      lngLat: { lng: number; lat: number },
-      point: { x: number; y: number }
-    ) => {
-      const isFixed = coordDisplayPositionRef.current === 'fixed'
-      setDisplayCoordinates({
-        lng: lngLat.lng,
-        lat: lngLat.lat,
-        // fixed mode: no screenX/Y = CoordinateDisplay will use default bottom-right
-        screenX: isFixed ? undefined : point.x,
-        screenY: isFixed ? undefined : point.y
-      })
-    }
-
-    // Handle map left-click to display coordinates
+    // Handle map left-click
     map.on('click', (e) => {
-      const clickType = coordClickTypeRef.current
-      // Left-click only works if setting is 'left' or 'both'
-      if (clickType === 'left' || clickType === 'both') {
-        showCoordinatesAtPosition(e.lngLat, e.point)
-      }
-
       // Weather click mode - show weather popup for clicked location
       if (enableWeatherClickRef.current) {
         const { lat, lng } = e.lngLat
@@ -1750,13 +1829,22 @@ function App() {
       }
     })
 
-    // Handle right-click (contextmenu) to display coordinates
+    // Handle right-click (contextmenu) to display context menu
     map.on('contextmenu', (e) => {
+      // Don't show menu while drawing
+      if (activeDrawMode !== 'none') {
+        return
+      }
+
       const clickType = coordClickTypeRef.current
       // Right-click works if setting is 'right' or 'both'
       if (clickType === 'right' || clickType === 'both') {
         e.preventDefault()
-        showCoordinatesAtPosition(e.lngLat, e.point)
+        setContextMenu({
+          isOpen: true,
+          position: { x: e.point.x, y: e.point.y },
+          lngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat }
+        })
       }
     })
 
@@ -4138,79 +4226,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
             )}
           </div>
 
-          {/* Coordinate capture settings */}
-          <div
-            style={{
-              padding: '8px',
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-              borderRadius: '6px'
-            }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
-              📍 座標取得
-            </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <label
-                style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                取得:
-                <select
-                  value={coordClickType}
-                  onChange={(e) => setCoordClickType(e.target.value as 'right' | 'left' | 'both')}
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 4px',
-                    backgroundColor: darkMode ? '#333' : '#fff',
-                    color: darkMode ? '#e0e0e0' : '#333',
-                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                    borderRadius: '4px'
-                  }}
-                >
-                  <option value="right">右クリック</option>
-                  <option value="left">左クリック</option>
-                  <option value="both">両方</option>
-                </select>
-              </label>
-              <label
-                style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                表示:
-                <select
-                  value={coordDisplayPosition}
-                  onChange={(e) => setCoordDisplayPosition(e.target.value as 'click' | 'fixed')}
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 4px',
-                    backgroundColor: darkMode ? '#333' : '#fff',
-                    color: darkMode ? '#e0e0e0' : '#333',
-                    border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
-                    borderRadius: '4px'
-                  }}
-                >
-                  <option value="click">クリック位置</option>
-                  <option value="fixed">右下固定</option>
-                </select>
-              </label>
-              <label
-                style={{
-                  fontSize: '11px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  cursor: 'pointer'
-                }}
-                title="オフにすると手動で閉じるまで表示し続けます"
-              >
-                <input
-                  type="checkbox"
-                  checked={coordAutoFade}
-                  onChange={(e) => setCoordAutoFade(e.target.checked)}
-                />
-                3秒で消える
-              </label>
-            </div>
-          </div>
-
           {/* Crosshair settings */}
           <div
             style={{
@@ -4304,6 +4319,7 @@ if (map.getLayer(`${overlay.id}-bg`)) {
           darkMode={darkMode}
           embedded={true}
           onOpenHelp={() => setShowHelp(true)}
+          onDrawModeChange={setActiveDrawMode}
           onUndoRedoReady={(handlers) => {
             undoRedoHandlersRef.current = handlers
           }}
@@ -4346,12 +4362,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
                 center = lineCoords[midIndex]
               }
 
-              if (center && enableCoordinateDisplay) {
-                setDisplayCoordinates({
-                  lng: center[0],
-                  lat: center[1]
-                })
-              }
             }
             previousFeaturesRef.current = features
           }}
@@ -6064,18 +6074,6 @@ if (map.getLayer(`${overlay.id}-bg`)) {
       {/* Confirm Dialog */}
       <DialogContainer />
 
-      {/* Coordinate Display */}
-      {displayCoordinates && (
-        <CoordinateDisplay
-          lng={displayCoordinates.lng}
-          lat={displayCoordinates.lat}
-          darkMode={darkMode}
-          onClose={() => setDisplayCoordinates(null)}
-          screenX={displayCoordinates.screenX}
-          screenY={displayCoordinates.screenY}
-          autoFade={coordAutoFade}
-        />
-      )}
 
       {/* Focus Crosshair - map center target */}
       <FocusCrosshair
@@ -6089,15 +6087,10 @@ if (map.getLayer(`${overlay.id}-bg`)) {
                 const map = mapRef.current
                 if (!map) return
                 const center = map.getCenter()
-                // 画面中央の座標
-                const screenX = window.innerWidth / 2
-                const screenY = window.innerHeight / 2
-                const isFixed = coordDisplayPosition === 'fixed'
-                setDisplayCoordinates({
-                  lng: center.lng,
-                  lat: center.lat,
-                  screenX: isFixed ? undefined : screenX,
-                  screenY: isFixed ? undefined : screenY
+                // Copy center coordinates to clipboard
+                const coordStr = `${center.lng.toFixed(4)}, ${center.lat.toFixed(4)}`
+                navigator.clipboard.writeText(coordStr).then(() => {
+                  toast.success('中心座標をコピーしました')
                 })
               }
             : undefined
@@ -6113,6 +6106,19 @@ if (map.getLayer(`${overlay.id}-bg`)) {
             setShowWeatherForecast(false)
             setSelectedPrefectureId(undefined)
           }}
+        />
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          isOpen={contextMenu.isOpen}
+          position={contextMenu.position}
+          lngLat={contextMenu.lngLat}
+          darkMode={darkMode}
+          menuItems={buildContextMenuItems()}
+          onClose={() => setContextMenu(null)}
+          onAction={handleContextMenuAction}
         />
       )}
     </div>

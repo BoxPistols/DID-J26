@@ -592,9 +592,13 @@ export interface DrawingToolsProps {
   embedded?: boolean // サイドバー内に埋め込む場合true
   mapLoaded?: boolean // マップロード状態
   onOpenHelp?: () => void // ヘルプモーダルを開く
+  onDrawModeChange?: (mode: DrawMode) => void // Notify when drawing mode changes
   onUndoRedoReady?: (handlers: UndoRedoHandlers) => void
   onUndoRedoStateChange?: (state: UndoRedoState) => void
 }
+
+// Export DrawMode type for external use
+export type { DrawMode }
 
 // localStorage用のキー
 const STORAGE_KEY = 'did-map-drawn-features'
@@ -635,6 +639,7 @@ export function DrawingTools({
   embedded = false,
   mapLoaded = false,
   onOpenHelp,
+  onDrawModeChange,
   onUndoRedoReady,
   onUndoRedoStateChange
 }: DrawingToolsProps) {
@@ -721,6 +726,11 @@ export function DrawingTools({
       }
     }
   }, [prohibitedAreas])
+
+  // Notify parent when drawing mode changes
+  useEffect(() => {
+    onDrawModeChange?.(drawMode)
+  }, [drawMode, onDrawModeChange])
 
   const normalizeDrawnFeatures = useCallback(
     (features: GeoJSON.Feature[], _points: number): DrawnFeature[] => {

@@ -87,6 +87,7 @@
 
 /* Cancel Button */
 .cancelButton {
+  position: relative;
   padding: 8px 16px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -145,6 +146,52 @@
 .confirmButton:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+}
+
+/* Tooltip for ESC key hint */
+.tooltip {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition-delay: 0.5s;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px 4px 0 4px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.cancelButton:hover .tooltip,
+.cancelButton:focus .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+:global([data-theme="light"]) .tooltip {
+  background: rgba(50, 50, 50, 0.9);
+}
+
+:global([data-theme="light"]) .tooltip::after {
+  border-color: rgba(50, 50, 50, 0.9) transparent transparent transparent;
 }
 
 /* Responsive */

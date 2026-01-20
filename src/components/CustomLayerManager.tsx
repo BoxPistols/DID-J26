@@ -3,7 +3,7 @@
  * ユーザーがカスタムレイヤーをインポート/エクスポート/管理するUI
  */
 
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import {
   CustomLayerService,
   CustomLayer,
@@ -168,7 +168,24 @@ export function CustomLayerManager({
     color: '#888888',
     opacity: 0.5
   })
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ESCキーで閉じる
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && !showHelp) {
+        setIsOpen(false)
+      }
+    },
+    [isOpen, showHelp]
+  )
+
+  useEffect(() => {
+    if (!isOpen) return
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isOpen, handleEscape])
 
   /**
    * Handles GeoJSON file selection and import
@@ -517,16 +534,48 @@ export function CustomLayerManager({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
+              onMouseEnter={() => setIsCloseHovered(true)}
+              onMouseLeave={() => setIsCloseHovered(false)}
               style={{
+                position: 'relative',
                 background: 'none',
                 border: 'none',
                 color: '#fff',
                 cursor: 'pointer',
-                fontSize: '18px'
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                transition: 'background-color 0.2s ease'
               }}
-              title="閉じる"
+              aria-label="閉じる (Escキーでも閉じられます)"
             >
               ×
+              <span
+                style={{
+                  position: 'absolute',
+                  bottom: '-28px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  color: '#fff',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  opacity: isCloseHovered ? 1 : 0,
+                  visibility: isCloseHovered ? 'visible' : 'hidden',
+                  transition: 'opacity 0.2s ease 0.5s, visibility 0.2s ease 0.5s',
+                  pointerEvents: 'none',
+                  zIndex: 10
+                }}
+              >
+                Esc
+              </span>
             </button>
           </div>
         </div>

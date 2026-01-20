@@ -18,11 +18,19 @@ export {
   SIGNAL_OVERLAYS,
   RESTRICTION_ZONES,
   NO_FLY_ZONES,
+  NFZ_ZONES,
+  DID_ZONES,
+  CRITICAL_FACILITY_ZONES,
   RESTRICTION_CATEGORIES,
   RESTRICTION_COLORS,
   getAllRestrictionZones
 } from './config/overlays'
-export { FACILITY_LAYERS, getFacilityLayerById } from './config/facilities'
+export {
+  FACILITY_LAYERS,
+  CRITICAL_FACILITY_LAYERS,
+  REFERENCE_FACILITY_LAYERS,
+  getFacilityLayerById
+} from './config/facilities'
 export {
   LAYER_GROUPS,
   PREFECTURE_COLORS,
@@ -158,6 +166,7 @@ export {
   createCirclePolygon,
   pointInPolygon,
   mergeBBoxes,
+  bboxesIntersect,
   formatCoordinates,
   formatCoordinatesDMS,
   degreesToCompass,

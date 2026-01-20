@@ -298,13 +298,13 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
         <div style={{ fontSize: '13px', fontWeight: 800, color: darkMode ? '#ddd' : '#333' }}>
           座標情報
         </div>
-        <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#666' }}>Drag</div>
+        <div style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#666' }}>Drag</div>
       </div>
 
       <div style={{ marginBottom: '12px' }}>
         {/* Decimal format with inline copy button */}
         <div style={{ marginBottom: '10px' }}>
-          <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
+          <div style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
             <span style={{ fontWeight: 700 }}>10進数表記</span>（Decimal）
           </div>
           <div
@@ -337,7 +337,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
                 borderRadius: '4px',
                 cursor: 'pointer',
                 color: darkMode ? '#e0e0e0' : '#333',
-                fontSize: '11px',
+                fontSize: '12px',
                 whiteSpace: 'nowrap'
               }}
               onMouseOver={(e) => {
@@ -355,7 +355,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
 
         {/* DMS format with inline copy button */}
         <div>
-          <div style={{ fontSize: '11px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
+          <div style={{ fontSize: '12px', color: darkMode ? '#aaa' : '#999', marginBottom: '2px' }}>
             <span style={{ fontWeight: 700 }}>度分秒表記 / 60進数</span>（DMS）
           </div>
           <div
@@ -388,7 +388,7 @@ export const CoordinateDisplay: React.FC<CoordinateDisplayProps> = ({
                 borderRadius: '4px',
                 cursor: 'pointer',
                 color: darkMode ? '#e0e0e0' : '#333',
-                fontSize: '11px',
+                fontSize: '12px',
                 whiteSpace: 'nowrap'
               }}
               onMouseOver={(e) => {

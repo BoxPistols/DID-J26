@@ -33,10 +33,10 @@ export const KOKUAREA_STYLE: Record<
     label: '水平表面'
   },
   conical: {
-    fillColor: '#2196F3',
-    lineColor: '#1565C0',
-    fillOpacity: 0.18,
-    lineWidth: 1.0,
+    fillColor: '#9C27B0',
+    lineColor: '#6A1B9A',
+    fillOpacity: 0.2,
+    lineWidth: 1.1,
     label: '円錐表面'
   },
   other: {

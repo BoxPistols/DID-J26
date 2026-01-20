@@ -412,7 +412,7 @@ export const Default: Story = {
             style={{
               margin: '8px 0 0 0',
               overflow: 'auto',
-              fontSize: '11px'
+              fontSize: '12px'
             }}
           >
             {`<DrawingTools
@@ -720,7 +720,7 @@ export const ExportFormats: Story = {
               backgroundColor: '#f0f0f0',
               padding: '8px',
               borderRadius: '3px',
-              fontSize: '11px',
+              fontSize: '12px',
               fontFamily: 'monospace'
             }}
           >
@@ -738,7 +738,7 @@ export const ExportFormats: Story = {
               backgroundColor: '#f0f0f0',
               padding: '8px',
               borderRadius: '3px',
-              fontSize: '11px',
+              fontSize: '12px',
               fontFamily: 'monospace'
             }}
           >
@@ -756,7 +756,7 @@ export const ExportFormats: Story = {
               backgroundColor: '#f0f0f0',
               padding: '8px',
               borderRadius: '3px',
-              fontSize: '11px',
+              fontSize: '12px',
               fontFamily: 'monospace'
             }}
           >
@@ -774,7 +774,7 @@ export const ExportFormats: Story = {
               backgroundColor: '#f0f0f0',
               padding: '8px',
               borderRadius: '3px',
-              fontSize: '11px',
+              fontSize: '12px',
               fontFamily: 'monospace'
             }}
           >

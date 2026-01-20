@@ -39,6 +39,31 @@ export function calculateBBox(geometry: GeoJSON.Geometry): [number, number, numb
 }
 
 /**
+ * Check if two bounding boxes intersect
+ * @param bbox1 [[minLng, minLat], [maxLng, maxLat]]
+ * @param bbox2 [[minLng, minLat], [maxLng, maxLat]]
+ * @returns true if bounding boxes intersect
+ */
+export function bboxesIntersect(
+  bbox1: [[number, number], [number, number]],
+  bbox2: [[number, number], [number, number]]
+): boolean {
+  const [min1, max1] = bbox1
+  const [min2, max2] = bbox2
+  const [minLng1, minLat1] = min1
+  const [maxLng1, maxLat1] = max1
+  const [minLng2, minLat2] = min2
+  const [maxLng2, maxLat2] = max2
+
+  // Check if bboxes don't overlap
+  if (maxLng1 < minLng2 || maxLng2 < minLng1 || maxLat1 < minLat2 || maxLat2 < minLat1) {
+    return false
+  }
+
+  return true
+}
+
+/**
  * Calculate distance between two points (Haversine formula)
  * @returns distance in kilometers
  */

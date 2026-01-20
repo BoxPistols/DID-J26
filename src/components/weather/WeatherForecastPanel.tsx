@@ -153,7 +153,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                 color: '#fff',
                 padding: '4px 8px',
                 borderRadius: '4px',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 opacity: isCloseHovered ? 1 : 0,
@@ -214,7 +214,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
           <>
             {/* Current Weather */}
             <div style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}` }}>
-              <div style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '6px' }}>
+              <div style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '6px' }}>
                 現在の天気 - {prefecture.capital}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -231,7 +231,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '6px',
                 marginTop: '8px',
-                fontSize: '11px'
+                fontSize: '12px'
               }}>
                 <div style={{ textAlign: 'center', padding: '5px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
                   <div style={{ color: colors.textMuted }}>湿度</div>
@@ -270,14 +270,14 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                         padding: '5px 2px',
                         backgroundColor: colors.cardBg,
                         borderRadius: '4px',
-                        fontSize: '10px'
+                        fontSize: '12px'
                       }}
                     >
                       <div style={{ color: colors.textMuted }}>{formatHourlyTime(hour.time)}</div>
                       <div style={{ fontSize: '16px', margin: '2px 0' }}>{info.icon}</div>
                       <div style={{ fontWeight: 'bold' }}>{hour.temperature}°</div>
                       {hour.precipitation > 0 && (
-                        <div style={{ color: '#3b82f6', fontSize: '9px' }}>
+                        <div style={{ color: '#3b82f6', fontSize: '12px' }}>
                           {hour.precipitation}mm
                         </div>
                       )}
@@ -305,7 +305,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                         backgroundColor: i === 0 ? colors.todayBg : colors.cardBg,
                         borderRadius: '4px',
                         gap: '8px',
-                        fontSize: '11px'
+                        fontSize: '12px'
                       }}
                     >
                       <div style={{ width: '60px', fontWeight: i === 0 ? 'bold' : 'normal' }}>
@@ -321,7 +321,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                         <span style={{ color: '#3b82f6' }}>{day.temperatureMin}°</span>
                       </div>
                       {day.precipitationSum > 0 && (
-                        <div style={{ width: '40px', textAlign: 'right', fontSize: '10px', color: '#3b82f6' }}>
+                        <div style={{ width: '40px', textAlign: 'right', fontSize: '12px', color: '#3b82f6' }}>
                           {day.precipitationSum}mm
                         </div>
                       )}
@@ -338,7 +338,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
       <div style={{
         padding: '8px 16px',
         borderTop: `1px solid ${colors.border}`,
-        fontSize: '11px',
+        fontSize: '12px',
         color: colors.textMuted,
         textAlign: 'center'
       }}>

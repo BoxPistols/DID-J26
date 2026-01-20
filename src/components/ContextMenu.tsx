@@ -440,7 +440,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             color: '#fff',
             padding: '6px 10px',
             borderRadius: '4px',
-            fontSize: '11px',
+            fontSize: '12px',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             zIndex: 1499,

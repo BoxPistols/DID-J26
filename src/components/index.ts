@@ -17,6 +17,9 @@ export type { CoordinateDisplayProps } from './CoordinateDisplay'
 export { CoordinateInfoPanel } from './CoordinateInfoPanel'
 export type {} from './CoordinateInfoPanel'
 
+export { ContextMenu } from './ContextMenu'
+export type { ContextMenuProps, MenuItem } from './ContextMenu'
+
 export { IsikawaNotoComparisonPanel } from './IsikawaNotoComparisonPanel'
 export type { IsikawaNotoComparisonPanelProps } from './IsikawaNotoComparisonPanel'
 

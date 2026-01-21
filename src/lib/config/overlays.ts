@@ -102,8 +102,10 @@ export const RESTRICTION_COLORS = {
   no_fly_yellow: '#FFFF00' // 黄 - イエローゾーン
 }
 
-// 禁止エリア設定
-export const RESTRICTION_ZONES: RestrictionZone[] = [
+// ============================================
+// NFZ（航空法：空港周辺空域）
+// ============================================
+export const NFZ_ZONES: RestrictionZone[] = [
   {
     id: 'airport-airspace',
     name: '空港など周辺空域',
@@ -113,48 +115,29 @@ export const RESTRICTION_ZONES: RestrictionZone[] = [
     // NOTE: ラスタタイルは廃止し、ベクトル（タイルGeoJSON）を優先してクライアント側で描画する
     geojsonTileTemplate: 'https://maps.gsi.go.jp/xyz/kokuarea/{z}/{x}/{y}.geojson',
     path: '/GeoJSON/airports/airport_surfaces.geojson',
-    description: '空港等の周辺空域（航空局提供：進入表面・転移表面等）および敷地範囲'
-  },
+    description: '航空法：航空機の安全確保のための空域（制限表面）'
+  }
+]
+
+// ============================================
+// DID（航空法：人口集中地区）
+// ============================================
+export const DID_ZONES: RestrictionZone[] = [
   {
     id: 'did-area',
-    name: '人口集中地区',
+    name: '人口集中地区（全国）',
     type: 'did',
     color: RESTRICTION_COLORS.did,
     opacity: 0.5,
     tiles: ['https://cyberjapandata.gsi.go.jp/xyz/did2015/{z}/{x}/{y}.png'],
-    description: '人口集中地区（DID）- 国勢調査に基づく'
+    description: '航空法：地上の人・物件の安全確保のための区域'
   }
-  // {
-  //   id: 'emergency-airspace',
-  //   name: '緊急用務空域',
-  //   type: 'emergency',
-  //   color: RESTRICTION_COLORS.emergency,
-  //   opacity: 0.5,
-  //   path: '/data/emergency.geojson',
-  //   description: '災害等による緊急用務空域'
-  // },
-  // {
-  //   id: 'manned-aircraft',
-  //   name: '有人機発着エリア',
-  //   type: 'manned',
-  //   color: RESTRICTION_COLORS.manned,
-  //   opacity: 0.4,
-  //   path: '/data/manned.geojson',
-  //   description: '有人機の離着陸エリア'
-  // },
-  // {
-  //   id: 'remote-id-zone',
-  //   name: 'リモートID特定区域',
-  //   type: 'remote_id',
-  //   color: RESTRICTION_COLORS.remote_id,
-  //   opacity: 0.4,
-  //   path: '/data/remote_id.geojson',
-  //   description: 'リモートID特定区域'
-  // }
 ]
 
-// 小型無人機等飛行禁止法エリア
-export const NO_FLY_ZONES: RestrictionZone[] = [
+// ============================================
+// 重要施設周辺空域（小型無人機等飛行禁止法）
+// ============================================
+export const CRITICAL_FACILITY_ZONES: RestrictionZone[] = [
   {
     id: 'no-fly-red',
     name: 'レッドゾーン',
@@ -162,7 +145,7 @@ export const NO_FLY_ZONES: RestrictionZone[] = [
     color: RESTRICTION_COLORS.no_fly_red,
     opacity: 0.5,
     path: '/data/no_fly_red.geojson',
-    description: '小型無人機等飛行禁止法 - 重要施設周辺'
+    description: '重要施設敷地：原則飛行禁止'
   },
   {
     id: 'no-fly-yellow',
@@ -171,21 +154,37 @@ export const NO_FLY_ZONES: RestrictionZone[] = [
     color: RESTRICTION_COLORS.no_fly_yellow,
     opacity: 0.4,
     path: '/data/no_fly_yellow.geojson',
-    description: '小型無人機等飛行禁止法 - 注意区域'
+    description: '周辺300m：事前通報必要'
   }
 ]
 
-// カテゴリ別に整理
+// ============================================
+// 後方互換性のためのエイリアス
+// ============================================
+/** @deprecated 後方互換性のため残しています。新しいコードでは NFZ_ZONES と DID_ZONES を使用してください。 */
+export const RESTRICTION_ZONES: RestrictionZone[] = [...NFZ_ZONES, ...DID_ZONES]
+
+/** @deprecated 後方互換性のため残しています。新しいコードでは CRITICAL_FACILITY_ZONES を使用してください。 */
+export const NO_FLY_ZONES: RestrictionZone[] = CRITICAL_FACILITY_ZONES
+
+// ============================================
+// カテゴリ別に整理（法的根拠と規制の性質に基づく4カテゴリ構成）
+// ============================================
 export const RESTRICTION_CATEGORIES: RestrictionCategory[] = [
   {
-    id: 'airspace-restrictions',
-    name: '禁止エリア',
-    zones: RESTRICTION_ZONES
+    id: 'nfz-airport',
+    name: 'NFZ（航空法：空港周辺空域）',
+    zones: NFZ_ZONES
   },
   {
-    id: 'no-fly-law',
-    name: '小型無人機等飛行禁止法',
-    zones: NO_FLY_ZONES
+    id: 'did-area',
+    name: 'DID（航空法：人口集中地区）',
+    zones: DID_ZONES
+  },
+  {
+    id: 'critical-facilities',
+    name: '重要施設周辺空域（小型無人機等飛行禁止法）',
+    zones: CRITICAL_FACILITY_ZONES
   }
 ]
 

@@ -15,7 +15,7 @@ export const AppHeader: React.FC<AppHeaderProps> = () => {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>DID-J26</h1>
-      <p className={styles.subtitle}>日本向け地理情報マップ</p>
+      <p className={styles.subtitle}>Japan Overlay Map | Geospatial Data Visual</p>
     </div>
   )
 }

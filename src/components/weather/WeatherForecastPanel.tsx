@@ -44,7 +44,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
 
   // Dark mode color scheme - Glassmorphism style
   const colors = {
-    bg: darkMode ? 'rgba(20, 20, 30, 0.75)' : 'rgba(255, 255, 255, 0.75)',
+    bg: darkMode ? 'rgba(20, 20, 30, 0.88)' : 'rgba(255, 255, 255, 0.88)',
     glassBorder: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.5)',
     text: darkMode ? '#e5e5e5' : '#1f2937',
     textMuted: darkMode ? '#9ca3af' : '#6b7280',
@@ -91,20 +91,22 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
       position: 'absolute',
       top: '60px',
       right: '320px',
-      width: '380px',
-      maxHeight: 'calc(100vh - 100px)',
+      width: '340px',
+      maxHeight: '50vh',
       backgroundColor: colors.bg,
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       color: colors.text,
-      borderRadius: '16px',
+      borderRadius: '12px',
       border: `1px solid ${colors.glassBorder}`,
       boxShadow: darkMode
         ? '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)'
         : '0 8px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
       overflow: 'hidden',
       zIndex: 1000,
-      fontFamily: 'system-ui, sans-serif'
+      fontFamily: 'system-ui, sans-serif',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       {/* Header */}
       <div style={{
@@ -151,7 +153,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                 color: '#fff',
                 padding: '4px 8px',
                 borderRadius: '4px',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 opacity: isCloseHovered ? 1 : 0,
@@ -168,16 +170,16 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
       </div>
 
       {/* Prefecture Selector */}
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}` }}>
+      <div style={{ padding: '8px 12px', borderBottom: `1px solid ${colors.border}`, flexShrink: 0 }}>
         <select
           value={prefectureId}
           onChange={(e) => setPrefectureId(e.target.value)}
           style={{
             width: '100%',
-            padding: '8px 12px',
+            padding: '6px 10px',
             borderRadius: '6px',
             border: `1px solid ${colors.selectBorder}`,
-            fontSize: '14px',
+            fontSize: '13px',
             backgroundColor: colors.selectBg,
             color: colors.text
           }}
@@ -195,7 +197,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
       </div>
 
       {/* Content */}
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {loading && (
           <div style={{ padding: '40px', textAlign: 'center', color: colors.textMuted }}>
             読み込み中...
@@ -211,35 +213,35 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
         {!loading && !error && weather && prefecture && (
           <>
             {/* Current Weather */}
-            <div style={{ padding: '16px', borderBottom: `1px solid ${colors.border}` }}>
-              <div style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '8px' }}>
+            <div style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '6px' }}>
                 現在の天気 - {prefecture.capital}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontSize: '48px' }}>{currentWeatherInfo?.icon}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '36px' }}>{currentWeatherInfo?.icon}</span>
                 <div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
                     {weather.current.temperature}°C
                   </div>
-                  <div style={{ color: colors.textMuted }}>{currentWeatherInfo?.label}</div>
+                  <div style={{ fontSize: '12px', color: colors.textMuted }}>{currentWeatherInfo?.label}</div>
                 </div>
               </div>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '8px',
-                marginTop: '12px',
-                fontSize: '13px'
+                gap: '6px',
+                marginTop: '8px',
+                fontSize: '12px'
               }}>
-                <div style={{ textAlign: 'center', padding: '8px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
+                <div style={{ textAlign: 'center', padding: '5px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
                   <div style={{ color: colors.textMuted }}>湿度</div>
                   <div style={{ fontWeight: 'bold' }}>{weather.current.humidity}%</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '8px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
+                <div style={{ textAlign: 'center', padding: '5px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
                   <div style={{ color: colors.textMuted }}>風速</div>
                   <div style={{ fontWeight: 'bold' }}>{weather.current.windSpeed} km/h</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '8px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
+                <div style={{ textAlign: 'center', padding: '5px', backgroundColor: colors.cardBgAlt, borderRadius: '4px' }}>
                   <div style={{ color: colors.textMuted }}>降水量</div>
                   <div style={{ fontWeight: 'bold' }}>{weather.current.precipitation} mm</div>
                 </div>
@@ -247,35 +249,35 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
             </div>
 
             {/* Hourly Forecast */}
-            <div style={{ padding: '16px', borderBottom: `1px solid ${colors.border}` }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>
-                時間ごとの予報（48時間）
+            <div style={{ padding: '10px 12px', borderBottom: `1px solid ${colors.border}` }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
+                時間ごとの予報（12時間）
               </div>
               <div style={{
                 display: 'flex',
                 overflowX: 'auto',
-                gap: '8px',
-                paddingBottom: '8px'
+                gap: '4px',
+                paddingBottom: '4px'
               }}>
-                {weather.hourly.slice(0, 24).map((hour, i) => {
+                {weather.hourly.slice(0, 12).map((hour, i) => {
                   const info = getWeatherDescription(hour.weatherCode)
                   return (
                     <div
                       key={i}
                       style={{
-                        minWidth: '60px',
+                        minWidth: '48px',
                         textAlign: 'center',
-                        padding: '8px 4px',
+                        padding: '5px 2px',
                         backgroundColor: colors.cardBg,
-                        borderRadius: '6px',
+                        borderRadius: '4px',
                         fontSize: '12px'
                       }}
                     >
                       <div style={{ color: colors.textMuted }}>{formatHourlyTime(hour.time)}</div>
-                      <div style={{ fontSize: '20px', margin: '4px 0' }}>{info.icon}</div>
+                      <div style={{ fontSize: '16px', margin: '2px 0' }}>{info.icon}</div>
                       <div style={{ fontWeight: 'bold' }}>{hour.temperature}°</div>
                       {hour.precipitation > 0 && (
-                        <div style={{ color: '#3b82f6', fontSize: '10px' }}>
+                        <div style={{ color: '#3b82f6', fontSize: '12px' }}>
                           {hour.precipitation}mm
                         </div>
                       )}
@@ -286,11 +288,11 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
             </div>
 
             {/* Daily Forecast */}
-            <div style={{ padding: '16px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px' }}>
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
                 週間予報
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {weather.daily.map((day, i) => {
                   const info = getWeatherDescription(day.weatherCode)
                   return (
@@ -299,26 +301,27 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '10px 12px',
+                        padding: '6px 8px',
                         backgroundColor: i === 0 ? colors.todayBg : colors.cardBg,
-                        borderRadius: '6px',
-                        gap: '12px'
+                        borderRadius: '4px',
+                        gap: '8px',
+                        fontSize: '12px'
                       }}
                     >
-                      <div style={{ width: '80px', fontSize: '13px', fontWeight: i === 0 ? 'bold' : 'normal' }}>
+                      <div style={{ width: '60px', fontWeight: i === 0 ? 'bold' : 'normal' }}>
                         {i === 0 ? '今日' : formatDailyDate(day.date)}
                       </div>
-                      <div style={{ fontSize: '24px' }}>{info.icon}</div>
-                      <div style={{ flex: 1, fontSize: '13px', color: colors.textMuted }}>
+                      <div style={{ fontSize: '18px' }}>{info.icon}</div>
+                      <div style={{ flex: 1, color: colors.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {info.label}
                       </div>
-                      <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                      <div style={{ textAlign: 'right' }}>
                         <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{day.temperatureMax}°</span>
-                        <span style={{ color: colors.textMuted }}> / </span>
+                        <span style={{ color: colors.textMuted }}>/</span>
                         <span style={{ color: '#3b82f6' }}>{day.temperatureMin}°</span>
                       </div>
                       {day.precipitationSum > 0 && (
-                        <div style={{ width: '45px', textAlign: 'right', fontSize: '11px', color: '#3b82f6' }}>
+                        <div style={{ width: '40px', textAlign: 'right', fontSize: '12px', color: '#3b82f6' }}>
                           {day.precipitationSum}mm
                         </div>
                       )}
@@ -335,7 +338,7 @@ export function WeatherForecastPanel({ selectedPrefectureId, onClose, darkMode =
       <div style={{
         padding: '8px 16px',
         borderTop: `1px solid ${colors.border}`,
-        fontSize: '11px',
+        fontSize: '12px',
         color: colors.textMuted,
         textAlign: 'center'
       }}>

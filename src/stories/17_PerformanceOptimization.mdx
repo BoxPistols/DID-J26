@@ -14,7 +14,11 @@ export const TableStyle = {
 
 # パフォーマンス最適化戦略
 
-DID（人口集中地区）、空域制限、天気データなど**大規模データセット**を扱うドローン飛行計画アプリケーションにおけるパフォーマンス最適化手法です。
+飛行注意区域（DID）、空域制限、天気データなど**大規模データセット**を扱うドローン飛行計画アプリケーションにおけるパフォーマンス最適化手法です。
+
+**DIDの表示方法について:**
+- 地方ごとに分類されているのは、パフォーマンス向上のためです。47都道府県すべてを一度に読み込むと、大量のデータ（数万〜数十万のポリゴン）がメモリに読み込まれ、GPU/CPU/メモリを急激に消費して画面が重くなります。
+- ビューポートベースの動的読み込みにより、表示範囲内の都道府県のみを自動的に読み込むため、パフォーマンスが改善されています。
 
 ---
 
@@ -56,10 +60,23 @@ DID（人口集中地区）、空域制限、天気データなど**大規模デ
       <td style={TableStyle.td}>UI 5～10秒固まり</td>
       <td style={TableStyle.td}>🟠 Medium</td>
     </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>全都道府県の一括読み込み</td>
+      <td style={TableStyle.td}>ビューポート外の都道府県も読み込む</td>
+      <td style={TableStyle.td}>GPU/CPU/メモリを急激に消費、画面が重くなる</td>
+      <td style={TableStyle.td}>🔴 High</td>
+    </tr>
   </tbody>
 </table>
 
 ### 実装された改善策
+
+**DIDの表示方法の改善:**
+- ✅ **地方ごとの分類表示**: 必要な地域だけを選択して表示することで、メモリ使用量とレンダリング負荷を最小限に抑える
+- ✅ **ビューポートベースの動的読み込み**: 表示範囲内の都道府県のみを自動的に読み込むことで、パフォーマンスを大幅に改善
+- ✅ **デバウンス処理**: マップの移動・ズーム時の連続するイベントを抑制（300ms）
+
+### 実装された改善策（詳細）
 
 <table style={TableStyle.table}>
   <thead>
@@ -93,6 +110,12 @@ DID（人口集中地区）、空域制限、天気データなど**大規模デ
       <td style={TableStyle.td}>バッチ処理</td>
       <td style={TableStyle.td}>requestIdleCallback</td>
       <td style={TableStyle.td}>UI ブロック 5～10秒 → 0.5秒以下（95%削減）</td>
+      <td style={TableStyle.td}>🟢 Excellent</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>ビューポートベース動的読み込み</td>
+      <td style={TableStyle.td}>バウンディングボックス交差判定</td>
+      <td style={TableStyle.td}>メモリ使用量 最大47倍削減（表示範囲内の都道府県のみ読み込み）</td>
       <td style={TableStyle.td}>🟢 Excellent</td>
     </tr>
   </tbody>
@@ -345,6 +368,98 @@ await processBatch()
 
 ---
 
+### 2.5 DID ビューポートベースの動的読み込み
+
+#### 問題
+
+```typescript
+// ❌ 改善前: 全国一括表示時に全47都道府県を一度に読み込む
+const allLayers = getAllLayers()  // 47都道府県
+for (const layer of allLayers) {
+  const data = await fetchGeoJSONWithCache(layer.path)
+  // 全データがメモリに読み込まれる
+  // → GPU/CPU/メモリを急激に消費、画面が重くなる
+}
+```
+
+#### 解決方法
+
+```typescript
+// ✅ 改善後: ビューポート内の都道府県のみを動的に読み込む
+const getLayersInViewport = (map: maplibregl.Map, layers: LayerConfig[]): LayerConfig[] => {
+  const bounds = map.getBounds()
+  const viewportBBox: [[number, number], [number, number]] = [
+    [bounds.getWest(), bounds.getSouth()],
+    [bounds.getEast(), bounds.getNorth()]
+  ]
+  
+  return layers.filter((layer) => {
+    if (!layer.bounds) return true
+    return bboxesIntersect(viewportBBox, layer.bounds)
+  })
+}
+
+const updateDIDViewportLayers = async (map: maplibregl.Map, ...) => {
+  const allLayers = getAllLayers()
+  const visibleLayers = getLayersInViewport(map, allLayers)  // ビューポート内のみ
+  
+  // 表示範囲内のレイヤーのみを読み込む
+  await Promise.all(visibleLayers.map(async (layer) => {
+    const data = await fetchGeoJSONWithCache(layer.path)
+    // ...
+  }))
+}
+
+// マップの移動・ズーム時に自動更新（デバウンス300ms）
+map.on('moveend', handler)
+map.on('zoomend', handler)
+```
+
+#### パフォーマンス改善
+
+<table style={TableStyle.table}>
+  <thead>
+    <tr style={TableStyle.thead}>
+      <th style={TableStyle.th}>状況</th>
+      <th style={TableStyle.th}>読み込む都道府県数</th>
+      <th style={TableStyle.th}>改善効果</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>全国表示（改善前）</td>
+      <td style={TableStyle.td}>47都道府県すべて</td>
+      <td style={TableStyle.td}>-</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>関東地方を表示</td>
+      <td style={TableStyle.td}>7都道府県のみ</td>
+      <td style={TableStyle.td}>約6.7倍のメモリ削減</td>
+    </tr>
+    <tr style={TableStyle.tr}>
+      <td style={TableStyle.td}>東京周辺をズーム</td>
+      <td style={TableStyle.td}>1都道府県のみ</td>
+      <td style={TableStyle.td}>約47倍のメモリ削減</td>
+    </tr>
+  </tbody>
+</table>
+
+#### メリット
+
+- **メモリ使用量の削減**: 表示範囲内の都道府県のみを読み込むため、メモリ使用量を大幅に削減
+- **レンダリング負荷の軽減**: 表示されない都道府県のデータを読み込まないため、GPU負荷も軽減
+- **自動更新**: マップの移動・ズーム時に自動的に必要なデータのみを読み込む
+- **ユーザー体験の向上**: 画面が重くなることなく、スムーズに操作可能
+
+#### 実装の詳細
+
+- 各都道府県のバウンディングボックス情報を事前に定義（`src/lib/config/layers.ts`）
+- ビューポートのバウンディングボックスと都道府県のバウンディングボックスを比較
+- 交差する都道府県のみを読み込む
+- デバウンス処理（300ms）により、連続するイベントを抑制
+
+---
+
 ## 3. トータル パフォーマンス改善
 
 ### メモリ使用量
@@ -524,3 +639,6 @@ performance.measure('DID Load', 'did-load-start', 'did-load-end')
 - `src/App.tsx` (L1378-1616): mousemove スロットリング + queryRenderedFeatures 最適化
 - `src/App.tsx` (L3182-3243): DID バッチ処理
 - `src/App.tsx` (L420-466): メモリ最適化（MapLibre GL 直接参照）
+- `src/App.tsx` (L3487-3589): DID ビューポートベース動的読み込み
+- `src/lib/config/layers.ts`: 都道府県のバウンディングボックス定義
+- `src/lib/utils/geo.ts`: バウンディングボックス交差判定関数（`bboxesIntersect`）

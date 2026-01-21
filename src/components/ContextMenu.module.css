@@ -1,0 +1,377 @@
+/**
+ * Context Menu Styles
+ * Glassmorphism design matching GlassPanel patterns
+ * Enhanced with UI/UX best practices
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu {
+  background: rgba(26, 31, 46, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: visible;
+  min-width: 180px;
+  animation: fadeIn 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 3px 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Light mode */
+:global([data-theme="light"]) .menu {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Menu item wrapper */
+.itemWrapper {
+  position: relative;
+}
+
+/* Menu item */
+.item {
+  padding: 7px 10px;
+  margin: 0 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: all 0.1s ease;
+  position: relative;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+:global([data-theme="light"]) .item {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.item:not(.disabled):hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.item:not(.disabled):active {
+  background-color: rgba(255, 255, 255, 0.18);
+  transform: scale(0.98);
+}
+
+:global([data-theme="light"]) .item:not(.disabled):hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+:global([data-theme="light"]) .item:not(.disabled):active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.item.expanded {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+:global([data-theme="light"]) .item.expanded {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Disabled item */
+.item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item.disabled:hover {
+  background-color: transparent;
+}
+
+/* Item content */
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  width: 100%;
+}
+
+.icon {
+  font-size: 14px;
+  min-width: 18px;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.label {
+  flex: 1;
+  font-weight: 450;
+  white-space: nowrap;
+}
+
+.checkbox {
+  font-size: 14px;
+  min-width: 18px;
+  text-align: center;
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.item:hover .checkbox {
+  opacity: 1;
+}
+
+/* Modern toggle checkbox style */
+.checkboxModern {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.checkboxModern.checked {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border-color: transparent;
+}
+
+.checkboxModern.checked::after {
+  content: '✓';
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+:global([data-theme="light"]) .checkboxModern {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.shortcut {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+:global([data-theme="light"]) .shortcut {
+  color: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.arrow {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 8px;
+  transition: transform 0.15s ease;
+}
+
+.item:hover .arrow {
+  transform: translateX(2px);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:global([data-theme="light"]) .arrow {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+:global([data-theme="light"]) .item:hover .arrow {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Item with submenu - show arrow */
+.hasSubmenu .itemContent {
+  justify-content: space-between;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12) 15%,
+    rgba(255, 255, 255, 0.12) 85%,
+    transparent
+  );
+  margin: 4px 8px;
+}
+
+:global([data-theme="light"]) .divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.1) 15%,
+    rgba(0, 0, 0, 0.1) 85%,
+    transparent
+  );
+}
+
+/* Header item */
+.header {
+  padding: 6px 10px 4px;
+  margin: 2px 3px 1px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  user-select: none;
+}
+
+:global([data-theme="light"]) .header {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Submenu container - positioned absolutely within wrapper */
+.submenuContainer {
+  position: absolute;
+  top: -3px;
+  left: 100%;
+  margin-left: 4px;
+  z-index: 10001;
+  pointer-events: auto;
+}
+
+/* Submenu container - open to left when near right edge */
+.submenuContainer.submenuLeft {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+/* Submenu container - open upward when near bottom edge */
+.submenuContainer.submenuUp {
+  top: auto;
+  bottom: -3px;
+}
+
+/* Submenu */
+.submenu {
+  background: rgba(26, 31, 46, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: 180px;
+  animation: slideInRight 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+  padding: 3px 0;
+}
+
+/* Animation for submenu opening to the left */
+.submenuLeft .submenu {
+  animation: slideInLeft 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+:global([data-theme="light"]) .submenu {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scrollbar styling for submenus if needed */
+.submenu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.submenu::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.submenu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.submenu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .menu {
+    min-width: 160px;
+    border-radius: 8px;
+  }
+
+  .item {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .submenu {
+    min-width: 160px;
+    border-radius: 8px;
+  }
+}

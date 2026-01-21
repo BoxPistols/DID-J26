@@ -564,7 +564,7 @@ export function CustomLayerManager({
                   color: '#fff',
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: 500,
                   whiteSpace: 'nowrap',
                   opacity: isCloseHovered ? 1 : 0,
@@ -599,7 +599,7 @@ export function CustomLayerManager({
                     border: 'none',
                     color: theme.colors.textSubtle,
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     padding: 0
                   }}
                   title="描画データを再読み込み"
@@ -738,7 +738,7 @@ export function CustomLayerManager({
                 >
                   {importing ? 'インポート中...' : 'GeoJSONファイルを選択'}
                 </button>
-                <div style={{ marginTop: '6px', fontSize: '10px', color: theme.colors.textSubtle }}>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: theme.colors.textSubtle }}>
                   GeoJSONを取り込んでカスタムレイヤーとして保存します
                 </div>
               </>
@@ -802,7 +802,7 @@ export function CustomLayerManager({
                   </button>
                 </div>
 
-                <div style={{ marginTop: '6px', fontSize: '10px', color: theme.colors.textSubtle }}>
+                <div style={{ marginTop: '6px', fontSize: '12px', color: theme.colors.textSubtle }}>
                   {drawingFC
                     ? `${drawingFC.features.length} features（描画ツールの保存データ）`
                     : '描画データなし'}
@@ -827,7 +827,7 @@ export function CustomLayerManager({
                   border: 'none',
                   color: theme.colors.textSubtle,
                   cursor: 'pointer',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   padding: 0
                 }}
                 title="一覧を再読み込み（ID重複も自動修復されます）"
@@ -838,7 +838,7 @@ export function CustomLayerManager({
 
             {duplicateGroupsCount > 0 && (
               <div
-                style={{ fontSize: '10px', color: theme.colors.textSubtle, marginBottom: '6px' }}
+                style={{ fontSize: '12px', color: theme.colors.textSubtle, marginBottom: '6px' }}
               >
                 同内容の重複が {duplicateGroupsCount}{' '}
                 グループあります（必要なら「重複整理」で解消できます）
@@ -848,7 +848,7 @@ export function CustomLayerManager({
             {customLayers.length === 0 ? (
               <p
                 style={{
-                  fontSize: '11px',
+                  fontSize: '12px',
                   color: theme.colors.textSubtle,
                   textAlign: 'center',
                   padding: '16px'
@@ -866,7 +866,7 @@ export function CustomLayerManager({
                       marginBottom: '4px',
                       backgroundColor: darkMode ? 'rgba(255,255,255,0.06)' : '#f8f8f8',
                       borderRadius: '4px',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       border: `1px solid ${theme.colors.border}`
                     }}
                   >
@@ -910,36 +910,36 @@ export function CustomLayerManager({
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: '4px', marginLeft: '24px' }}>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>
                         {CATEGORIES.find((c) => c.id === layer.category)?.name || layer.category}
                       </span>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>|</span>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>|</span>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>
                         {layer.data.features.length} features
                       </span>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>|</span>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>|</span>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>
                         {(() => {
                           const c = countGeometryTypes(layer.data)
                           return `ポリゴン:${c.polygon} 経路:${c.line} WP:${c.point}`
                         })()}
                       </span>
-                      <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>|</span>
+                      <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>|</span>
                       <span
-                        style={{ color: theme.colors.textSubtle, fontSize: '10px' }}
+                        style={{ color: theme.colors.textSubtle, fontSize: '12px' }}
                         title={layer.id}
                       >
                         id:{layer.id.slice(-6)}
                       </span>
                       {duplicateCountByLayerId.has(layer.id) && (
                         <>
-                          <span style={{ color: theme.colors.textSubtle, fontSize: '10px' }}>
+                          <span style={{ color: theme.colors.textSubtle, fontSize: '12px' }}>
                             |
                           </span>
                           <span
                             style={{
                               color: darkMode ? '#ffca28' : '#8d6e63',
-                              fontSize: '10px',
+                              fontSize: '12px',
                               fontWeight: 700
                             }}
                             title="同内容（データ・色・透明度が同一）のレイヤーが複数あります"
@@ -957,7 +957,7 @@ export function CustomLayerManager({
                         onClick={() => focusLayer(layer.id)}
                         style={{
                           padding: '2px 8px',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           backgroundColor: darkMode
                             ? 'rgba(51,136,255,0.18)'
                             : 'rgba(51,136,255,0.12)',
@@ -977,7 +977,7 @@ export function CustomLayerManager({
                         onClick={() => handleExportLayer(layer.id)}
                         style={{
                           padding: '2px 8px',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           backgroundColor: darkMode ? 'rgba(255,255,255,0.10)' : '#e8e8e8',
                           border: 'none',
                           borderRadius: '2px',
@@ -991,7 +991,7 @@ export function CustomLayerManager({
                         onClick={() => handleRemoveLayer(layer.id)}
                         style={{
                           padding: '2px 8px',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           backgroundColor: darkMode ? 'rgba(239, 83, 80, 0.18)' : '#ffebee',
                           color: darkMode ? '#ff8a80' : '#c62828',
                           border: 'none',
@@ -1020,7 +1020,7 @@ export function CustomLayerManager({
                 style={{
                   flex: 1,
                   padding: '8px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   backgroundColor:
                     customLayers.length === 0
                       ? darkMode
@@ -1041,7 +1041,7 @@ export function CustomLayerManager({
                 style={{
                   flex: 1,
                   padding: '8px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   backgroundColor: darkMode ? 'rgba(255,255,255,0.10)' : '#f0f0f0',
                   border: 'none',
                   borderRadius: '4px',
@@ -1064,7 +1064,7 @@ export function CustomLayerManager({
                 style={{
                   flex: 1,
                   padding: '8px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   backgroundColor:
                     duplicateGroupsCount === 0
                       ? darkMode
@@ -1102,7 +1102,7 @@ export function CustomLayerManager({
             padding: '8px 16px',
             backgroundColor: darkMode ? 'rgba(255,255,255,0.06)' : '#f8f8f8',
             borderTop: `1px solid ${theme.colors.border}`,
-            fontSize: '10px',
+            fontSize: '12px',
             color: theme.colors.textSubtle
           }}
         >

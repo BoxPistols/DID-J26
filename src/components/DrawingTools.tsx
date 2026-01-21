@@ -592,9 +592,13 @@ export interface DrawingToolsProps {
   embedded?: boolean // サイドバー内に埋め込む場合true
   mapLoaded?: boolean // マップロード状態
   onOpenHelp?: () => void // ヘルプモーダルを開く
+  onDrawModeChange?: (mode: DrawMode) => void // Notify when drawing mode changes
   onUndoRedoReady?: (handlers: UndoRedoHandlers) => void
   onUndoRedoStateChange?: (state: UndoRedoState) => void
 }
+
+// Export DrawMode type for external use
+export type { DrawMode }
 
 // localStorage用のキー
 const STORAGE_KEY = 'did-map-drawn-features'
@@ -635,6 +639,7 @@ export function DrawingTools({
   embedded = false,
   mapLoaded = false,
   onOpenHelp,
+  onDrawModeChange,
   onUndoRedoReady,
   onUndoRedoStateChange
 }: DrawingToolsProps) {
@@ -721,6 +726,11 @@ export function DrawingTools({
       }
     }
   }, [prohibitedAreas])
+
+  // Notify parent when drawing mode changes
+  useEffect(() => {
+    onDrawModeChange?.(drawMode)
+  }, [drawMode, onDrawModeChange])
 
   const normalizeDrawnFeatures = useCallback(
     (features: GeoJSON.Feature[], _points: number): DrawnFeature[] => {
@@ -3065,7 +3075,7 @@ ${kmlFeatures}
                     borderRadius: '4px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: 'bold'
                   }}
                 >
@@ -3081,7 +3091,7 @@ ${kmlFeatures}
                     borderRadius: '4px',
                     color: '#e65100',
                     cursor: 'pointer',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: 'bold'
                   }}
                 >
@@ -3098,7 +3108,7 @@ ${kmlFeatures}
                   borderRadius: '4px',
                   color: isEditing ? '#fff' : '#e65100',
                   cursor: 'pointer',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: 'bold',
                   flexShrink: 0
                 }}
@@ -3166,7 +3176,7 @@ ${kmlFeatures}
                   color: '#fff',
                   borderRadius: '10px',
                   padding: '2px 6px',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   fontWeight: 'bold'
                 }}
               >
@@ -3316,7 +3326,7 @@ ${kmlFeatures}
                   </label>
                   <p
                     style={{
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: darkMode ? '#ccc' : '#666',
                       margin: '0 0 8px'
                     }}
@@ -3428,7 +3438,7 @@ ${kmlFeatures}
                   </label>
                   <p
                     style={{
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: darkMode ? '#ccc' : '#666',
                       margin: '6px 0 0',
                       paddingLeft: '24px'
@@ -3466,13 +3476,13 @@ ${kmlFeatures}
                   }}
                 >
                   <span>操作ガイド</span>
-                  <span style={{ fontSize: '10px' }}>{showGuide ? '▲' : '▼'}</span>
+                  <span style={{ fontSize: '12px' }}>{showGuide ? '▲' : '▼'}</span>
                 </button>
                 {showGuide && (
                   <div
                     style={{
                       marginTop: '8px',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: darkMode ? '#aaa' : '#666',
                       lineHeight: '1.6'
                     }}
@@ -3506,7 +3516,7 @@ ${kmlFeatures}
                           border: 'none',
                           borderRadius: '4px',
                           cursor: 'pointer',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           fontWeight: 600,
                           transition: 'background-color 0.2s'
                         }}
@@ -3556,11 +3566,11 @@ ${kmlFeatures}
                     描画済み
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '11px', color: darkMode ? '#888' : '#666' }}>
+                    <span style={{ fontSize: '12px', color: darkMode ? '#888' : '#666' }}>
                       {filteredFeatures.length}/{drawnFeatures.length}件
                     </span>
                     {selectedFeatureIds.size > 0 && (
-                      <span style={{ fontSize: '11px', color: darkMode ? '#ffcc80' : '#ef6c00' }}>
+                      <span style={{ fontSize: '12px', color: darkMode ? '#ffcc80' : '#ef6c00' }}>
                         選択中: {selectedFeatureIds.size}
                       </span>
                     )}
@@ -3580,7 +3590,7 @@ ${kmlFeatures}
                     <p
                       style={{
                         padding: '8px',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         color: darkMode ? '#aaa' : '#888',
                         margin: 0,
                         textAlign: 'center'
@@ -3740,7 +3750,7 @@ ${kmlFeatures}
                             {editingNameId === f.id && editingNameError && (
                               <div
                                 style={{
-                                  fontSize: '10px',
+                                  fontSize: '12px',
                                   color: '#f44336',
                                   whiteSpace: 'nowrap'
                                 }}
@@ -3757,7 +3767,7 @@ ${kmlFeatures}
                             }}
                             style={{
                               padding: '2px 6px',
-                              fontSize: '9px',
+                              fontSize: '12px',
                               border: 'none',
                               borderRadius: '10px',
                               cursor: 'pointer',
@@ -3806,7 +3816,7 @@ ${kmlFeatures}
                         onClick={() => setTypeFilter(type)}
                         style={{
                           padding: '3px 8px',
-                          fontSize: '10px',
+                          fontSize: '12px',
                           border: 'none',
                           borderRadius: '12px',
                           cursor: 'pointer',
@@ -3836,7 +3846,7 @@ ${kmlFeatures}
                         style={{
                           flex: 1,
                           padding: '5px 8px',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           border: `1px solid ${darkMode ? '#555' : '#ccc'}`,
                           borderRadius: '4px',
                           cursor: 'pointer',
@@ -3852,7 +3862,7 @@ ${kmlFeatures}
                         style={{
                           flex: 1,
                           padding: '5px 8px',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           border: 'none',
                           borderRadius: '4px',
                           cursor: checkedFeatureIds.size === 0 ? 'not-allowed' : 'pointer',
@@ -4041,7 +4051,7 @@ ${kmlFeatures}
                       <div style={{ marginBottom: '8px' }}>
                         <label
                           style={{
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: darkMode ? '#aaa' : '#666',
                             display: 'block',
                             marginBottom: '4px'
@@ -4073,7 +4083,7 @@ ${kmlFeatures}
                               color: '#fff',
                               border: 'none',
                               borderRadius: '4px',
-                              fontSize: '11px',
+                              fontSize: '12px',
                               cursor: 'pointer',
                               whiteSpace: 'nowrap'
                             }}
@@ -4087,7 +4097,7 @@ ${kmlFeatures}
                       <div style={{ marginBottom: '8px' }}>
                         <label
                           style={{
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: darkMode ? '#aaa' : '#666',
                             display: 'block',
                             marginBottom: '4px'
@@ -4124,7 +4134,7 @@ ${kmlFeatures}
                           />
                           <span
                             style={{
-                              fontSize: '11px',
+                              fontSize: '12px',
                               color: darkMode ? '#aaa' : '#666',
                               whiteSpace: 'nowrap'
                             }}
@@ -4133,7 +4143,7 @@ ${kmlFeatures}
                           </span>
                         </div>
                         {elevation === undefined && (
-                          <p style={{ fontSize: '10px', color: '#f44336', margin: '4px 0 0' }}>
+                          <p style={{ fontSize: '12px', color: '#f44336', margin: '4px 0 0' }}>
                             ※ 先に標高を取得してください
                           </p>
                         )}
@@ -4143,7 +4153,7 @@ ${kmlFeatures}
                       <div>
                         <label
                           style={{
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: darkMode ? '#aaa' : '#666',
                             display: 'block',
                             marginBottom: '4px'
@@ -4177,7 +4187,7 @@ ${kmlFeatures}
                       {/* 説明 */}
                       <p
                         style={{
-                          fontSize: '10px',
+                          fontSize: '12px',
                           color: darkMode ? '#aaa' : '#666',
                           margin: '8px 0 0',
                           lineHeight: 1.4
@@ -4216,7 +4226,7 @@ ${kmlFeatures}
                     border: `1px solid ${isEditing ? '#4caf50' : selectedFeatureId ? (darkMode ? '#1565c0' : borderColor) : borderColor}`,
                     borderRadius: '4px',
                     cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
-                    fontSize: '11px',
+                    fontSize: '12px',
                     fontWeight: isEditing ? 'bold' : 'normal'
                   }}
                 >
@@ -4243,7 +4253,7 @@ ${kmlFeatures}
                     border: `1px solid ${selectedFeatureId ? (darkMode ? '#c62828' : borderColor) : borderColor}`,
                     borderRadius: '4px',
                     cursor: selectedFeatureId ? 'pointer' : 'not-allowed',
-                    fontSize: '11px'
+                    fontSize: '12px'
                   }}
                 >
                   削除
@@ -4269,7 +4279,7 @@ ${kmlFeatures}
                             backgroundColor: darkMode ? '#2d3e2d' : '#f1f8e9',
                             borderRadius: '4px',
                             border: '1px solid #8bc34a',
-                            fontSize: '11px',
+                            fontSize: '12px',
                             color: darkMode ? '#c5e1a5' : '#558b2f'
                           }}
                         >
@@ -4294,7 +4304,7 @@ ${kmlFeatures}
                             backgroundColor: darkMode ? '#1e3a5f' : '#e3f2fd',
                             borderRadius: '4px',
                             border: `1px solid ${darkMode ? '#2196f3' : '#90caf9'}`,
-                            fontSize: '10px',
+                            fontSize: '12px',
                             color: darkMode ? '#90caf9' : '#1565c0'
                           }}
                         >
@@ -4331,7 +4341,7 @@ ${kmlFeatures}
                   エクスポート形式
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: '12px',
                       fontWeight: 400
                     }}
                   >
@@ -4373,7 +4383,7 @@ ${kmlFeatures}
                           }`,
                           borderRadius: '4px',
                           cursor: 'pointer',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           fontWeight: exportFormat === format ? '700' : 'normal',
                           transition: 'all 0.2s'
                         }}
@@ -4414,7 +4424,7 @@ ${kmlFeatures}
                           }`,
                           borderRadius: '4px',
                           cursor: 'pointer',
-                          fontSize: '11px',
+                          fontSize: '12px',
                           fontWeight: exportFormat === format ? '700' : 'normal',
                           transition: 'all 0.2s'
                         }}
@@ -4449,7 +4459,7 @@ ${kmlFeatures}
                         }`,
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         fontWeight: exportFormat === 'dms' ? '700' : 'normal',
                         transition: 'all 0.2s'
                       }}
@@ -4528,7 +4538,7 @@ ${kmlFeatures}
                       border: `1px solid ${borderColor}`,
                       borderRadius: '6px',
                       cursor: drawnFeatures.length > 0 ? 'pointer' : 'not-allowed',
-                      fontSize: '11px',
+                      fontSize: '12px',
                       fontWeight: 700
                     }}
                   >
@@ -4549,7 +4559,7 @@ ${kmlFeatures}
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer',
-                      fontSize: '10px'
+                      fontSize: '12px'
                     }}
                   >
                     全て削除
@@ -4577,7 +4587,7 @@ ${kmlFeatures}
                   ファイル読込
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: '12px',
                       color: darkMode ? '#ffd54f' : '#ff8f00',
                       fontWeight: 400,
                       paddingLeft: '4px'
@@ -4619,7 +4629,7 @@ ${kmlFeatures}
                   </button>
                   <div
                     style={{
-                      fontSize: '10px',
+                      fontSize: '12px',
                       color: darkMode ? '#bbb' : '#666',
                       lineHeight: 1.5
                     }}
@@ -4842,7 +4852,7 @@ ${kmlFeatures}
             padding: '12px',
             backgroundColor: darkMode ? '#2d2d2d' : '#f5f5f5',
             borderRadius: '4px',
-            fontSize: '11px',
+            fontSize: '12px',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-all',
             fontFamily: 'Monaco, Consolas, monospace',

@@ -448,7 +448,7 @@ export const NoElevation: Story = {
               backgroundColor: '#f0f0f0',
               padding: '12px',
               borderRadius: '4px',
-              fontSize: '11px',
+              fontSize: '12px',
               color: '#666',
               marginTop: '12px'
             }}
@@ -557,7 +557,7 @@ export const WithRecommendedAltitude: Story = {
                     <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>
                       m AGL
                     </span>
-                    <div style={{ fontSize: '11px', color: '#666', marginTop: '6px' }}>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}>
                       * AGL = Above Ground Level
                       <br />* 安全マージン: 30m
                     </div>

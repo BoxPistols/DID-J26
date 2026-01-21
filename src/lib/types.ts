@@ -32,6 +32,7 @@ export interface LayerConfig {
   name: string /** Display name of the layer (prefecture name) */
   path: string /** Path to GeoJSON data file */
   color: string /** Hex color code for layer visualization */
+  bounds?: [[number, number], [number, number]] /** Bounding box [[minLng, minLat], [maxLng, maxLat]] for viewport-based loading */
 }
 
 /**

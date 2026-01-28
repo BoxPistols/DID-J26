@@ -64,7 +64,8 @@ const getStoredSettings = () => {
 export function useCoordinateTools(
   options: UseCoordinateToolsOptions = {}
 ): UseCoordinateToolsResult {
-  const stored = getStoredSettings()
+  // Use useState initialization function to read localStorage only once
+  const [stored] = useState(() => getStoredSettings())
 
   // Coordinate format
   const [coordFormat, setCoordFormatState] = useState<'decimal' | 'dms'>(
@@ -123,6 +124,35 @@ export function useCoordinateTools(
   useEffect(() => {
     coordFormatRef.current = coordFormat
   }, [coordFormat])
+
+  // Persist settings to localStorage
+  useEffect(() => {
+    try {
+      const current = localStorage.getItem('ui-settings')
+      const parsed = current ? JSON.parse(current) : {}
+      const updated = {
+        ...parsed,
+        enableCoordinateDisplay,
+        coordClickType,
+        coordDisplayPosition,
+        showFocusCrosshair,
+        crosshairDesign,
+        crosshairColor,
+        crosshairClickCapture
+      }
+      localStorage.setItem('ui-settings', JSON.stringify(updated))
+    } catch (e) {
+      console.error('Failed to save coordinate settings:', e)
+    }
+  }, [
+    enableCoordinateDisplay,
+    coordClickType,
+    coordDisplayPosition,
+    showFocusCrosshair,
+    crosshairDesign,
+    crosshairColor,
+    crosshairClickCapture
+  ])
 
   const setCoordFormat = useCallback((format: 'decimal' | 'dms') => {
     setCoordFormatState(format)

@@ -108,8 +108,8 @@ export function saveMapViewState(state: MapViewState): void {
   if (typeof window === 'undefined') return
   try {
     sessionStorage.setItem(MAP_VIEW_STATE_KEY, JSON.stringify(state))
-  } catch {
-    // ignore
+  } catch (e) {
+    console.error('Failed to save map view state:', e)
   }
 }
 
@@ -133,11 +133,12 @@ export function loadMapViewState(): MapViewState | null {
     if (typeof bearing !== 'number' || !Number.isFinite(bearing)) return null
 
     return { center: [lng, lat], zoom, pitch, bearing }
-  } catch {
+  } catch (e) {
+    console.error('Failed to load map view state:', e)
     try {
       sessionStorage.removeItem(MAP_VIEW_STATE_KEY)
     } catch {
-      // ignore
+      // ignore cleanup errors
     }
     return null
   }

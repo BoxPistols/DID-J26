@@ -41,7 +41,8 @@ const getStoredSidebarWidths = (): { left: number; right: number } => {
 
 export function useSidebarResize(options: UseSidebarResizeOptions = {}): UseSidebarResizeResult {
   const { minWidth = 200, maxWidth = 600 } = options
-  const storedWidths = getStoredSidebarWidths()
+  // Use useState initialization function to read localStorage only once
+  const [storedWidths] = useState(() => getStoredSidebarWidths())
 
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(
     options.initialLeftWidth ?? storedWidths.left
@@ -51,6 +52,22 @@ export function useSidebarResize(options: UseSidebarResizeOptions = {}): UseSide
   )
   const [isResizingLeft, setIsResizingLeft] = useState(false)
   const [isResizingRight, setIsResizingRight] = useState(false)
+
+  // Persist sidebar widths to localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ui-settings')
+      const parsed = stored ? JSON.parse(stored) : {}
+      const nextSettings = {
+        ...parsed,
+        leftSidebarWidth,
+        rightSidebarWidth
+      }
+      localStorage.setItem('ui-settings', JSON.stringify(nextSettings))
+    } catch (e) {
+      console.error('Failed to save sidebar widths:', e)
+    }
+  }, [leftSidebarWidth, rightSidebarWidth])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

@@ -84,6 +84,7 @@ import {
   formatDailyDate
 } from './lib/services/weatherApi'
 import { WeatherForecastPanel } from './components/weather/WeatherForecastPanel'
+import { NationwideWeatherMap } from './components/weather/NationwideWeatherMap'
 import { convertDecimalToDMS } from './lib/utils/geo'
 
 // ============================================
@@ -524,6 +525,7 @@ function App() {
   const [showWeatherForecast, setShowWeatherForecast] = useState(false)
   const [selectedPrefectureId, setSelectedPrefectureId] = useState<string | undefined>()
   const [enableWeatherClick, setEnableWeatherClick] = useState(false)
+  const [showNationwideWeather, setShowNationwideWeather] = useState(false)
   // ローディング状態管理（レイヤーID -> 表示名）
   const [loadingLayers, setLoadingLayers] = useState<Map<string, string>>(new Map())
   // プログレスバーの表示状態（フェードアウト用）
@@ -5775,6 +5777,25 @@ function App() {
             </div>
           )}
 
+          <label
+            title="全国の主要都市の天気と気温を地図上にアイコンで表示"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={showNationwideWeather}
+              onChange={() => setShowNationwideWeather(!showNationwideWeather)}
+            />
+            <span>全国天気マップ</span>
+          </label>
+
           <button
             onClick={() => setShowWeatherForecast(true)}
             style={{
@@ -6886,6 +6907,15 @@ function App() {
             : undefined
         }
       />
+
+      {/* Nationwide Weather Map */}
+      {mapRef.current && (
+        <NationwideWeatherMap
+          map={mapRef.current}
+          visible={showNationwideWeather}
+          darkMode={darkMode}
+        />
+      )}
 
       {/* Weather Forecast Panel */}
       {showWeatherForecast && (

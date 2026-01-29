@@ -96,6 +96,7 @@ interface NationwideWeatherMapProps {
   map: maplibregl.Map
   visible: boolean
   darkMode?: boolean
+  onLoadingChange?: (isLoading: boolean, progress?: number) => void
 }
 
 // SVG Weather Icons (professional, no emoji)
@@ -150,35 +151,61 @@ const WeatherIcons = {
   </svg>`,
 }
 
-export function NationwideWeatherMap({ map, visible, darkMode = false }: NationwideWeatherMapProps) {
+export function NationwideWeatherMap({ map, visible, darkMode = false, onLoadingChange }: NationwideWeatherMapProps) {
   const [cityWeather, setCityWeather] = useState<CityWeatherData[]>(() =>
     WEATHER_LOCATIONS.map(city => ({ ...city, weather: null, loading: true }))
   )
+  const [isLoading, setIsLoading] = useState(false)
   const markersRef = useRef<maplibregl.Marker[]>([])
   const fetchedRef = useRef(false)
 
-  // Fetch weather for all cities
+  // Fetch weather for all cities with progress tracking
   const fetchAllWeather = useCallback(async () => {
     if (fetchedRef.current) return
     fetchedRef.current = true
+    setIsLoading(true)
+    onLoadingChange?.(true, 0)
 
-    const results = await Promise.allSettled(
-      WEATHER_LOCATIONS.map(async (city) => {
-        const weather = await fetchWeather(city.lat, city.lng)
-        return { id: city.id, weather }
+    const total = WEATHER_LOCATIONS.length
+    let completed = 0
+    const weatherResults: { id: string; weather: WeatherData | null }[] = []
+
+    // Fetch in batches of 10 to show progress
+    const batchSize = 10
+    for (let i = 0; i < WEATHER_LOCATIONS.length; i += batchSize) {
+      const batch = WEATHER_LOCATIONS.slice(i, i + batchSize)
+      const batchResults = await Promise.allSettled(
+        batch.map(async (city) => {
+          const weather = await fetchWeather(city.lat, city.lng)
+          return { id: city.id, weather }
+        })
+      )
+
+      batchResults.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          weatherResults.push(result.value)
+        } else {
+          weatherResults.push({ id: batch[idx].id, weather: null })
+        }
       })
-    )
+
+      completed += batch.length
+      const progress = Math.round((completed / total) * 100)
+      onLoadingChange?.(true, progress)
+    }
 
     setCityWeather(prev =>
       prev.map(city => {
-        const result = results.find((_, i) => WEATHER_LOCATIONS[i].id === city.id)
-        if (result && result.status === 'fulfilled') {
-          return { ...city, weather: result.value.weather, loading: false }
+        const result = weatherResults.find(r => r.id === city.id)
+        if (result) {
+          return { ...city, weather: result.weather, loading: false }
         }
         return { ...city, loading: false }
       })
     )
-  }, [])
+    setIsLoading(false)
+    onLoadingChange?.(false, 100)
+  }, [onLoadingChange])
 
   // Fetch weather on mount
   useEffect(() => {
@@ -213,13 +240,16 @@ export function NationwideWeatherMap({ map, visible, darkMode = false }: Nationw
         transform: translate(-50%, -100%);
       `
 
-      // Weather card
+      // Weather card with glassmorphism
       const card = document.createElement('div')
       card.style.cssText = `
-        background: ${darkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)'};
-        border-radius: 8px;
+        background: ${darkMode ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.88)'};
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'};
+        border-radius: 10px;
         padding: 4px 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, ${darkMode ? '0.3' : '0.12'});
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -279,6 +309,14 @@ export function NationwideWeatherMap({ map, visible, darkMode = false }: Nationw
       const regionBg = darkMode ? '#475569' : '#f0f0f0'
       const regionText = darkMode ? '#cbd5e1' : '#888'
 
+      // Glassmorphism colors - light mode nearly opaque for readability
+      const glassBg = darkMode
+        ? 'rgba(30, 41, 59, 0.92)'
+        : 'rgba(255, 255, 255, 0.97)'
+      const glassBorder = darkMode
+        ? 'rgba(255, 255, 255, 0.15)'
+        : 'rgba(0, 0, 0, 0.1)'
+
       const popup = new maplibregl.Popup({
         offset: 25,
         closeButton: true,
@@ -286,76 +324,96 @@ export function NationwideWeatherMap({ map, visible, darkMode = false }: Nationw
         maxWidth: '280px',
         className: darkMode ? 'weather-popup-dark' : 'weather-popup-light'
       })
+
+      // ESC key handler to close popup
+      const handleEscKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          popup.remove()
+        }
+      }
+
+      popup.on('open', () => {
+        document.addEventListener('keydown', handleEscKey)
+      })
+
+      popup.on('close', () => {
+        document.removeEventListener('keydown', handleEscKey)
+      })
         .setHTML(`
           <style>
-            .weather-popup-dark .maplibregl-popup-content {
-              background: ${popupBg};
-              box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            }
+            .weather-popup-dark .maplibregl-popup-content,
             .weather-popup-light .maplibregl-popup-content {
-              background: ${popupBg};
-              box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+              background: ${glassBg};
+              backdrop-filter: blur(20px);
+              -webkit-backdrop-filter: blur(20px);
+              border: 1px solid ${glassBorder};
+              border-radius: 16px;
+              box-shadow: 0 8px 32px rgba(0, 0, 0, ${darkMode ? '0.4' : '0.25'}),
+                          0 2px 8px rgba(0, 0, 0, ${darkMode ? '0.2' : '0.1'});
+              padding: 0;
+              overflow: hidden;
             }
             .weather-popup-dark .maplibregl-popup-close-button,
             .weather-popup-light .maplibregl-popup-close-button {
               width: 28px;
               height: 28px;
               font-size: 18px;
-              line-height: 28px;
-              text-align: center;
-              border-radius: 6px;
-              margin: 6px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 8px;
+              margin: 8px;
               padding: 0;
-              background: ${darkMode ? '#475569' : '#e2e8f0'};
+              background: ${darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
               color: ${darkMode ? '#e2e8f0' : '#475569'};
-              transition: background 0.15s;
+              border: none;
+              outline: none;
+              cursor: pointer;
+              transition: all 0.2s ease;
             }
             .weather-popup-dark .maplibregl-popup-close-button:hover,
             .weather-popup-light .maplibregl-popup-close-button:hover {
-              background: ${darkMode ? '#64748b' : '#cbd5e1'};
+              background: ${darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'};
             }
-            .weather-popup-dark .maplibregl-popup-tip {
-              border-top-color: ${popupBg};
+            .weather-popup-dark .maplibregl-popup-close-button:focus,
+            .weather-popup-light .maplibregl-popup-close-button:focus {
+              outline: none;
+              box-shadow: none;
             }
+            .weather-popup-dark .maplibregl-popup-tip,
             .weather-popup-light .maplibregl-popup-tip {
-              border-top-color: ${popupBg};
+              border-top-color: ${glassBg};
             }
           </style>
-          <div style="padding: 12px; font-family: system-ui, sans-serif; min-width: 200px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-right: 24px;">
-              <div style="font-weight: 700; font-size: 16px; color: ${textPrimary};">${city.name}</div>
-              ${city.region ? `<span style="font-size: 11px; color: ${regionText}; background: ${regionBg}; padding: 2px 6px; border-radius: 4px;">${city.region}</span>` : ''}
+          <div style="padding: 16px; font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-right: 20px;">
+              <div style="font-weight: 700; font-size: 18px; color: ${textPrimary};">${city.name}</div>
+              ${city.region ? `<span style="font-size: 11px; color: ${darkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'}; background: ${darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}; padding: 3px 8px; border-radius: 6px;">${city.region}</span>` : ''}
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 8px; background: ${cardBg}; border-radius: 8px;">
-              <span style="font-size: 36px;">${weatherInfo.icon}</span>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <span style="font-size: 40px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">${weatherInfo.icon}</span>
               <div>
-                <div style="font-size: 28px; font-weight: 700; color: ${temp < 0 ? '#3b82f6' : temp > 30 ? '#ef4444' : textPrimary};">${temp}°C</div>
-                <div style="font-size: 13px; color: ${textSecondary};">${weatherInfo.label}</div>
+                <div style="font-size: 32px; font-weight: 700; color: ${temp < 0 ? '#3b82f6' : temp > 30 ? '#ef4444' : textPrimary}; line-height: 1;">${temp}°C</div>
+                <div style="font-size: 14px; color: ${textSecondary}; margin-top: 2px;">${weatherInfo.label}</div>
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px;">
-                <span style="font-size: 14px;">💨</span>
-                <div>
-                  <div style="color: ${textSecondary}; font-size: 10px;">風速</div>
-                  <div style="font-weight: 600; color: ${infoText};">${windSpeed.toFixed(1)} m/s</div>
-                </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 12px;">
+              <div style="text-align: center; padding: 8px 4px;">
+                <div style="font-size: 16px; margin-bottom: 4px;">💨</div>
+                <div style="color: ${textSecondary}; font-size: 10px; margin-bottom: 2px;">風速</div>
+                <div style="font-weight: 600; color: ${textPrimary};">${windSpeed.toFixed(1)} m/s</div>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px;">
-                <span style="font-size: 14px;">💧</span>
-                <div>
-                  <div style="color: ${textSecondary}; font-size: 10px;">湿度</div>
-                  <div style="font-weight: 600; color: ${infoText};">${humidity}%</div>
-                </div>
+              <div style="text-align: center; padding: 8px 4px;">
+                <div style="font-size: 16px; margin-bottom: 4px;">💧</div>
+                <div style="color: ${textSecondary}; font-size: 10px; margin-bottom: 2px;">湿度</div>
+                <div style="font-weight: 600; color: ${textPrimary};">${humidity}%</div>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px; grid-column: span 2;">
-                <span style="font-size: 14px;">🌧️</span>
-                <div>
-                  <div style="color: ${textSecondary}; font-size: 10px;">降水量</div>
-                  <div style="font-weight: 600; color: ${infoText};">${precipitation.toFixed(1)} mm</div>
-                </div>
+              <div style="text-align: center; padding: 8px 4px;">
+                <div style="font-size: 16px; margin-bottom: 4px;">🌧️</div>
+                <div style="color: ${textSecondary}; font-size: 10px; margin-bottom: 2px;">降水量</div>
+                <div style="font-weight: 600; color: ${textPrimary};">${precipitation.toFixed(1)} mm</div>
               </div>
             </div>
           </div>

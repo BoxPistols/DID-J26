@@ -526,8 +526,8 @@ function App() {
   const [selectedPrefectureId, setSelectedPrefectureId] = useState<string | undefined>()
   const [enableWeatherClick, setEnableWeatherClick] = useState(false)
   const [showNationwideWeather, setShowNationwideWeather] = useState(false)
-  // ローディング状態管理（レイヤーID -> 表示名）
-  const [loadingLayers, setLoadingLayers] = useState<Map<string, string>>(new Map())
+  // ローディング状態管理（レイヤーID -> { name: 表示名, progress?: 進捗率 }）
+  const [loadingLayers, setLoadingLayers] = useState<Map<string, { name: string; progress?: number }>>(new Map())
   // プログレスバーの表示状態（フェードアウト用）
   const [showProgressBar, setShowProgressBar] = useState(false)
   const enableWeatherClickRef = useRef(false)
@@ -2299,7 +2299,7 @@ function App() {
       // ローディング開始
       setLoadingLayers((prev) => {
         const next = new Map(prev)
-        next.set(layer.id, layer.name)
+        next.set(layer.id, { name: layer.name })
         return next
       })
 
@@ -2943,7 +2943,7 @@ function App() {
       setLoadingLayers((prev) => {
         const next = new Map(prev)
         layersToLoad.forEach((layer) => {
-          next.set(layer.id, layer.name)
+          next.set(layer.id, { name: layer.name })
         })
         return next
       })
@@ -3798,7 +3798,7 @@ function App() {
           // ローディング開始
           setLoadingLayers((prev) => {
             const next = new Map(prev)
-            next.set(restrictionId, facilityLayer.name)
+            next.set(restrictionId, { name: facilityLayer.name })
             return next
           })
 
@@ -6010,60 +6010,113 @@ function App() {
 
       {/* Loading Progress Bar - 画面最上部に配置 */}
       {showProgressBar && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '3px',
-            backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-            zIndex: 1300,
-            overflow: 'hidden',
-            animation:
-              loadingLayers.size > 0
-                ? 'fadeInProgressBar 0.3s ease-in forwards'
-                : 'fadeOutProgressBar 0.3s ease-out forwards'
-          }}
-        >
+        <>
           <div
             style={{
-              height: '100%',
-              width: '100%',
-              background: `linear-gradient(90deg, 
-                ${darkMode ? '#4a90d9' : '#2563eb'} 0%, 
-                ${darkMode ? '#6ba3e8' : '#3b82f6'} 50%, 
-                ${darkMode ? '#4a90d9' : '#2563eb'} 100%)`,
-              backgroundSize: '200% 100%',
-              animation: 'progressBar 1.5s ease-in-out infinite',
-              opacity: 0.7
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+              zIndex: 1300,
+              overflow: 'hidden',
+              animation:
+                loadingLayers.size > 0
+                  ? 'fadeInProgressBar 0.3s ease-in forwards'
+                  : 'fadeOutProgressBar 0.3s ease-out forwards'
             }}
-          />
-        </div>
+          >
+            <div
+              style={{
+                height: '100%',
+                width: '100%',
+                background: `linear-gradient(90deg,
+                  transparent 0%,
+                  ${darkMode ? '#4a90d9' : '#2563eb'} 25%,
+                  ${darkMode ? '#8bb8f0' : '#60a5fa'} 50%,
+                  ${darkMode ? '#4a90d9' : '#2563eb'} 75%,
+                  transparent 100%)`,
+                backgroundSize: '200% 100%',
+                animation: 'progressBarSlide 2s ease-in-out infinite'
+              }}
+            />
+          </div>
+          {/* Loading status text - 控えめに右上に表示 */}
+          {loadingLayers.size > 0 && (
+            <div
+              style={{
+                position: 'fixed',
+                top: '8px',
+                right: '12px',
+                zIndex: 1301,
+                fontSize: '11px',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+                animation: 'fadeInProgressBar 0.3s ease-in forwards, loadingPulse 3s ease-in-out infinite',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {/* Spinner icon */}
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                style={{ animation: 'spin 1.5s linear infinite' }}
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke={darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'}
+                  strokeWidth="3"
+                />
+                <path
+                  d="M12 2a10 10 0 0 1 10 10"
+                  stroke={darkMode ? '#60a5fa' : '#2563eb'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+              {Array.from(loadingLayers.values()).map((info, idx, arr) => (
+                <span key={idx}>
+                  {info.name}
+                  {info.progress !== undefined && info.progress < 100 && (
+                    <span style={{ marginLeft: '3px', fontWeight: 500 }}>{info.progress}%</span>
+                  )}
+                  {idx < arr.length - 1 && <span style={{ margin: '0 2px' }}>·</span>}
+                </span>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Progress bar animations */}
       <style>
         {`
           @keyframes fadeInProgressBar {
-            from {
-              opacity: 0;
-            }
-            to {
-              opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
           }
           @keyframes fadeOutProgressBar {
-            from {
-              opacity: 1;
-            }
-            to {
-              opacity: 0;
-            }
+            from { opacity: 1; }
+            to { opacity: 0; }
           }
-          @keyframes progressBar {
+          @keyframes progressBarSlide {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
+          }
+          @keyframes loadingPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
           }
         `}
       </style>
@@ -6930,6 +6983,17 @@ function App() {
           map={mapRef.current}
           visible={showNationwideWeather}
           darkMode={darkMode}
+          onLoadingChange={(loading, progress) => {
+            setLoadingLayers((prev) => {
+              const next = new Map(prev)
+              if (loading) {
+                next.set('nationwide-weather', { name: '全国天気', progress })
+              } else {
+                next.delete('nationwide-weather')
+              }
+              return next
+            })
+          }}
         />
       )}
 

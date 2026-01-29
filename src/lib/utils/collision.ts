@@ -55,7 +55,7 @@ export interface PolygonCollisionResult {
   message: string
 }
 
-type RBushItem = {
+export type RBushItem = {
   minX: number
   minY: number
   maxX: number

@@ -1,0 +1,177 @@
+/* CollisionIndicator Component Styles */
+
+.container {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  border-left: 4px solid;
+}
+
+.container.danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+.container.warning {
+  background-color: rgba(234, 179, 8, 0.1);
+  border-left-color: #eab308;
+  color: #854d0e;
+}
+
+.container.safe {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-left-color: #22c55e;
+  color: #166534;
+}
+
+.container.compact {
+  padding: 4px;
+  border-left: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.label {
+  font-size: 14px;
+}
+
+.message {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.areaName {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.intersections {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* Summary Styles */
+.summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.summary.danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.summary.warning {
+  background-color: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.summary.safe {
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.summaryIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.summaryDetails {
+  flex: 1;
+}
+
+.summaryTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.summaryText {
+  font-weight: 500;
+  color: #166534;
+}
+
+.summaryBreakdown {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dangerBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #ef4444;
+  color: white;
+}
+
+.warningBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #eab308;
+  color: #1e1e1e;
+}
+
+/* Dark mode support */
+:global(.dark) .container.danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+:global(.dark) .container.warning {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+}
+
+:global(.dark) .container.safe {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+:global(.dark) .summary.danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+:global(.dark) .summary.warning {
+  background-color: rgba(234, 179, 8, 0.2);
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+:global(.dark) .summary.safe {
+  background-color: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+:global(.dark) .summaryText {
+  color: #86efac;
+}

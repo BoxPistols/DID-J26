@@ -34,7 +34,7 @@ export {
   type FlightWindowResult
 } from './useFlightWindow'
 
-export { 
+export {
   useOperationSafety,
   getSafetyLevelColor,
   getSafetyLevelText,
@@ -42,3 +42,12 @@ export {
   type SafetyReason,
   type SafetyLevel
 } from './useOperationSafety'
+
+export {
+  useCollisionDetection,
+  useProhibitedAreas,
+  type Waypoint,
+  type FlightPath,
+  type CollisionDetectionResult,
+  type UseCollisionDetectionOptions
+} from './useCollisionDetection'

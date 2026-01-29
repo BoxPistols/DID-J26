@@ -530,6 +530,8 @@ function App() {
   const [loadingLayers, setLoadingLayers] = useState<Map<string, { name: string; progress?: number }>>(new Map())
   // プログレスバーの表示状態（フェードアウト用）
   const [showProgressBar, setShowProgressBar] = useState(false)
+  // ローディング表示用のキャッシュ（フェードアウト中も表示するため）
+  const lastLoadingLayersRef = useRef<Map<string, { name: string; progress?: number }>>(new Map())
   const enableWeatherClickRef = useRef(false)
   const weatherPopupRef = useRef<maplibregl.Popup | null>(null)
 
@@ -2218,18 +2220,21 @@ function App() {
   // ============================================
   // Progress bar fade in/out effect
   // ============================================
+  // loadingLayers の変更を検知するために size を別の変数に
+  const loadingLayersSize = loadingLayers.size
   useEffect(() => {
-    if (loadingLayers.size > 0) {
-      // ローディング開始時：即座に表示
+    if (loadingLayersSize > 0) {
+      // ローディング開始時：キャッシュを更新して即座に表示
+      lastLoadingLayersRef.current = new Map(loadingLayers)
       setShowProgressBar(true)
     } else {
       // ローディング終了時：フェードアウト後に非表示
       const timer = setTimeout(() => {
         setShowProgressBar(false)
-      }, 300) // フェードアウトアニメーション時間に合わせる
+      }, 500) // フェードアウトアニメーション時間 + 余裕
       return () => clearTimeout(timer)
     }
-  }, [loadingLayers.size])
+  }, [loadingLayersSize, loadingLayers])
 
   // ============================================
   // Opacity effect
@@ -6043,55 +6048,62 @@ function App() {
             />
           </div>
           {/* Loading status text - 控えめに右上に表示 */}
-          {loadingLayers.size > 0 && (
-            <div
-              style={{
-                position: 'fixed',
-                top: '8px',
-                right: '12px',
-                zIndex: 1301,
-                fontSize: '11px',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-                animation: 'fadeInProgressBar 0.3s ease-in forwards, loadingPulse 3s ease-in-out infinite',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              {/* Spinner icon */}
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ animation: 'spin 1.5s linear infinite' }}
+          {(() => {
+            // フェードアウト中も表示するためにキャッシュを使用
+            const displayLayers = loadingLayers.size > 0 ? loadingLayers : lastLoadingLayersRef.current
+            if (displayLayers.size === 0) return null
+            return (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: '8px',
+                  right: '12px',
+                  zIndex: 1301,
+                  fontSize: '11px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+                  animation: loadingLayers.size > 0
+                    ? 'fadeInProgressBar 0.3s ease-in forwards, loadingPulse 3s ease-in-out infinite'
+                    : 'fadeOutProgressBar 0.5s ease-out forwards',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke={darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'}
-                  strokeWidth="3"
-                />
-                <path
-                  d="M12 2a10 10 0 0 1 10 10"
-                  stroke={darkMode ? '#60a5fa' : '#2563eb'}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-              </svg>
-              {Array.from(loadingLayers.values()).map((info, idx, arr) => (
-                <span key={idx}>
-                  {info.name}
-                  {info.progress !== undefined && info.progress < 100 && (
-                    <span style={{ marginLeft: '3px', fontWeight: 500 }}>{info.progress}%</span>
-                  )}
-                  {idx < arr.length - 1 && <span style={{ margin: '0 2px' }}>·</span>}
-                </span>
-              ))}
-            </div>
-          )}
+                {/* Spinner icon */}
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{ animation: 'spin 1.5s linear infinite' }}
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke={darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'}
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M12 2a10 10 0 0 1 10 10"
+                    stroke={darkMode ? '#60a5fa' : '#2563eb'}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                {Array.from(displayLayers.values()).map((info, idx, arr) => (
+                  <span key={idx}>
+                    {info.name}
+                    {info.progress !== undefined && info.progress < 100 && (
+                      <span style={{ marginLeft: '3px', fontWeight: 500 }}>{info.progress}%</span>
+                    )}
+                    {idx < arr.length - 1 && <span style={{ margin: '0 2px' }}>·</span>}
+                  </span>
+                ))}
+              </div>
+            )
+          })()}
         </>
       )}
 

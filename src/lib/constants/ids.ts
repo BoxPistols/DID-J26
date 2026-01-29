@@ -94,8 +94,7 @@ export const GEO_OVERLAY_IDS = {
   HILLSHADE: 'hillshade',
   RELIEF: 'relief',
   SLOPE: 'slope',
-  BUILDINGS: 'buildings',
-  TERRAIN_2024_NOTO: 'terrain-2024-noto'
+  BUILDINGS: 'buildings'
 } as const
 
 export type GeoOverlayId = (typeof GEO_OVERLAY_IDS)[keyof typeof GEO_OVERLAY_IDS]
@@ -158,55 +157,81 @@ export type TerrainLayerId = (typeof TERRAIN_LAYER_IDS)[keyof typeof TERRAIN_LAY
 
 // ============================================
 // Type Guards (型ガード)
+// O(1) lookup using Set for performance
 // ============================================
+
+// Pre-computed Sets for O(1) lookups
+const didLayerIdSet = new Set<string>(Object.values(DID_LAYER_IDS))
+const baseMapIdSet = new Set<string>(Object.values(BASE_MAP_IDS))
+const geoOverlayIdSet = new Set<string>(Object.values(GEO_OVERLAY_IDS))
+const weatherOverlayIdSet = new Set<string>(Object.values(WEATHER_OVERLAY_IDS))
+const restrictionZoneIdSet = new Set<string>(Object.values(RESTRICTION_ZONE_IDS))
+const restrictionCategoryIdSet = new Set<string>(Object.values(RESTRICTION_CATEGORY_IDS))
+const signalOverlayIdSet = new Set<string>(Object.values(SIGNAL_OVERLAY_IDS))
+const terrainLayerIdSet = new Set<string>(Object.values(TERRAIN_LAYER_IDS))
+const prefectureCodeSet = new Set<string>(PREFECTURE_CODES)
 
 /**
  * Check if a value is a valid DID layer ID
  */
 export function isDidLayerId(id: string): id is DidLayerId {
-  return Object.values(DID_LAYER_IDS).includes(id as DidLayerId)
+  return didLayerIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid base map ID
  */
 export function isBaseMapId(id: string): id is BaseMapId {
-  return Object.values(BASE_MAP_IDS).includes(id as BaseMapId)
+  return baseMapIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid geo overlay ID
  */
 export function isGeoOverlayId(id: string): id is GeoOverlayId {
-  return Object.values(GEO_OVERLAY_IDS).includes(id as GeoOverlayId)
+  return geoOverlayIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid weather overlay ID
  */
 export function isWeatherOverlayId(id: string): id is WeatherOverlayId {
-  return Object.values(WEATHER_OVERLAY_IDS).includes(id as WeatherOverlayId)
+  return weatherOverlayIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid restriction zone ID
  */
 export function isRestrictionZoneId(id: string): id is RestrictionZoneId {
-  return Object.values(RESTRICTION_ZONE_IDS).includes(id as RestrictionZoneId)
+  return restrictionZoneIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid restriction category ID
  */
 export function isRestrictionCategoryId(id: string): id is RestrictionCategoryId {
-  return Object.values(RESTRICTION_CATEGORY_IDS).includes(id as RestrictionCategoryId)
+  return restrictionCategoryIdSet.has(id)
+}
+
+/**
+ * Check if a value is a valid signal overlay ID
+ */
+export function isSignalOverlayId(id: string): id is SignalOverlayId {
+  return signalOverlayIdSet.has(id)
+}
+
+/**
+ * Check if a value is a valid terrain layer ID
+ */
+export function isTerrainLayerId(id: string): id is TerrainLayerId {
+  return terrainLayerIdSet.has(id)
 }
 
 /**
  * Check if a value is a valid prefecture code
  */
 export function isPrefectureCode(code: string): code is PrefectureCode {
-  return PREFECTURE_CODES.includes(code as PrefectureCode)
+  return prefectureCodeSet.has(code)
 }
 
 // ============================================

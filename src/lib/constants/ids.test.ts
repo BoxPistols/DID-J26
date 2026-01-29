@@ -7,12 +7,16 @@ import {
   WEATHER_OVERLAY_IDS,
   RESTRICTION_ZONE_IDS,
   RESTRICTION_CATEGORY_IDS,
+  SIGNAL_OVERLAY_IDS,
+  TERRAIN_LAYER_IDS,
   isDidLayerId,
   isBaseMapId,
   isGeoOverlayId,
   isWeatherOverlayId,
   isRestrictionZoneId,
   isRestrictionCategoryId,
+  isSignalOverlayId,
+  isTerrainLayerId,
   isPrefectureCode,
   prefectureCodeToDidLayerId,
   didLayerIdToPrefectureCode
@@ -64,7 +68,10 @@ describe('ID Constants', () => {
       expect(GEO_OVERLAY_IDS.RELIEF).toBe('relief')
       expect(GEO_OVERLAY_IDS.SLOPE).toBe('slope')
       expect(GEO_OVERLAY_IDS.BUILDINGS).toBe('buildings')
-      expect(GEO_OVERLAY_IDS.TERRAIN_2024_NOTO).toBe('terrain-2024-noto')
+    })
+
+    it('should have 4 geo overlay options', () => {
+      expect(Object.keys(GEO_OVERLAY_IDS)).toHaveLength(4)
     })
   })
 
@@ -89,6 +96,27 @@ describe('ID Constants', () => {
       expect(RESTRICTION_CATEGORY_IDS.NFZ_AIRPORT).toBe('nfz-airport')
       expect(RESTRICTION_CATEGORY_IDS.DID_AREA).toBe('did-area')
       expect(RESTRICTION_CATEGORY_IDS.CRITICAL_FACILITIES).toBe('critical-facilities')
+    })
+  })
+
+  describe('SIGNAL_OVERLAY_IDS', () => {
+    it('should have expected signal overlay IDs', () => {
+      expect(SIGNAL_OVERLAY_IDS.LTE_COVERAGE).toBe('lte-coverage')
+    })
+
+    it('should have 1 signal overlay option', () => {
+      expect(Object.keys(SIGNAL_OVERLAY_IDS)).toHaveLength(1)
+    })
+  })
+
+  describe('TERRAIN_LAYER_IDS', () => {
+    it('should have expected terrain layer IDs', () => {
+      expect(TERRAIN_LAYER_IDS.TERRAIN_2024_NOTO).toBe('terrain-2024-noto')
+      expect(TERRAIN_LAYER_IDS.TERRAIN_2020_ISHIKAWA).toBe('terrain-2020-ishikawa')
+    })
+
+    it('should have 2 terrain layer options', () => {
+      expect(Object.keys(TERRAIN_LAYER_IDS)).toHaveLength(2)
     })
   })
 })
@@ -187,6 +215,29 @@ describe('Type Guards', () => {
       expect(isPrefectureCode('48')).toBe(false)
       expect(isPrefectureCode('1')).toBe(false) // must be 2 digits
       expect(isPrefectureCode('')).toBe(false)
+    })
+  })
+
+  describe('isSignalOverlayId', () => {
+    it('should return true for valid signal overlay IDs', () => {
+      expect(isSignalOverlayId('lte-coverage')).toBe(true)
+    })
+
+    it('should return false for invalid IDs', () => {
+      expect(isSignalOverlayId('5g-coverage')).toBe(false)
+      expect(isSignalOverlayId('')).toBe(false)
+    })
+  })
+
+  describe('isTerrainLayerId', () => {
+    it('should return true for valid terrain layer IDs', () => {
+      expect(isTerrainLayerId('terrain-2024-noto')).toBe(true)
+      expect(isTerrainLayerId('terrain-2020-ishikawa')).toBe(true)
+    })
+
+    it('should return false for invalid IDs', () => {
+      expect(isTerrainLayerId('terrain-unknown')).toBe(false)
+      expect(isTerrainLayerId('')).toBe(false)
     })
   })
 })

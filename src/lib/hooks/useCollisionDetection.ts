@@ -16,7 +16,8 @@ import {
   checkPolygonCollision,
   type WaypointCollisionResult,
   type PathCollisionResult,
-  type PolygonCollisionResult
+  type PolygonCollisionResult,
+  type RBushItem
 } from '../utils/collision'
 
 export interface Waypoint {
@@ -93,8 +94,8 @@ export function useCollisionDetection(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const spatialIndexRef = useRef<RBush<never> | null>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const spatialIndexRef = useRef<RBush<RBushItem> | null>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Create spatial index when prohibited areas change
   useEffect(() => {
@@ -104,7 +105,7 @@ export function useCollisionDetection(
     }
 
     if (useOptimizedIndex) {
-      spatialIndexRef.current = createSpatialIndex(prohibitedAreas) as RBush<never>
+      spatialIndexRef.current = createSpatialIndex(prohibitedAreas)
     }
   }, [prohibitedAreas, useOptimizedIndex])
 
@@ -124,7 +125,7 @@ export function useCollisionDetection(
       if (useOptimizedIndex && spatialIndexRef.current) {
         return checkWaypointCollisionOptimized(
           waypoint.coordinates,
-          spatialIndexRef.current as never
+          spatialIndexRef.current
         )
       }
 
@@ -253,6 +254,8 @@ export function useCollisionDetection(
 
 /**
  * Hook to load prohibited areas from multiple GeoJSON sources
+ * Note: The sources array should be memoized by the caller, or this hook
+ * uses JSON.stringify to stabilize the dependency.
  */
 export function useProhibitedAreas(sources: string[]): {
   data: FeatureCollection | null
@@ -264,8 +267,12 @@ export function useProhibitedAreas(sources: string[]): {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Stabilize sources dependency using JSON.stringify
+  const sourcesKey = JSON.stringify(sources)
+
   const fetchAreas = useCallback(async () => {
-    if (sources.length === 0) {
+    const currentSources = JSON.parse(sourcesKey) as string[]
+    if (currentSources.length === 0) {
       setData(null)
       return
     }
@@ -275,7 +282,7 @@ export function useProhibitedAreas(sources: string[]): {
 
     try {
       const responses = await Promise.all(
-        sources.map(async source => {
+        currentSources.map(async source => {
           const res = await fetch(source)
           if (!res.ok) throw new Error(`Failed to load ${source}`)
           return res.json() as Promise<FeatureCollection>
@@ -295,7 +302,7 @@ export function useProhibitedAreas(sources: string[]): {
     } finally {
       setLoading(false)
     }
-  }, [sources])
+  }, [sourcesKey])
 
   useEffect(() => {
     fetchAreas()

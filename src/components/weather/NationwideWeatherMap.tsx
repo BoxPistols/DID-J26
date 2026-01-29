@@ -269,47 +269,92 @@ export function NationwideWeatherMap({ map, visible, darkMode = false }: Nationw
       const windSpeed = city.weather.windSpeed
       const humidity = city.weather.humidity
 
+      // Dark mode colors
+      const popupBg = darkMode ? '#1e293b' : '#ffffff'
+      const textPrimary = darkMode ? '#f1f5f9' : '#0f172a'
+      const textSecondary = darkMode ? '#94a3b8' : '#64748b'
+      const cardBg = darkMode ? 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+      const infoBg = darkMode ? '#334155' : '#f1f5f9'
+      const infoText = darkMode ? '#e2e8f0' : '#334155'
+      const regionBg = darkMode ? '#475569' : '#f0f0f0'
+      const regionText = darkMode ? '#cbd5e1' : '#888'
+
       const popup = new maplibregl.Popup({
         offset: 25,
         closeButton: true,
         closeOnClick: true,
-        maxWidth: '280px'
+        maxWidth: '280px',
+        className: darkMode ? 'weather-popup-dark' : 'weather-popup-light'
       })
         .setHTML(`
+          <style>
+            .weather-popup-dark .maplibregl-popup-content {
+              background: ${popupBg};
+              box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            }
+            .weather-popup-light .maplibregl-popup-content {
+              background: ${popupBg};
+              box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            }
+            .weather-popup-dark .maplibregl-popup-close-button,
+            .weather-popup-light .maplibregl-popup-close-button {
+              width: 28px;
+              height: 28px;
+              font-size: 18px;
+              line-height: 28px;
+              text-align: center;
+              border-radius: 6px;
+              margin: 6px;
+              padding: 0;
+              background: ${darkMode ? '#475569' : '#e2e8f0'};
+              color: ${darkMode ? '#e2e8f0' : '#475569'};
+              transition: background 0.15s;
+            }
+            .weather-popup-dark .maplibregl-popup-close-button:hover,
+            .weather-popup-light .maplibregl-popup-close-button:hover {
+              background: ${darkMode ? '#64748b' : '#cbd5e1'};
+            }
+            .weather-popup-dark .maplibregl-popup-tip {
+              border-top-color: ${popupBg};
+            }
+            .weather-popup-light .maplibregl-popup-tip {
+              border-top-color: ${popupBg};
+            }
+          </style>
           <div style="padding: 12px; font-family: system-ui, sans-serif; min-width: 200px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <div style="font-weight: 700; font-size: 16px;">${city.name}</div>
-              ${city.region ? `<span style="font-size: 11px; color: #888; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">${city.region}</span>` : ''}
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-right: 24px;">
+              <div style="font-weight: 700; font-size: 16px; color: ${textPrimary};">${city.name}</div>
+              ${city.region ? `<span style="font-size: 11px; color: ${regionText}; background: ${regionBg}; padding: 2px 6px; border-radius: 4px;">${city.region}</span>` : ''}
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 8px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 8px; background: ${cardBg}; border-radius: 8px;">
               <span style="font-size: 36px;">${weatherInfo.icon}</span>
               <div>
-                <div style="font-size: 28px; font-weight: 700; color: ${temp < 0 ? '#3b82f6' : temp > 30 ? '#ef4444' : '#0f172a'};">${temp}°C</div>
-                <div style="font-size: 13px; color: #64748b;">${weatherInfo.label}</div>
+                <div style="font-size: 28px; font-weight: 700; color: ${temp < 0 ? '#3b82f6' : temp > 30 ? '#ef4444' : textPrimary};">${temp}°C</div>
+                <div style="font-size: 13px; color: ${textSecondary};">${weatherInfo.label}</div>
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #f1f5f9; border-radius: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px;">
                 <span style="font-size: 14px;">💨</span>
                 <div>
-                  <div style="color: #64748b; font-size: 10px;">風速</div>
-                  <div style="font-weight: 600; color: #334155;">${windSpeed.toFixed(1)} m/s</div>
+                  <div style="color: ${textSecondary}; font-size: 10px;">風速</div>
+                  <div style="font-weight: 600; color: ${infoText};">${windSpeed.toFixed(1)} m/s</div>
                 </div>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #f1f5f9; border-radius: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px;">
                 <span style="font-size: 14px;">💧</span>
                 <div>
-                  <div style="color: #64748b; font-size: 10px;">湿度</div>
-                  <div style="font-weight: 600; color: #334155;">${humidity}%</div>
+                  <div style="color: ${textSecondary}; font-size: 10px;">湿度</div>
+                  <div style="font-weight: 600; color: ${infoText};">${humidity}%</div>
                 </div>
               </div>
-              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #f1f5f9; border-radius: 6px; grid-column: span 2;">
+              <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: ${infoBg}; border-radius: 6px; grid-column: span 2;">
                 <span style="font-size: 14px;">🌧️</span>
                 <div>
-                  <div style="color: #64748b; font-size: 10px;">降水量</div>
-                  <div style="font-weight: 600; color: #334155;">${precipitation.toFixed(1)} mm</div>
+                  <div style="color: ${textSecondary}; font-size: 10px;">降水量</div>
+                  <div style="font-weight: 600; color: ${infoText};">${precipitation.toFixed(1)} mm</div>
                 </div>
               </div>
             </div>

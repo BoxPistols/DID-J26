@@ -74,13 +74,23 @@ export const CollisionIndicator: React.FC<CollisionIndicatorProps> = ({
   compact = false,
   className = ''
 }) => {
-  // Determine the most severe result
-  const result = waypointResult || pathResult
-  if (!result) return null
+  // Severity order for comparison (higher = more severe)
+  const severityOrder: Record<string, number> = { DANGER: 2, WARNING: 1, SAFE: 0 }
 
-  const severity = result.severity
+  // Determine the most severe result between waypoint and path
+  // We track which result to use for display
+  const waypointSeverity = waypointResult ? severityOrder[waypointResult.severity] : -1
+  const pathSeverity = pathResult ? severityOrder[pathResult.severity] : -1
+
+  const usePath = pathSeverity > waypointSeverity
+  const displayResult = usePath ? pathResult : waypointResult
+
+  if (!displayResult) return null
+
+  const severity = displayResult.severity
   const icon = getSeverityIcon(severity)
   const label = getSeverityLabel(severity)
+  const message = displayResult.message
 
   const containerClass = [
     styles.container,
@@ -93,7 +103,11 @@ export const CollisionIndicator: React.FC<CollisionIndicatorProps> = ({
 
   if (compact) {
     return (
-      <span className={containerClass} title={result.message}>
+      <span
+        className={containerClass}
+        title={message}
+        aria-label={`${label}: ${message}`}
+      >
         {icon}
       </span>
     )
@@ -105,7 +119,7 @@ export const CollisionIndicator: React.FC<CollisionIndicatorProps> = ({
         <span className={styles.icon}>{icon}</span>
         <span className={styles.label}>{label}</span>
       </div>
-      {showMessage && <div className={styles.message}>{result.message}</div>}
+      {showMessage && <div className={styles.message}>{message}</div>}
       {waypointResult?.areaName && (
         <div className={styles.areaName}>エリア: {waypointResult.areaName}</div>
       )}

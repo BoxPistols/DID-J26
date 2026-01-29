@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import * as turf from '@turf/turf'
 import type { FeatureCollection, Feature, Polygon } from 'geojson'
 
 // Test utility functions directly since hooks need React rendering context
@@ -91,7 +90,7 @@ describe('Collision Detection Integration', () => {
     it('should find collision using optimized index', () => {
       const index = createSpatialIndex(testProhibitedAreas)
       const waypoint: [number, number] = [139.77, 35.68]
-      const result = checkWaypointCollisionOptimized(waypoint, index as never)
+      const result = checkWaypointCollisionOptimized(waypoint, index)
 
       expect(result.isColliding).toBe(true)
       expect(result.collisionType).toBe('DID')
@@ -100,7 +99,7 @@ describe('Collision Detection Integration', () => {
     it('should return SAFE when no collision using optimized index', () => {
       const index = createSpatialIndex(testProhibitedAreas)
       const waypoint: [number, number] = [140.0, 36.0]
-      const result = checkWaypointCollisionOptimized(waypoint, index as never)
+      const result = checkWaypointCollisionOptimized(waypoint, index)
 
       expect(result.isColliding).toBe(false)
       expect(result.severity).toBe('SAFE')
@@ -233,7 +232,7 @@ describe('Collision Detection Integration', () => {
       // Check 100 points
       for (let i = 0; i < 100; i++) {
         const waypoint: [number, number] = [135 + Math.random() * 10, 33 + Math.random() * 10]
-        checkWaypointCollisionOptimized(waypoint, index as never)
+        checkWaypointCollisionOptimized(waypoint, index)
       }
 
       const endTime = performance.now()

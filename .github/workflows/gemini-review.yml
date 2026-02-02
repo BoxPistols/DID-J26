@@ -119,16 +119,18 @@ jobs:
           # Check if artifacts exist and contain quota error
           if [ -d "gemini-artifacts" ] && grep -q "Quota exceeded" gemini-artifacts/stderr.log 2>/dev/null; then
             echo "::warning title=Gemini API Quota Exceeded::Gemini APIの日次クォータを超過しました。有料プランへのアップグレードまたはクォータのリセットをお待ちください。"
-            
-            # Post comment to PR/Issue
+
+            # Post comment to PR/Issue using heredoc for proper YAML formatting
             gh pr comment "${PULL_REQUEST_NUMBER}" \
               --repo "${REPOSITORY}" \
-              --body "🤖 Gemini APIの日次クォータを超過したため、自動レビューを実行できませんでした。
+              --body - <<EOF
+🤖 Gemini APIの日次クォータを超過したため、自動レビューを実行できませんでした。
 
 **対応方法:**
 - クォータがリセットされるまで待つ（通常24時間）
 - 手動で \`@gemini-cli /review\` とコメントして再試行
 - [Gemini API使用状況](https://ai.google.dev/gemini-api/docs/rate-limits)を確認
 
-詳細は[ワークフローログ](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})をご確認ください。"
+詳細は[ワークフローログ](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})をご確認ください。
+EOF
           fi

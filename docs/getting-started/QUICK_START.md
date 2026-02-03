@@ -241,12 +241,12 @@ VITE v5.x.x  ready in xxx ms
 
 ```bash
 # VS Codeで開く
-code src/components/layout/Header.tsx
+code src/components/AppHeader.tsx
 ```
 
 #### ステップ2: タイトルを編集
 
-`Header.tsx` の中から以下の部分を探します：
+`AppHeader.tsx` の中から以下の部分を探します：
 
 ```tsx
 // 現在の記述（30行目あたり）
@@ -269,24 +269,29 @@ code src/components/layout/Header.tsx
 
 #### ステップ1: ファイルを開く
 
+地図の初期設定を変更するには、`App.tsx` または `src/lib/config/baseMaps.ts` を編集します。
+
 ```bash
-code src/lib/config/mapConfig.ts
+# メインアプリケーションファイルを開く
+code src/App.tsx
 ```
 
 #### ステップ2: 初期座標を編集
 
+`App.tsx` の中から地図の初期設定を探します：
+
 ```typescript
-// 現在の記述
-export const DEFAULT_CENTER: [number, number] = [139.6917, 35.6895] // 東京
+// 地図の初期中心座標（東京）
+const [lng, lat] = [139.6917, 35.6895]
 
 // 大阪に変更
-export const DEFAULT_CENTER: [number, number] = [135.5023, 34.6937] // 大阪
+const [lng, lat] = [135.5023, 34.6937]
 ```
 
 #### ステップ3: 確認
 
 1. ファイルを保存
-2. ブラウザをリロード
+2. ブラウザをリロード（自動リロードが有効な場合は自動）
 3. 地図の初期表示が大阪中心になっていることを確認
 
 ### 例3: コミットとプッシュ
@@ -298,7 +303,7 @@ export const DEFAULT_CENTER: [number, number] = [135.5023, 34.6937] // 大阪
 git status
 
 # 変更をステージング
-git add src/components/layout/Header.tsx src/lib/config/mapConfig.ts
+git add src/components/AppHeader.tsx src/App.tsx
 
 # コミット
 git commit -m "feat: タイトルと初期位置を変更"
@@ -460,7 +465,7 @@ npm run storybook
 ### 困ったときは
 
 1. **[よくあるエラーと解決方法](#よくあるエラーと解決方法)** を確認
-2. **[トラブルシューティングガイド](../troubleshooting/COMMON_ISSUES.md)** を確認
+2. **[ドキュメント索引](../README.md)** で関連ドキュメントを検索
 3. **[GitHub Discussions](https://github.com/BoxPistols/DID-J26/discussions)** で質問
 4. **[Issue を作成](https://github.com/BoxPistols/DID-J26/issues/new)** して報告
 
@@ -469,7 +474,7 @@ npm run storybook
 - [AI駆動開発ガイド](../ai-driven/AI_DRIVEN_DEVELOPMENT.md) - AIツールの使い方
 - [用語集](../GLOSSARY.md) - 専門用語の説明
 - [コントリビューションガイド](../../CONTRIBUTING.md) - PRの出し方
-- [アーキテクチャ概要](../architecture/SYSTEM_OVERVIEW.md) - システム全体図
+- [ドキュメント索引](../README.md) - 全ドキュメント一覧
 
 ---
 

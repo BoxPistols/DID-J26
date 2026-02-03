@@ -225,7 +225,7 @@ MIT License
 [政府統計の総合窓口（e-Stat）利用規約](https://www.e-stat.go.jp/terms-of-use)に基づき利用可能です。
 
 **利用時の出典表示**:
-```
+```text
 出典：政府統計の総合窓口(e-Stat)（https://www.e-stat.go.jp/）
 「人口集中地区（飛行注意区域）」データを加工して作成
 ```

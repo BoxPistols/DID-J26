@@ -21,7 +21,7 @@
 
 ### 従来の開発
 
-```
+```text
 開発者 → コードを書く → 動作確認 → デバッグ
          ↑
          すべて手作業
@@ -34,7 +34,7 @@
 
 ### AI駆動開発
 
-```
+```text
 開発者 → AIに指示 → AIがコード生成 → レビュー → 調整
          ↓
          自然言語で会話
@@ -94,7 +94,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 - 「PRを作成して」→ GitHub PRまで自動作成
 
 **使用例**:
-```bash
+```text
 # ターミナルで対話
 $ claude
 
@@ -129,7 +129,7 @@ GitHub上でPRやIssueに対してAIレビューを自動実行
 - セキュリティ問題を検出
 
 **使い方**:
-```
+```text
 # PRのコメント欄で
 @gemini-cli /review
 ```
@@ -439,7 +439,7 @@ const result = data.reduce((acc, cur) => acc + cur.value, 0)
 - エラーの原因をわかりやすく説明
 
 **学習曲線**:
-```
+```text
 従来:
   理解度
     ↑      /
@@ -501,7 +501,7 @@ AI駆動:
 
 ### AI駆動開発の本質
 
-```
+```text
 AI = 道具
 人間 = 判断・創造
 

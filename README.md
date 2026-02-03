@@ -12,6 +12,38 @@ DIDデータのGeoJSON変換という基盤を構築していただいたこと�
 
 ---
 
+## 📘 最優先ドキュメント：Storybook
+
+**開発者向けのメインドキュメントはStorybookです。**
+
+```bash
+npm run storybook
+```
+
+ブラウザで http://localhost:6006 を開き、以下のドキュメントにアクセスできます：
+
+### 🎯 技術ドキュメント（Storybook内）
+- **React基礎・TypeScript** - 01〜03
+- **地図技術仕様** - 05〜07（MapLibre GL JS、地理院タイル）
+- **実装ガイド** - 08（コンポーネント構造）
+- **データソース** - 09〜10（施設データ、データインポート）
+- **飛行計画機能** - 11（描画ツール仕様）
+- **航空法・安全基準** - 12〜13
+- **開発者マニュアル** - 14（環境構築、開発フロー）
+- **API仕様** - 15（天気予報API）
+- **衝突検出アルゴリズム** - 16
+- **パフォーマンス最適化** - 17
+
+### 🧩 コンポーネント仕様（Storybook内）
+- インタラクティブなデモ
+- Props一覧
+- 使用例
+- ベストプラクティス
+
+**💡 まず Storybook を開いて全体像を把握することを強く推奨します。**
+
+---
+
 ## 主要機能
 
 ### 🗺️ ベースマップ
@@ -21,28 +53,10 @@ DIDデータのGeoJSON変換という基盤を構築していただいたこと�
 - 航空写真
 
 ### 📍 オーバーレイレイヤー
-
-**飛行規制区域**:
-- 飛行注意区域（DID：人口集中地区）
-- 空港周辺空域（NFZ）
-- 地方別・全国表示切替
-- スマート検索（市区町村名）
-
-**気象情報**:
-- 雨雲レーダー（リアルタイム更新）
-- 天気予報（クリックで表示）
-- 全国天気マップ
-- 都道府県別詳細予報
-
-**施設データ**:
-- 有人機発着地
-- 駐屯地・基地
-- 消防署・医療機関
-
-**地理情報**:
-- 陰影起伏図
-- 色別標高図
-- 傾斜量図
+- **飛行規制区域**: DID（人口集中地区）、空港周辺空域（NFZ）
+- **気象情報**: 雨雲レーダー（リアルタイム）、天気予報、全国天気マップ
+- **施設データ**: 有人機発着地、駐屯地・基地、消防署・医療機関
+- **地理情報**: 陰影起伏図、色別標高図、傾斜量図
 
 ### ✏️ 飛行計画機能
 - 飛行経路・範囲の描画
@@ -51,12 +65,9 @@ DIDデータのGeoJSON変換という基盤を構築していただいたこと�
 - GeoJSONエクスポート
 
 ### ⌨️ キーボードショートカット
-- `D`: DID表示切替
-- `A`: 空港空域切替
-- `W`: 天気予報モード
-- `C`: 雨雲レーダー
-- `L`: ダーク/ライトモード
-- `?`: ヘルプ
+`D`: DID表示切替 | `A`: 空港空域切替 | `W`: 天気予報モード | `C`: 雨雲レーダー | `L`: ダーク/ライトモード | `?`: ヘルプ
+
+詳細な使い方は **Storybook** を参照してください。
 
 ---
 
@@ -82,46 +93,19 @@ npm run dev
 
 ブラウザで http://localhost:5173 を開きます。
 
+### Storybookで開発
+
+```bash
+npm run storybook
+```
+
+ブラウザで http://localhost:6006 を開き、コンポーネントの仕様を確認しながら開発できます。
+
 ### 本番ビルド
 
 ```bash
 npm run build
 ```
-
----
-
-## 使い方
-
-### 基本操作
-
-**地図の移動**:
-- ドラッグ: 地図を移動
-- スクロール: ズームイン/アウト
-- ダブルクリック: ズームイン
-
-**レイヤー切替**:
-- 左サイドバーからレイヤーを選択
-- キーボードショートカットで高速切替
-
-**検索**:
-- 左上の検索バーに市区町村名を入力
-- 該当地域に自動ズーム
-
-### 飛行計画の作成
-
-1. 左サイドバー「飛行経路／飛行範囲」を選択
-2. 描画ツールを選択（ポリゴン/円/WP/経路）
-3. 地図上でクリックして描画
-4. 衝突検出で禁止エリアとの重複を確認
-5. 「データ出力」でGeoJSONをエクスポート
-
-### 右クリックメニュー
-
-地図上で右クリック:
-- 座標表示・コピー
-- 天気予報表示
-- 規制エリア表示切替
-- UI設定
 
 ---
 
@@ -134,64 +118,40 @@ npm run build
 - **UI開発**: Storybook 8
 - **テスト**: Vitest
 
+技術詳細は **Storybook** の技術ドキュメントセクションを参照してください。
+
 ---
 
 ## ドキュメント
 
-プロジェクトの詳細なドキュメントは `docs/` ディレクトリに整理されています。
+### 📘 開発者向けドキュメント優先順位
 
-### 📚 はじめての方へ
+```text
+1. Storybook（最優先）
+   └ npm run storybook → http://localhost:6006
+   └ 技術仕様・実装ガイド・コンポーネント仕様
 
-1. **[Getting Started（環境構築）](docs/getting-started/QUICK_START.md)**
-   完全な初心者向け、ステップバイステップの環境構築ガイド
+2. docs/（補足ガイド）
+   └ 環境構築、AI駆動開発、用語集
 
-2. **[AI駆動開発ガイド](docs/ai-driven/AI_DRIVEN_DEVELOPMENT.md)**
-   このプロジェクトで使用しているAIツール（GitHub Copilot、Claude Code等）の活用方法
-
-3. **[用語集](docs/GLOSSARY.md)**
-   DID、NFZ、GIS等の専門用語を平易に説明
-
-### 📖 開発者向け
-
-- **[コントリビューションガイド](CONTRIBUTING.md)** - PRの出し方、コードレビュープロセス
-- **[ドキュメント索引](docs/README.md)** - 全ドキュメントのカテゴリ別索引
-- **[地図技術仕様](docs/specifications/MAP_TECHNICAL_SPEC.md)** - 座標系、投影法、データソース
-- **[衝突検出仕様](docs/specifications/COLLISION_DETECTION_SPEC.md)** - 衝突検出アルゴリズム
-- **[DIDデータ更新ガイド](docs/data/DID_DATA_UPDATE_GUIDE.md)** - データ更新手順
-- **[Gemini CLI ガイド](docs/development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
-
-### 📝 Storybook（コンポーネント仕様）
-
-```bash
-npm run storybook
+3. README.md（このファイル）
+   └ プロジェクト概要・クイックスタート
 ```
 
-ブラウザで http://localhost:6006 を開き、各コンポーネントの詳細仕様を確認できます。
+### 📚 補足ドキュメント（docs/）
 
----
+**はじめての方へ**:
+- **[Getting Started](docs/getting-started/QUICK_START.md)** - 環境構築ガイド
+- **[AI駆動開発ガイド](docs/ai-driven/AI_DRIVEN_DEVELOPMENT.md)** - AIツール活用方法
+- **[用語集](docs/GLOSSARY.md)** - DID、NFZ、GIS等の専門用語
 
-## データソース
-
-| データ | 提供元 | 更新頻度 |
-|--------|--------|---------|
-| 人口集中地区（DID） | e-Stat | 5年ごと（国勢調査） |
-| 空港敷地 | 国土数値情報 | 不定期 |
-| 空港周辺空域 | 国土地理院 | 不定期 |
-| 地理院地図タイル | 国土地理院 | 随時 |
-| 雨雲レーダー | RainViewer API | 5分ごと |
-| 天気予報 | Open-Meteo API | 1時間ごと |
-| 施設データ | OSM/自治体 | 手動更新 |
-
-詳細は [地図技術仕様](docs/specifications/MAP_TECHNICAL_SPEC.md) を参照してください。
-
----
-
-## データの注意事項
-
-- **最終確認必須**: 実際の飛行可否は必ずDIPS・NOTAM・自治体の最新情報で確認してください
-- **DIDデータ**: 国勢調査ベースのため、最新の市街地変化とずれる場合があります
-- **パフォーマンス**: 大量データ読み込み時は、地域別表示を推奨します
-- **施設データ**: OSM/自治体データを加工した参考情報です。公式の規制区分ではありません
+**開発者向け**:
+- **[コントリビューションガイド](CONTRIBUTING.md)** - PRの出し方、コードレビュー
+- **[ドキュメント索引](docs/README.md)** - 全ドキュメント一覧
+- **[地図技術仕様](docs/specifications/MAP_TECHNICAL_SPEC.md)** - 座標系、投影法
+- **[衝突検出仕様](docs/specifications/COLLISION_DETECTION_SPEC.md)** - アルゴリズム詳細
+- **[DIDデータ更新ガイド](docs/data/DID_DATA_UPDATE_GUIDE.md)** - データ更新手順
+- **[Gemini CLI ガイド](docs/development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
 
 ---
 
@@ -199,21 +159,18 @@ npm run storybook
 
 貢献を歓迎します！
 
-### 参加方法
-
 1. このリポジトリをフォーク
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
+2. フィーチャーブランチを作成
+3. 変更をコミット
+4. プルリクエストを作成
 
-詳細は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+詳細は **[CONTRIBUTING.md](CONTRIBUTING.md)** を参照してください。
 
 ### 初めての方へ
-
+- **Storybook** で全体像を把握
 - **[Getting Started](docs/getting-started/QUICK_START.md)** で環境構築
 - **[AI駆動開発ガイド](docs/ai-driven/AI_DRIVEN_DEVELOPMENT.md)** でAIツールの使い方を学習
-- **[good first issue](https://github.com/BoxPistols/DID-J26/labels/good%20first%20issue)** ラベルから簡単なタスクを探す
+- **[good first issue](https://github.com/BoxPistols/DID-J26/labels/good%20first%20issue)** から簡単なタスクを探す
 
 ---
 
@@ -249,7 +206,7 @@ MIT License
 
 - **質問**: [GitHub Discussions](https://github.com/BoxPistols/DID-J26/discussions)
 - **バグ報告**: [GitHub Issues](https://github.com/BoxPistols/DID-J26/issues)
-- **ドキュメント**: [docs/](docs/)
+- **ドキュメント**: **Storybook** または [docs/](docs/)
 
 ---
 

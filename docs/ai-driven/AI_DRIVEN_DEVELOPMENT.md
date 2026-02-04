@@ -201,7 +201,7 @@ function fetchWeatherData(
 
 #### 「PRをレビューしてほしい」
 → **Gemini CLI** を使う
-```
+```text
 # PRコメント欄で
 @gemini-cli /review セキュリティ面を重点的にチェック
 ```
@@ -301,7 +301,7 @@ https://github.com/BoxPistols/DID-J26/pull/34
 #### ステップ5: AIレビュー
 
 PRページで：
-```
+```text
 @gemini-cli /review
 ```
 
@@ -325,7 +325,7 @@ Claude: [自動で修正してプッシュ]
 
 ### ❌ 悪い例
 
-```
+```text
 You: 動かない
 ```
 
@@ -333,7 +333,7 @@ You: 動かない
 
 ### ✅ 良い例
 
-```
+```text
 You: 天気マップコンポーネントで以下のエラーが出ます：
 TypeError: Cannot read property 'temperature' of undefined
 
@@ -361,7 +361,7 @@ TypeError: Cannot read property 'temperature' of undefined
 
 #### 4. エラーメッセージは全文コピペ
 
-```
+```text
 You: 以下のエラーが出ています：
 
 [エラーメッセージ全文をコピペ]
@@ -373,7 +373,7 @@ You: 以下のエラーが出ています：
 
 一度に全部やろうとせず、小さく分割：
 
-```
+```text
 You: 以下の順番で進めてください：
 1. まずAPIを接続
 2. 動作確認

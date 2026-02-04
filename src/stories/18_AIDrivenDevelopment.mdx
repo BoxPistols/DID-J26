@@ -1,23 +1,10 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Learning/18_AI駆動開発ガイド" />
+
 # AI駆動開発ガイド
 
-## このドキュメントについて
-
-このガイドは、**AI駆動開発の経験がない方**を対象に、このプロジェクトでどのようにAIを活用しているかを丁寧に説明します。
-
-**💡 このドキュメントのStorybookバージョン**: [18_AI駆動開発ガイド](http://localhost:6006/?path=/docs/learning-18-ai駆動開発ガイド--docs)
-
-技術的な詳細は [Storybook](http://localhost:6006) を参照してください。このガイドはAI活用方法の概念説明です。
-
----
-
-## 目次
-
-1. [AI駆動開発とは？](#ai駆動開発とは)
-2. [このプロジェクトで使っているAIツール](#このプロジェクトで使っているaiツール)
-3. [それぞれのツールの使い分け](#それぞれのツールの使い分け)
-4. [実際の開発フロー](#実際の開発フロー)
-5. [AIとの対話のコツ](#aiとの対話のコツ)
-6. [よくある質問](#よくある質問)
+**AI駆動開発の経験がない方**を対象に、このプロジェクトでどのようにAIを活用しているかを丁寧に説明します。
 
 ---
 
@@ -167,14 +154,47 @@ GitHub PRに自動でレビューコメントをつけるAIレビュアー
 
 ### 開発フェーズ別
 
-| フェーズ | 使うツール | 理由 |
-|---------|-----------|------|
-| **設計・計画** | Claude Code | 全体像を把握して計画を立てられる |
-| **コーディング** | GitHub Copilot | リアルタイムで補完が効く |
-| **大規模変更** | Claude Code | 複数ファイルを一気に編集できる |
-| **デバッグ** | Claude Code | エラーログから原因を特定できる |
-| **コードレビュー** | Gemini CLI, CodeRabbit | 人間のレビュー前に問題を検出 |
-| **ドキュメント作成** | Claude Code | 一貫性のあるドキュメントを生成 |
+<table>
+  <thead>
+    <tr>
+      <th>フェーズ</th>
+      <th>使うツール</th>
+      <th>理由</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>設計・計画</strong></td>
+      <td>Claude Code</td>
+      <td>全体像を把握して計画を立てられる</td>
+    </tr>
+    <tr>
+      <td><strong>コーディング</strong></td>
+      <td>GitHub Copilot</td>
+      <td>リアルタイムで補完が効く</td>
+    </tr>
+    <tr>
+      <td><strong>大規模変更</strong></td>
+      <td>Claude Code</td>
+      <td>複数ファイルを一気に編集できる</td>
+    </tr>
+    <tr>
+      <td><strong>デバッグ</strong></td>
+      <td>Claude Code</td>
+      <td>エラーログから原因を特定できる</td>
+    </tr>
+    <tr>
+      <td><strong>コードレビュー</strong></td>
+      <td>Gemini CLI, CodeRabbit</td>
+      <td>人間のレビュー前に問題を検出</td>
+    </tr>
+    <tr>
+      <td><strong>ドキュメント作成</strong></td>
+      <td>Claude Code</td>
+      <td>一貫性のあるドキュメントを生成</td>
+    </tr>
+  </tbody>
+</table>
 
 ### タスク別の推奨ツール
 
@@ -201,7 +221,7 @@ function fetchWeatherData(
 
 #### 「PRをレビューしてほしい」
 → **Gemini CLI** を使う
-```
+```text
 # PRコメント欄で
 @gemini-cli /review セキュリティ面を重点的にチェック
 ```
@@ -301,7 +321,7 @@ https://github.com/BoxPistols/DID-J26/pull/34
 #### ステップ5: AIレビュー
 
 PRページで：
-```
+```text
 @gemini-cli /review
 ```
 
@@ -325,7 +345,7 @@ Claude: [自動で修正してプッシュ]
 
 ### ❌ 悪い例
 
-```
+```text
 You: 動かない
 ```
 
@@ -333,7 +353,7 @@ You: 動かない
 
 ### ✅ 良い例
 
-```
+```text
 You: 天気マップコンポーネントで以下のエラーが出ます：
 TypeError: Cannot read property 'temperature' of undefined
 
@@ -361,7 +381,7 @@ TypeError: Cannot read property 'temperature' of undefined
 
 #### 4. エラーメッセージは全文コピペ
 
-```
+```text
 You: 以下のエラーが出ています：
 
 [エラーメッセージ全文をコピペ]
@@ -373,7 +393,7 @@ You: 以下のエラーが出ています：
 
 一度に全部やろうとせず、小さく分割：
 
-```
+```text
 You: 以下の順番で進めてください：
 1. まずAPIを接続
 2. 動作確認
@@ -495,9 +515,9 @@ AI駆動:
 ## 次に読むべきドキュメント
 
 1. **[Getting Started](../getting-started/QUICK_START.md)** - 環境構築の手順
-2. **[コントリビューションガイド](../../CONTRIBUTING.md)** - PRの出し方
-3. **[Gemini CLI ガイド](../development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
-4. **[用語集](../GLOSSARY.md)** - 専門用語の説明
+2. **[14_開発者マニュアル](./14_DeveloperManual)** - 開発フロー詳細
+3. **[用語集](../../docs/GLOSSARY.md)** - 専門用語の説明
+4. **[Gemini CLI ガイド](../../docs/development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
 
 ---
 
@@ -514,17 +534,42 @@ AI駆動開発 = AI(道具) × 人間(判断)
 
 ### このプロジェクトでの活用
 
-| ツール | 役割 | 使用頻度 |
-|--------|------|---------|
-| Claude Code | メイン開発 | 毎日 |
-| GitHub Copilot | コード補完 | コーディング中常時 |
-| Gemini CLI | コードレビュー | PR作成時 |
-| CodeRabbit | 品質チェック | PR作成時（自動） |
+<table>
+  <thead>
+    <tr>
+      <th>ツール</th>
+      <th>役割</th>
+      <th>使用頻度</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Claude Code</td>
+      <td>メイン開発</td>
+      <td>毎日</td>
+    </tr>
+    <tr>
+      <td>GitHub Copilot</td>
+      <td>コード補完</td>
+      <td>コーディング中常時</td>
+    </tr>
+    <tr>
+      <td>Gemini CLI</td>
+      <td>コードレビュー</td>
+      <td>PR作成時</td>
+    </tr>
+    <tr>
+      <td>CodeRabbit</td>
+      <td>品質チェック</td>
+      <td>PR作成時（自動）</td>
+    </tr>
+  </tbody>
+</table>
 
 ### 始めるための第一歩
 
 1. GitHub Copilotを導入（月額$10）
-2. [Getting Started](../getting-started/QUICK_START.md)で環境構築
+2. [Getting Started](../../docs/getting-started/QUICK_START.md)で環境構築
 3. 小さなタスクから始める
 4. AIとの対話に慣れる
 

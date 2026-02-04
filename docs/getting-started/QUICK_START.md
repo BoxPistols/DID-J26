@@ -287,6 +287,7 @@ npm run storybook
 - `14_DeveloperManual` - 開発者マニュアル
 - `15_WeatherApi` - 天気予報API仕様
 - `16_CollisionDetection` - 衝突検出アルゴリズム
+- `18_AIDrivenDevelopment` - AI駆動開発ガイド（**最初に読むべき**）
 
 **🧩 コンポーネント仕様**:
 - サイドバーのコンポーネント一覧を確認

@@ -54,7 +54,8 @@ npm run storybook
 
 ### ステップ3: AI駆動開発について学ぶ
 
-- **[AI駆動開発ガイド](./ai-driven/AI_DRIVEN_DEVELOPMENT.md)** - GitHub Copilot、Claude Code等の活用方法
+- **[AI駆動開発ガイド（Storybook版）](http://localhost:6006/?path=/docs/learning-18-ai駆動開発ガイド--docs)** - インタラクティブ版（推奨）
+- **[AI駆動開発ガイド（Markdown版）](./ai-driven/AI_DRIVEN_DEVELOPMENT.md)** - GitHub Copilot、Claude Code等の活用方法
 
 ### ステップ4: 用語を理解する
 

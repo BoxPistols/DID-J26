@@ -6277,6 +6277,80 @@ function App() {
             fontSize: '14px'
           }}
         >
+          {/* ===== アプリ概要（全幅） ===== */}
+          <div
+            style={{
+              gridColumn: window.innerWidth > 768 ? '1 / -1' : 'auto',
+              marginBottom: '12px',
+              padding: '20px',
+              backgroundColor: darkMode ? 'rgba(74, 144, 217, 0.15)' : '#e3f2fd',
+              borderRadius: '8px',
+              border: `2px solid ${darkMode ? '#4a90d9' : '#2196f3'}`
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 700,
+                marginBottom: '12px',
+                color: darkMode ? '#4a90d9' : '#1976d2',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '16px'
+              }}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+              このアプリについて
+            </div>
+            <div
+              style={{
+                lineHeight: '1.7',
+                fontSize: '14px',
+                color: darkMode ? '#e0e0e0' : '#424242'
+              }}
+            >
+              <p style={{ margin: '0 0 12px 0' }}>
+                <strong>DID in Japan</strong>は、ドローン飛行の規制区域を地図上で確認できる可視化ツールです。
+              </p>
+              <ul
+                style={{
+                  margin: '0 0 12px 0',
+                  paddingLeft: '20px',
+                  fontSize: '13px'
+                }}
+              >
+                <li style={{ marginBottom: '6px' }}>
+                  <strong>DID（人口集中地区）</strong>: ドローン飛行に許可が必要なエリア
+                </li>
+                <li style={{ marginBottom: '6px' }}>
+                  <strong>空港周辺・飛行禁止区域</strong>: 航空法で規制されているエリア
+                </li>
+                <li style={{ marginBottom: '6px' }}>
+                  <strong>飛行計画作成</strong>: 地図上で飛行ルートを描画・確認
+                </li>
+                <li>
+                  <strong>天気予報・気象情報</strong>: 飛行予定地の天候を確認
+                </li>
+              </ul>
+              <p style={{ margin: 0, fontSize: '12px', color: darkMode ? '#bbb' : '#666' }}>
+                ※ 本アプリの情報は参考用です。実際の飛行前には必ず最新の規制情報を確認してください。
+              </p>
+            </div>
+          </div>
+
           {/* ===== 左カラム ===== */}
 
           {/* セクション1：基本操作・ヒント */}

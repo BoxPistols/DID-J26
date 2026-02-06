@@ -52,6 +52,7 @@ import type {
   RestrictionZone
 } from './lib'
 import { AppHeader, CustomLayerManager, ContextMenu, type MenuItem } from './components'
+import { HelpIcon } from './components/icons'
 import {
   DrawingTools,
   type DrawnFeature,
@@ -6027,7 +6028,7 @@ function App() {
         }}
         title="ヘルプ [?]"
       >
-        ?
+        <HelpIcon size={20} />
       </button>
 
       {/* Loading Progress Bar - 画面最上部に配置 */}

@@ -25,6 +25,7 @@ export const STORAGE_KEYS = {
   // UI Settings
   UI_SETTINGS: 'ui-settings',
   COORD_FORMAT: 'coord-format',
+  FIRST_VISIT_COMPLETED: 'first-visit-completed',
 
   // Layer State
   DID_EXPANDED_GROUPS: 'did-expanded-groups',

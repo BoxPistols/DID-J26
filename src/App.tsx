@@ -66,6 +66,7 @@ import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
 import { getAppTheme } from './styles/theme'
+import { STORAGE_KEYS, loadFromStorage, saveToStorage } from './lib/utils/storage'
 import {
   useTheme,
   useSidebarResize,
@@ -739,6 +740,22 @@ function App() {
 
   // Help modal
   const [showHelp, setShowHelp] = useState(false)
+
+  // Check if this is the first visit and auto-show help modal
+  useEffect(() => {
+    const hasVisited = loadFromStorage(
+      STORAGE_KEYS.FIRST_VISIT_COMPLETED,
+      (v) => (typeof v === 'boolean' ? v : null),
+      false
+    )
+
+    if (!hasVisited) {
+      // Show help modal on first visit
+      setShowHelp(true)
+      // Mark as visited
+      saveToStorage(STORAGE_KEYS.FIRST_VISIT_COMPLETED, true)
+    }
+  }, [])
 
   // Context menu state for right-click menu
   const [contextMenu, setContextMenu] = useState<{

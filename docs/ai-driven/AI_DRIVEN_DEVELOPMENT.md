@@ -495,9 +495,8 @@ AI駆動:
 ## 次に読むべきドキュメント
 
 1. **[Getting Started](../getting-started/QUICK_START.md)** - 環境構築の手順
-2. **[コントリビューションガイド](../../CONTRIBUTING.md)** - PRの出し方
-3. **[Gemini CLI ガイド](../development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
-4. **[用語集](../GLOSSARY.md)** - 専門用語の説明
+2. **[Gemini CLI ガイド](../development/GEMINI_CLI_GUIDE.md)** - AIレビューの使い方
+3. **[用語集](../GLOSSARY.md)** - 専門用語の説明
 
 ---
 

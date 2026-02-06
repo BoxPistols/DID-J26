@@ -35,6 +35,7 @@
 
 ---
 
+<a id="getting-started"></a>
 ## 🚀 はじめての方へ
 
 ### ステップ1: Storybookで全体像を把握（最重要）
@@ -63,6 +64,7 @@ npm run storybook
 
 ---
 
+<a id="data"></a>
 ## 📊 データ関連
 
 DIDデータ、空港データ、地形データの取得・更新・配布に関するドキュメント
@@ -89,6 +91,7 @@ e-Stat（政府統計の総合窓口）から人口集中地区（DID）デー�
 
 ---
 
+<a id="api"></a>
 ## 🔌 API・外部連携
 
 **💡 API仕様の詳細はStorybookの「15_WeatherApi」を参照してください。**
@@ -113,6 +116,7 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ---
 
+<a id="specifications"></a>
 ## 📐 仕様書
 
 **💡 技術仕様の詳細はStorybookの「16_CollisionDetection」「17_PerformanceOptimization」等を参照してください。**
@@ -137,6 +141,7 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ---
 
+<a id="development"></a>
 ## 🛠️ 開発ガイド
 
 **💡 開発フローの詳細はStorybookの「14_DeveloperManual」を参照してください。**
@@ -173,6 +178,7 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ---
 
+<a id="その他"></a>
 ## その他
 
 - [ドキュメント構造分析レポート](./DOCUMENTATION_ANALYSIS.md)

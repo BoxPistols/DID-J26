@@ -67,7 +67,7 @@ import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
 import { getAppTheme } from './styles/theme'
-import { STORAGE_KEYS, loadFromStorage, saveToStorage } from './lib/utils/storage'
+import { STORAGE_KEYS, loadFromStorage, saveToStorage, isStorageAvailable } from './lib/utils/storage'
 import {
   useTheme,
   useSidebarResize,
@@ -744,6 +744,11 @@ function App() {
 
   // Check if this is the first visit and auto-show help modal
   useEffect(() => {
+    // Skip if localStorage is not available
+    if (!isStorageAvailable()) {
+      return
+    }
+
     const hasVisited = loadFromStorage(
       STORAGE_KEYS.FIRST_VISIT_COMPLETED,
       (v) => (typeof v === 'boolean' ? v : null),

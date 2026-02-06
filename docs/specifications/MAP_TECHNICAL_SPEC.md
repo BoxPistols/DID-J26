@@ -167,7 +167,8 @@ Y: 4257179.75 (メートル)
 
 ```typescript
 // GeoJSON（WGS84）→ Web Mercator
-const projected = mapboxgl.MercatorCoordinate.fromLngLat([lon, lat])
+// MapLibre GL JS v4.0.0を使用
+const projected = maplibregl.MercatorCoordinate.fromLngLat([lon, lat])
 
 // Web Mercator → WGS84
 const lngLat = projected.toLngLat()

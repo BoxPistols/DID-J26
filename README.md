@@ -147,7 +147,6 @@ npm run build
 - **[用語集](docs/GLOSSARY.md)** - DID、NFZ、GIS等の専門用語
 
 **開発者向け**:
-- **[コントリビューションガイド](CONTRIBUTING.md)** - PRの出し方、コードレビュー
 - **[ドキュメント索引](docs/README.md)** - 全ドキュメント一覧
 - **[地図技術仕様](docs/specifications/MAP_TECHNICAL_SPEC.md)** - 座標系、投影法
 - **[衝突検出仕様](docs/specifications/COLLISION_DETECTION_SPEC.md)** - アルゴリズム詳細

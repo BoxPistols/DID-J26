@@ -131,25 +131,25 @@ export const TableStyle = {
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><strong>components/</strong></td>
       <td style={TableStyle.td}>地図UIコンポーネント (DrawingTools, InfoPanel等)</td>
-      <td style={{...TableStyle.td, textAlign: 'center'}}>✅</td>
+      <td style={{...TableStyle.td, textAlign: 'center'}}>OK</td>
       <td style={TableStyle.td}>lib/ の型と設定に依存</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><strong>lib/</strong></td>
       <td style={TableStyle.td}>ビジネスロジック、データモデル、APIサービス</td>
-      <td style={{...TableStyle.td, textAlign: 'center'}}>✅</td>
+      <td style={{...TableStyle.td, textAlign: 'center'}}>OK</td>
       <td style={TableStyle.td}>外部依存なし (Core)</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><strong>utils/</strong></td>
       <td style={TableStyle.td}>トースト通知、ダイアログ等のヘルパー</td>
-      <td style={{...TableStyle.td, textAlign: 'center'}}>✅</td>
+      <td style={{...TableStyle.td, textAlign: 'center'}}>OK</td>
       <td style={TableStyle.td}>一部UIライブラリに依存</td>
     </tr>
     <tr>
       <td style={TableStyle.td}><strong>styles/</strong></td>
       <td style={TableStyle.td}>テーマ定義、グローバル変数</td>
-      <td style={{...TableStyle.td, textAlign: 'center'}}>✅</td>
+      <td style={{...TableStyle.td, textAlign: 'center'}}>OK</td>
       <td style={TableStyle.td}>components/ で使用</td>
     </tr>
   </tbody>
@@ -336,11 +336,11 @@ export const TableStyle = {
 **1. "Style is not loaded"**
 
 ```javascript
-// ❌ エラーになる
+// NG:エラーになる
 const map = new maplibregl.Map({ ... });
 map.addSource('src', { ... });  // スタイル未ロード
 
-// ✅ 正しい
+// OK:正しい
 map.on('load', () => {
   map.addSource('src', { ... });
 });
@@ -349,11 +349,11 @@ map.on('load', () => {
 **2. "Source already exists"**
 
 ```javascript
-// ❌ 2回追加するとエラー
+// NG:2回追加するとエラー
 map.addSource('src', { ... });
 map.addSource('src', { ... });
 
-// ✅ 存在チェック
+// OK:存在チェック
 if (!map.getSource('src')) {
   map.addSource('src', { ... });
 }
@@ -362,10 +362,10 @@ if (!map.getSource('src')) {
 **3. "Layer not found"**
 
 ```javascript
-// ❌ 存在しないレイヤーを操作
+// NG:存在しないレイヤーを操作
 map.setLayoutProperty('unknown-layer', 'visibility', 'none');
 
-// ✅ 存在チェック
+// OK:存在チェック
 if (map.getLayer('my-layer')) {
   map.setLayoutProperty('my-layer', 'visibility', 'none');
 }
@@ -376,13 +376,13 @@ if (map.getLayer('my-layer')) {
 ブラウザにはWebGLコンテキストの上限（8〜16個）があります。マップを破棄せずに再作成を繰り返すと発生します。
 
 ```javascript
-// ❌ 解放忘れ
+// NG:解放忘れ
 useEffect(() => {
   const map = new maplibregl.Map({ ... });
   mapRef.current = map;
 }, []);
 
-// ✅ クリーンアップで解放
+// OK:クリーンアップで解放
 useEffect(() => {
   const map = new maplibregl.Map({ ... });
   mapRef.current = map;
@@ -398,7 +398,7 @@ useEffect(() => {
 MapLibreはブラウザAPIに依存するため、SSR時にエラーになります。
 
 ```tsx
-// ✅ Dynamic Importで回避
+// OK:Dynamic Importで回避
 import dynamic from 'next/dynamic';
 
 const MapComponent = dynamic(() => import('./MapComponent'), {

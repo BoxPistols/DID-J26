@@ -230,19 +230,19 @@ interface DIDLayerConfig {
 多数のレイヤーを同時に表示すると、レンダリングパフォーマンスが低下します。
 
 ```typescript
-// ❌ 非効率：全てのレイヤーを常に表示
+// NG:非効率：全てのレイヤーを常に表示
 const allLayers = [airport, did, emergency, manned, noFlyRed, noFlyYellow]
 allLayers.forEach(layer => {
   map.addLayer(layer)
 })
 
-// ✅ 効率的：必要なレイヤーのみ表示
+// OK:効率的：必要なレイヤーのみ表示
 const essentialLayers = [noFlyRed, noFlyYellow]
 essentialLayers.forEach(layer => {
   map.addLayer(layer)
 })
 
-// ✅ さらに効率的：ズームレベルに応じて表示
+// OK:さらに効率的：ズームレベルに応じて表示
 map.addLayer({
   id: 'did-layer',
   ...DID_LAYER,

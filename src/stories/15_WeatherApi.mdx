@@ -199,67 +199,67 @@ const url = `https://api.open-meteo.com/v1/forecast?` +
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>0</td>
       <td style={TableStyle.td}>快晴</td>
-      <td style={TableStyle.tdCenter}>☀️</td>
+      <td style={TableStyle.tdCenter}>晴</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>1</td>
       <td style={TableStyle.td}>晴れ</td>
-      <td style={TableStyle.tdCenter}>🌤️</td>
+      <td style={TableStyle.tdCenter}>晴</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>2</td>
       <td style={TableStyle.td}>一部曇り</td>
-      <td style={TableStyle.tdCenter}>⛅</td>
+      <td style={TableStyle.tdCenter}>曇</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>3</td>
       <td style={TableStyle.td}>曇り</td>
-      <td style={TableStyle.tdCenter}>🌥️</td>
+      <td style={TableStyle.tdCenter}>曇</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>45, 48</td>
       <td style={TableStyle.td}>霧</td>
-      <td style={TableStyle.tdCenter}>🌫️</td>
+      <td style={TableStyle.tdCenter}>霧</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>51, 53, 55</td>
       <td style={TableStyle.td}>霧雨</td>
-      <td style={TableStyle.tdCenter}>🌦️</td>
+      <td style={TableStyle.tdCenter}>雨</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>61, 63, 65</td>
       <td style={TableStyle.td}>雨</td>
-      <td style={TableStyle.tdCenter}>🌧️</td>
+      <td style={TableStyle.tdCenter}>雨</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>66, 67</td>
       <td style={TableStyle.td}>凍雨</td>
-      <td style={TableStyle.tdCenter}>🌧️</td>
+      <td style={TableStyle.tdCenter}>雨</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>71, 73, 75</td>
       <td style={TableStyle.td}>雪</td>
-      <td style={TableStyle.tdCenter}>❄️</td>
+      <td style={TableStyle.tdCenter}>雪</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>77</td>
       <td style={TableStyle.td}>霧雪</td>
-      <td style={TableStyle.tdCenter}>🌨️</td>
+      <td style={TableStyle.tdCenter}>雪</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>80, 81, 82</td>
       <td style={TableStyle.td}>にわか雨</td>
-      <td style={TableStyle.tdCenter}>🌧️</td>
+      <td style={TableStyle.tdCenter}>雨</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>85, 86</td>
       <td style={TableStyle.td}>にわか雪</td>
-      <td style={TableStyle.tdCenter}>🌨️</td>
+      <td style={TableStyle.tdCenter}>雪</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.tdCenter}>95, 96, 99</td>
       <td style={TableStyle.td}>雷雨</td>
-      <td style={TableStyle.tdCenter}>⛈️</td>
+      <td style={TableStyle.tdCenter}>雷</td>
     </tr>
   </tbody>
 </table>
@@ -394,27 +394,27 @@ canFly = true
   <tbody>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>safe</code></td>
-      <td style={TableStyle.tdCenter}>🟢 緑</td>
+      <td style={TableStyle.tdCenter}>緑</td>
       <td style={TableStyle.td}>安全に飛行可能</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>caution</code></td>
-      <td style={TableStyle.tdCenter}>🟡 黄</td>
+      <td style={TableStyle.tdCenter}>黄</td>
       <td style={TableStyle.td}>注意が必要</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>warning</code></td>
-      <td style={TableStyle.tdCenter}>🟠 橙</td>
+      <td style={TableStyle.tdCenter}>橙</td>
       <td style={TableStyle.td}>警告（条件悪化）</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>danger</code></td>
-      <td style={TableStyle.tdCenter}>🔴 赤</td>
+      <td style={TableStyle.tdCenter}>赤</td>
       <td style={TableStyle.td}>危険（飛行非推奨）</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}><code style={TableStyle.code}>prohibited</code></td>
-      <td style={TableStyle.tdCenter}>⛔ 濃赤</td>
+      <td style={TableStyle.tdCenter}>濃赤</td>
       <td style={TableStyle.td}>飛行禁止</td>
     </tr>
   </tbody>
@@ -467,10 +467,10 @@ function FlightSafetyCheck({ lat, lng, meshCode }) {
   return (
     <div style={{ backgroundColor: getSafetyLevelColor(safety.safetyLevel) }}>
       {safety.canFly ? (
-        <span>✓ 飛行可能</span>
+        <span>[OK] 飛行可能</span>
       ) : (
         <div>
-          <span>✗ 飛行不可</span>
+          <span>[NG] 飛行不可</span>
           <ul>
             {safety.reasons.map((r, i) => (
               <li key={i}>{r.message}</li>

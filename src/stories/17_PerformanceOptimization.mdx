@@ -32,31 +32,31 @@ import { TableStyle } from './components/TableStyle'
       <td style={TableStyle.td}>メモリ重複</td>
       <td style={TableStyle.td}>GeoJSONデータが3箇所に存在</td>
       <td style={TableStyle.td}>メモリ使用量 ~117MB（DID全国）</td>
-      <td style={TableStyle.td}>🔴 High</td>
+      <td style={TableStyle.td}>High</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>mousemove 過度実行</td>
       <td style={TableStyle.td}>フレームレート制限なし</td>
       <td style={TableStyle.td}>毎ピクセル移動でJavaScript実行</td>
-      <td style={TableStyle.td}>🔴 High</td>
+      <td style={TableStyle.td}>High</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>全レイヤー検索</td>
       <td style={TableStyle.td}>queryRenderedFeaturesが94個全て検索</td>
       <td style={TableStyle.td}>ツールチップ表示が遅延</td>
-      <td style={TableStyle.td}>🟠 Medium</td>
+      <td style={TableStyle.td}>Medium</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>同期的レイヤー追加</td>
       <td style={TableStyle.td}>47個のDIDを一括ロード</td>
       <td style={TableStyle.td}>UI 5～10秒固まり</td>
-      <td style={TableStyle.td}>🟠 Medium</td>
+      <td style={TableStyle.td}>Medium</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>全都道府県の一括読み込み</td>
       <td style={TableStyle.td}>ビューポート外の都道府県も読み込む</td>
       <td style={TableStyle.td}>GPU/CPU/メモリを急激に消費、画面が重くなる</td>
-      <td style={TableStyle.td}>🔴 High</td>
+      <td style={TableStyle.td}>High</td>
     </tr>
   </tbody>
 </table>
@@ -64,9 +64,9 @@ import { TableStyle } from './components/TableStyle'
 ### 実装された改善策
 
 **DIDの表示方法の改善:**
-- ✅ **地方ごとの分類表示**: 必要な地域だけを選択して表示することで、メモリ使用量とレンダリング負荷を最小限に抑える
-- ✅ **ビューポートベースの動的読み込み**: 表示範囲内の都道府県のみを自動的に読み込むことで、パフォーマンスを大幅に改善
-- ✅ **デバウンス処理**: マップの移動・ズーム時の連続するイベントを抑制（300ms）
+- 地方ごとの分類表示: 必要な地域だけを選択して表示することで、メモリ使用量とレンダリング負荷を最小限に抑える
+- ビューポートベースの動的読み込み: 表示範囲内の都道府県のみを自動的に読み込むことで、パフォーマンスを大幅に改善
+- デバウンス処理: マップの移動・ズーム時の連続するイベントを抑制（300ms）
 
 ### 実装された改善策（詳細）
 
@@ -84,31 +84,31 @@ import { TableStyle } from './components/TableStyle'
       <td style={TableStyle.td}>メモリ最適化</td>
       <td style={TableStyle.td}>MapLibreGL直接アクセス</td>
       <td style={TableStyle.td}>メモリ 50% 削減（~58MB）</td>
-      <td style={TableStyle.td}>🟢 Excellent</td>
+      <td style={TableStyle.td}>Excellent</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>mousemove節流</td>
       <td style={TableStyle.td}>requestAnimationFrame</td>
       <td style={TableStyle.td}>フレームレート制限（60Hz）、CPU 90% 削減</td>
-      <td style={TableStyle.td}>🟢 Excellent</td>
+      <td style={TableStyle.td}>Excellent</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>レイヤー検索最適化</td>
       <td style={TableStyle.td}>表示レイヤーのみクエリ</td>
       <td style={TableStyle.td}>検索速度 数倍～47倍高速化</td>
-      <td style={TableStyle.td}>🟢 Excellent</td>
+      <td style={TableStyle.td}>Excellent</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>バッチ処理</td>
       <td style={TableStyle.td}>requestIdleCallback</td>
       <td style={TableStyle.td}>UI ブロック 5～10秒 → 0.5秒以下（95%削減）</td>
-      <td style={TableStyle.td}>🟢 Excellent</td>
+      <td style={TableStyle.td}>Excellent</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>ビューポートベース動的読み込み</td>
       <td style={TableStyle.td}>バウンディングボックス交差判定</td>
       <td style={TableStyle.td}>メモリ使用量 最大47倍削減（表示範囲内の都道府県のみ読み込み）</td>
-      <td style={TableStyle.td}>🟢 Excellent</td>
+      <td style={TableStyle.td}>Excellent</td>
     </tr>
   </tbody>
 </table>
@@ -122,7 +122,7 @@ import { TableStyle } from './components/TableStyle'
 #### 問題
 
 ```typescript
-// ❌ 改善前: データが3箇所に存在
+// NG:改善前: データが3箇所に存在
 map.addSource(layerId, { type: 'geojson', data })  // MapLibre GL内部: 58.68 MB
 didGeoJSONCacheRef.current.set(layerId, data)      // In-memory: 58.68 MB
 // + ブラウザCache API: 58.68 MB
@@ -132,7 +132,7 @@ didGeoJSONCacheRef.current.set(layerId, data)      // In-memory: 58.68 MB
 #### 解決方法
 
 ```typescript
-// ✅ 改善後: MapLibre GLソースから直接取得
+// OK:改善後: MapLibre GLソースから直接取得
 const source = map.getSource(layerId) as maplibregl.GeoJSONSource
 const sourceData = source.serialize().data as GeoJSON.FeatureCollection
 
@@ -152,7 +152,7 @@ const sourceData = source.serialize().data as GeoJSON.FeatureCollection
 #### 問題
 
 ```typescript
-// ❌ 改善前: 毎ピクセル移動でトリガー（数百 Hz）
+// NG:改善前: 毎ピクセル移動でトリガー（数百 Hz）
 map.on('mousemove', (e) => {
   const features = map.queryRenderedFeatures(e.point)  // 同期処理でブロック
   // ... ツールチップ表示処理
@@ -162,7 +162,7 @@ map.on('mousemove', (e) => {
 #### 解決方法
 
 ```typescript
-// ✅ 改善後: requestAnimationFrameで節流（最大 60 Hz）
+// OK:改善後: requestAnimationFrameで節流（最大 60 Hz）
 let mouseMoveRafId: number | null = null
 
 const throttledMouseMove = (e: maplibregl.MapMouseEvent) => {
@@ -213,7 +213,7 @@ map.on('mousemove', throttledMouseMove)
 #### 問題
 
 ```typescript
-// ❌ 改善前: 94個の全レイヤーを検索
+// NG:改善前: 94個の全レイヤーを検索
 const features = map.queryRenderedFeatures(e.point)  // 全レイヤー検索
 
 // DID全国表示時:
@@ -226,7 +226,7 @@ const features = map.queryRenderedFeatures(e.point)  // 全レイヤー検索
 #### 解決方法
 
 ```typescript
-// ✅ 改善後: 表示レイヤーのみを検索対象に
+// OK:改善後: 表示レイヤーのみを検索対象に
 const visibleQueryLayers: string[] = []
 
 // 現在表示中のレイヤーIDを収集
@@ -276,7 +276,7 @@ const features = map.queryRenderedFeatures(e.point, {
 #### 問題
 
 ```typescript
-// ❌ 改善前: 47個を同期的に一括追加
+// NG:改善前: 47個を同期的に一括追加
 for (const layer of allLayers) {  // 47回ループ
   const data = await fetchGeoJSONWithCache(layer.path)
   map.addSource(...)
@@ -288,7 +288,7 @@ for (const layer of allLayers) {  // 47回ループ
 #### 解決方法
 
 ```typescript
-// ✅ 改善後: バッチ処理 + requestIdleCallback
+// OK:改善後: バッチ処理 + requestIdleCallback
 const BATCH_SIZE = 7
 let batchIndex = 0
 
@@ -365,7 +365,7 @@ await processBatch()
 #### 問題
 
 ```typescript
-// ❌ 改善前: 全国一括表示時に全47都道府県を一度に読み込む
+// NG:改善前: 全国一括表示時に全47都道府県を一度に読み込む
 const allLayers = getAllLayers()  // 47都道府県
 for (const layer of allLayers) {
   const data = await fetchGeoJSONWithCache(layer.path)
@@ -377,7 +377,7 @@ for (const layer of allLayers) {
 #### 解決方法
 
 ```typescript
-// ✅ 改善後: ビューポート内の都道府県のみを動的に読み込む
+// OK:改善後: ビューポート内の都道府県のみを動的に読み込む
 const getLayersInViewport = (map: maplibregl.Map, layers: LayerConfig[]): LayerConfig[] => {
   const bounds = map.getBounds()
   const viewportBBox: [[number, number], [number, number]] = [
@@ -470,7 +470,7 @@ map.on('zoomend', handler)
   ───────────────────────────
   合計: ~117 MB
 
-削減: 約 33% ✨
+削減: 約 33%
 ```
 
 ### JavaScript 実行時間（DID全国表示時）
@@ -519,8 +519,8 @@ map.on('zoomend', handler)
   <tbody>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>UI レスポンシブ性</td>
-      <td style={TableStyle.td}>❌ 固まる</td>
-      <td style={TableStyle.td}>✅ スムーズ</td>
+      <td style={TableStyle.td}>NG 固まる</td>
+      <td style={TableStyle.td}>OK スムーズ</td>
     </tr>
     <tr style={TableStyle.tr}>
       <td style={TableStyle.td}>ツールチップ表示速度</td>
@@ -587,13 +587,13 @@ const visibleQueryLayers = Array.from(layerStates.entries())
 
 ### 大規模 データセット表示時
 
-✅ **推奨事項**
+推奨事項
 - バッチ処理で段階的にレイヤー追加
 - requestAnimationFrame/requestIdleCallback で UI スレッド分離
 - メモリ重複排除（MapLibre GL ソース直接参照）
 - 表示レイヤーのみをクエリ対象に
 
-❌ **避けるべき**
+避けるべき
 - 全データを同期的に一括ロード
 - 毎フレーム全レイヤーを検索
 - 同じデータの複数キャッシュ保持

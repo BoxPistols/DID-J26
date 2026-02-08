@@ -31,9 +31,21 @@ const CATEGORIES = {
     title: '📐 仕様書',
     description: 'プロジェクト要件定義、機能仕様、アーキテクチャ設計'
   },
+  architecture: {
+    title: '🏗️ アーキテクチャ',
+    description: 'システム構成、データフロー、設計原則に関するドキュメント'
+  },
   development: {
     title: '🛠️ 開発ガイド',
     description: '開発環境、CI/CD、パッケージ化、タスク管理'
+  },
+  'getting-started': {
+    title: '🚀 はじめての方へ',
+    description: '環境構築、クイックスタート、オンボーディング'
+  },
+  'ai-driven': {
+    title: '🤖 AI駆動開発',
+    description: 'AIツールの活用方法、ベストプラクティス'
   }
 }
 

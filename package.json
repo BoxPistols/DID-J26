@@ -35,7 +35,8 @@
     "build-storybook": "storybook build",
     "prepare": "husky",
     "download:facilities": "node scripts/download_osm_facilities.js",
-    "docs:index": "node scripts/generate-docs-index.cjs"
+    "docs:index": "node scripts/generate-docs-index.cjs",
+    "clean": "rm -rf node_modules package-lock.json && npm install"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [

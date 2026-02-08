@@ -5,61 +5,16 @@
 
 ---
 
-## 📘 ドキュメント優先順位
-
-```text
-1. Storybook（最優先）
-   └ npm run storybook → http://localhost:6006
-   └ 技術仕様・実装ガイド・コンポーネント仕様・API仕様
-   └ インタラクティブなデモとコード例
-
-2. docs/（このディレクトリ - 補足ガイド）
-   └ 環境構築、AI駆動開発、データ更新、用語集
-
-3. README.md（プロジェクトルート）
-   └ プロジェクト概要・クイックスタート
-```
-
-**💡 技術的な詳細はStorybookを参照してください。このディレクトリは環境構築やワークフローの補足ガイドです。**
-
----
-
 ## 📋 目次
 
 - [📊 データ関連](#data)
 - [🔌 API・外部連携](#api)
 - [📐 仕様書](#specifications)
+- [🏗️ アーキテクチャ](#architecture)
 - [🛠️ 開発ガイド](#development)
 - [🚀 はじめての方へ](#getting-started)
+- [🤖 AI駆動開発](#ai-driven)
 - [その他](#その他)
-
----
-
-## 🚀 はじめての方へ
-
-### ステップ1: Storybookで全体像を把握（最重要）
-
-```bash
-npm run storybook
-```
-
-ブラウザで http://localhost:6006 を開き、以下を確認：
-- **技術ドキュメント**: 01_ReactFundamentals〜17_PerformanceOptimization
-- **コンポーネント仕様**: インタラクティブなデモとProps一覧
-- **実装例**: ベストプラクティスとコード例
-
-### ステップ2: 環境構築
-
-- **[Getting Started](./getting-started/QUICK_START.md)** - 完全初心者向け環境構築ガイド
-
-### ステップ3: AI駆動開発について学ぶ
-
-- **[AI駆動開発ガイド（Storybook版）](http://localhost:6006/?path=/docs/learning-18-ai駆動開発ガイド--docs)** - インタラクティブ版（推奨）
-- **[AI駆動開発ガイド（Markdown版）](./ai-driven/AI_DRIVEN_DEVELOPMENT.md)** - GitHub Copilot、Claude Code等の活用方法
-
-### ステップ4: 用語を理解する
-
-- **[用語集](./GLOSSARY.md)** - DID、NFZ、GIS等の専門用語を平易に説明
 
 ---
 
@@ -91,13 +46,11 @@ e-Stat（政府統計の総合窓口）から人口集中地区（DID）デー�
 
 ## 🔌 API・外部連携
 
-**💡 API仕様の詳細はStorybookの「15_WeatherApi」を参照してください。**
-
-ドローン運航API、気象API、外部サービス連携に関する補足ドキュメント
+ドローン運航API、気象API、外部サービス連携に関するドキュメント
 
 ### [ドローン運用統合APIガイド](./api/DRONE_OPERATION_API_GUIDE.md)
 
-**最新仕様**: Storybook → `15_WeatherApi` を参照
+**詳細仕様**: Storybook → `API/15_天気予報API仕様` を参照
 
 ### [全国天気マップ](./api/NATIONWIDE_WEATHER_MAP.md)
 
@@ -115,19 +68,13 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ## 📐 仕様書
 
-**💡 技術仕様の詳細はStorybookの「16_CollisionDetection」「17_PerformanceOptimization」等を参照してください。**
-
-プロジェクト要件定義、機能仕様、アーキテクチャ設計の補足ドキュメント
+プロジェクト要件定義、機能仕様、アーキテクチャ設計
 
 ### [衝突判定機能 技術仕様書](./specifications/COLLISION_DETECTION_SPEC.md)
-
-**最新仕様**: Storybook → `16_CollisionDetection` を参照
 
 **作成日**: 2026年1月18日
 
 ### [地図技術仕様書](./specifications/MAP_TECHNICAL_SPEC.md)
-
-**最新仕様**: Storybook → `05_MapTechnology`, `06_GSISpec`, `07_GSIArch` を参照
 
 このドキュメントは、本アプリケーションで使用している地図技術の詳細仕様を説明します。
 
@@ -137,11 +84,19 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ---
 
+## 🏗️ アーキテクチャ
+
+システム構成、データフロー、設計原則に関するドキュメント
+
+### [システム概要図](./architecture/SYSTEM_OVERVIEW.md)
+
+このプロジェクトは、React、MapLibre GL JS、および各種地理空間データソースを組み合わせたフロントエンドアプリケーションです。
+
+---
+
 ## 🛠️ 開発ガイド
 
-**💡 開発フローの詳細はStorybookの「14_DeveloperManual」を参照してください。**
-
-開発環境、CI/CD、パッケージ化、タスク管理の補足ドキュメント
+開発環境、CI/CD、パッケージ化、タスク管理
 
 ### [進行中タスク・未着手課題](./development/ACTIVE_TASKS.md)
 
@@ -173,15 +128,33 @@ TV天気予報スタイルで全国の天気を一覧表示する機能。
 
 ---
 
+## 🚀 はじめての方へ
+
+環境構築、クイックスタート、オンボーディング
+
+### [クイックスタートガイド](./getting-started/QUICK_START.md)
+
+このガイドは、**完全な初心者**がこのプロジェクトの開発に参加できるよう、環境構築から最初のコード変更まで、ステップバイステップで説明します。
+
+---
+
+## 🤖 AI駆動開発
+
+AIツールの活用方法、ベストプラクティス
+
+### [AI駆動開発ガイド](./ai-driven/AI_DRIVEN_DEVELOPMENT.md)
+
+このガイドは、**AI駆動開発の経験がない方**を対象に、このプロジェクトでどのようにAIを活用しているかを丁寧に説明します。
+
+---
+
 ## その他
 
 - [ドキュメント構造分析レポート](./DOCUMENTATION_ANALYSIS.md)
 - [用語集](./GLOSSARY.md)
 - [地図データエクスポートガイド](./MAP_DATA_EXPORT_GUIDE.md)
-- [AI駆動開発ガイド](./ai-driven/AI_DRIVEN_DEVELOPMENT.md)
-- [クイックスタートガイド](./getting-started/QUICK_START.md)
 
 ---
 
-**最終更新:** 2026-02-03
+**最終更新:** 2026-02-08
 **生成コマンド:** `npm run docs:index`

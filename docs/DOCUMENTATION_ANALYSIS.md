@@ -37,7 +37,7 @@ AI駆動開発の概念がない人のために、漏れなくダブりなく丁
 ### 🔴 重複が見つかった内容
 
 #### 1. 天気予報API
-- **README.md** (行189-221): 気象情報とオーバーレイ - 基本的な説明
+- **README.md**: 気象情報とオーバーレイ - 基本的な説明
 - **docs/api/WEATHER_API_REQUIREMENTS.md**: 天気予報機能概要
 - **docs/api/WEATHER_API_INVESTIGATION.md**: 詳細調査報告書
 - **src/stories/15_WeatherApi.mdx**: 技術仕様
@@ -46,14 +46,14 @@ AI駆動開発の概念がない人のために、漏れなくダブりなく丁
 **重複度**: ⚠️ 中 - 同じ情報が4箇所に散在
 
 #### 2. 衝突検出機能
-- **README.md** (行305-328): 衝突検出の概要
+- **README.md**: 衝突検出の概要
 - **docs/specifications/COLLISION_DETECTION_SPEC.md**: 技術仕様書
 - **src/stories/16_CollisionDetection.mdx**: 実装詳細
 
 **重複度**: ⚠️ 中 - 3箇所で説明
 
 #### 3. DIDデータ更新
-- **README.md** (行419-454): DIDデータの更新手順
+- **README.md**: DIDデータの更新手順
 - **docs/data/DID_DATA_UPDATE_GUIDE.md**: 詳細ガイド
 - **docs/data/UPDATE_REQUIREMENTS.md**: 要件定義
 - **docs/data/DATA_UPDATE_STATUS.md**: 更新状況

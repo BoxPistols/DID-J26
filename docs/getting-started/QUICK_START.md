@@ -128,8 +128,7 @@ sudo apt-get install git
 2. インストール
 
 **推奨拡張機能**:
-```text
-# VS Codeを起動後、以下をインストール
+```markdown
 - ESLint
 - Prettier - Code formatter
 - GitHub Copilot（有料、学生無料）
@@ -454,14 +453,8 @@ Property 'xxx' does not exist on type 'yyy'
 2. Console タブでエラーを確認
 3. 以下を試す：
 ```bash
-# キャッシュをクリア
+# キャッシュをクリアして再起動（node_modulesを再作成）
 npm run clean
-
-# 再インストール
-npm install
-
-# 再起動
-npm run dev
 ```
 
 ### エラー5: Git pushが失敗する
@@ -510,6 +503,9 @@ gh auth login
 ### 4. 機能を追加してみる
 
 簡単な機能追加から始めましょう：
+
+**システム全体像を理解する**:
+- **[システム概要図](../architecture/SYSTEM_OVERVIEW.md)** - システム構成、データフロー
 
 **初心者向けタスク**:
 - [ ] UIのテキストを変更

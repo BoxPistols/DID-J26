@@ -2,14 +2,14 @@ import { beforeEach } from 'vitest'
 
 // LocalStorage mock implementation
 class LocalStorageMock implements Storage {
-  private store: Record<string, string> = {}
+  private store: Record<string, string> = Object.create(null)
 
   get length(): number {
     return Object.keys(this.store).length
   }
 
   clear(): void {
-    this.store = {}
+    this.store = Object.create(null)
   }
 
   getItem(key: string): string | null {

@@ -148,6 +148,7 @@ npm run build
 
 **開発者向け**:
 - **[ドキュメント索引](docs/README.md)** - 全ドキュメント一覧
+- **[システム概要図](docs/architecture/SYSTEM_OVERVIEW.md)** - システム構成、データフロー
 - **[地図技術仕様](docs/specifications/MAP_TECHNICAL_SPEC.md)** - 座標系、投影法
 - **[衝突検出仕様](docs/specifications/COLLISION_DETECTION_SPEC.md)** - アルゴリズム詳細
 - **[DIDデータ更新ガイド](docs/data/DID_DATA_UPDATE_GUIDE.md)** - データ更新手順

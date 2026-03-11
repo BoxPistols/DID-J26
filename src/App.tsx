@@ -5056,7 +5056,7 @@ function App() {
         </div>
 
         {/* Drawing Tools - サイドバー内に埋め込み */}
-        <div data-intro="drawing-tools">
+        <div data-intro="drawing-tools" style={{ position: 'relative' }}>
         <DrawingTools
           map={mapRef.current}
           mapLoaded={mapLoaded}

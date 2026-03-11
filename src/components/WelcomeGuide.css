@@ -190,6 +190,11 @@
     0 0 0 5000px rgba(0, 0, 0, 0.5);
 }
 
+/* サイドバー内要素のハイライト: 親のスタッキングコンテキストを引き上げ */
+aside:has(.introjs-showElement) {
+  z-index: 9999999 !important;
+}
+
 /* アロー（矢印）の色調整 */
 .welcome-tour-tooltip .introjs-arrow.left {
   border-right-color: rgba(26, 31, 46, 0.95);

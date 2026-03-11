@@ -1092,6 +1092,9 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ウェルカムガイド表示中はショートカット無効化（intro.jsに委譲）
+      if (showWelcome) return
+
       const isInputFocused =
         e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
       const key = e.key.toLowerCase()
@@ -1228,7 +1231,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [mapLoaded, baseMap, handleBaseMapChange, showWeatherForecast])
+  }, [mapLoaded, baseMap, handleBaseMapChange, showWeatherForecast, showWelcome])
 
   // ============================================
   // Search functionality (DID + Geocoding)

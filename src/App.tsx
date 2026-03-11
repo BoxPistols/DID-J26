@@ -5651,6 +5651,7 @@ function App() {
 
       {/* Right Legend Panel */}
       <aside
+        data-intro="right-sidebar"
         style={{
           position: 'absolute',
           right: showRightLegend ? 0 : -rightSidebarWidth,
@@ -6283,6 +6284,28 @@ function App() {
         maxHeight="85vh"
         overlayOpacity={0.25}
       >
+        {/* ガイドツアー再表示ボタン */}
+        <div style={{ marginBottom: '12px' }}>
+          <button
+            onClick={() => {
+              setShowHelp(false)
+              setTimeout(() => setShowWelcome(true), 300)
+            }}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: darkMode ? '#4a9eff' : '#2563eb',
+              backgroundColor: darkMode ? 'rgba(74, 158, 255, 0.1)' : 'rgba(37, 99, 235, 0.08)',
+              border: `1px solid ${darkMode ? 'rgba(74, 158, 255, 0.3)' : 'rgba(37, 99, 235, 0.2)'}`,
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            ガイドツアーを再表示
+          </button>
+        </div>
+
         <div
           style={{
             display: 'grid',

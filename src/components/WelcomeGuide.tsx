@@ -1,11 +1,13 @@
 /**
- * WelcomeGuide - intro.js を使った初回訪問者向けステップツアー
+ * WelcomeGuide - intro.js を直接使った初回訪問者向けステップツアー
  *
  * 実際のUI要素をハイライトしながら、主要機能を順に案内する。
+ * intro.js-react は v8 非対応のため、intro.js API を直接使用。
  */
 
-import { useCallback } from 'react'
-import { Steps } from 'intro.js-react'
+import { useEffect, useRef } from 'react'
+import introJs from 'intro.js'
+import type { TooltipPosition } from 'intro.js/src/packages/tooltip/tooltipPosition'
 import 'intro.js/introjs.css'
 import './WelcomeGuide.css'
 
@@ -17,9 +19,8 @@ export interface WelcomeGuideProps {
 }
 
 /** ツアーステップ定義 */
-const TOUR_STEPS = [
+const TOUR_STEPS: { element: string; title: string; intro: string; position: TooltipPosition }[] = [
   {
-    // 冒頭: 地図全体を対象にアプリ概要
     element: '[data-intro="map"]',
     title: 'DID in Japan へようこそ',
     intro: `
@@ -36,10 +37,10 @@ const TOUR_STEPS = [
         <a href="https://github.com/BoxPistols/DID-J26" target="_blank" rel="noopener noreferrer" style="color:#4a9eff">GitHub</a>
         でソースコードを公開しています。
       </p>
-    `
+    `,
+    position: 'floating'
   },
   {
-    // 左サイドバー
     element: '[data-intro="left-sidebar"]',
     title: 'レイヤー管理',
     intro: `
@@ -51,37 +52,34 @@ const TOUR_STEPS = [
         <li>地形・標高情報</li>
       </ul>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-family:monospace">S</kbd> で開閉できます
+        キー <kbd>S</kbd> で開閉できます
       </p>
     `,
     position: 'right'
   },
   {
-    // 検索ボックス
     element: '[data-intro="search"]',
     title: '場所を検索',
     intro: `
       <p>地名・住所を入力して飛行予定地に移動できます。</p>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        <kbd style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-family:monospace">Cmd+K</kbd> ですぐにフォーカスできます
+        <kbd>Cmd+K</kbd> ですぐにフォーカスできます
       </p>
     `,
     position: 'right'
   },
   {
-    // ベースマップ切替
     element: '[data-intro="basemap"]',
     title: '背景地図の切替',
     intro: `
       <p>OSM・地理院地図・航空写真などに切り替えられます。</p>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-family:monospace">M</kbd> でも切替可能です
+        キー <kbd>M</kbd> でも切替可能です
       </p>
     `,
     position: 'right'
   },
   {
-    // 右サイドバー（描画ツール）
     element: '[data-intro="right-sidebar"]',
     title: '描画ツール',
     intro: `
@@ -92,55 +90,82 @@ const TOUR_STEPS = [
         <li>GeoJSON/KML/CSVエクスポート</li>
       </ul>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-family:monospace">P</kbd> で開閉できます
+        キー <kbd>P</kbd> で開閉できます
       </p>
     `,
     position: 'left'
   },
   {
-    // ヘルプボタン
     element: '[data-intro="help-btn"]',
     title: 'ヘルプ',
     intro: `
       <p>詳しい操作方法やショートカットキーの一覧はここから確認できます。</p>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd style="background:rgba(255,255,255,0.15);padding:1px 5px;border-radius:3px;font-family:monospace">?</kbd> でも開けます
+        キー <kbd>?</kbd> でも開けます
       </p>
     `,
     position: 'top-left-aligned'
   }
 ]
 
-/** intro.js のオプション */
-const INTRO_OPTIONS = {
-  nextLabel: '次へ',
-  prevLabel: '戻る',
-  skipLabel: 'スキップ',
-  doneLabel: '始める',
-  showStepNumbers: false,
-  showBullets: true,
-  showProgress: true,
-  exitOnOverlayClick: true,
-  exitOnEsc: true,
-  scrollToElement: false,
-  disableInteraction: false,
-  overlayOpacity: 0.5,
-  helperElementPadding: 8,
-  tooltipClass: 'welcome-tour-tooltip'
-}
-
 export function WelcomeGuide({ enabled, onExit }: WelcomeGuideProps) {
-  const handleExit = useCallback(() => {
-    onExit()
-  }, [onExit])
+  const introRef = useRef<ReturnType<typeof introJs> | null>(null)
 
-  return (
-    <Steps
-      enabled={enabled}
-      steps={TOUR_STEPS}
-      initialStep={0}
-      onExit={handleExit}
-      options={INTRO_OPTIONS}
-    />
-  )
+  useEffect(() => {
+    if (!enabled) {
+      // 無効化時にインスタンスが残っていたら終了
+      if (introRef.current) {
+        introRef.current.exit(true)
+        introRef.current = null
+      }
+      return
+    }
+
+    // DOM要素が確実に存在するまで少し待つ
+    const timer = setTimeout(() => {
+      const intro = introJs()
+
+      intro.setOptions({
+        steps: TOUR_STEPS,
+        nextLabel: '次へ &rarr;',
+        prevLabel: '&larr; 戻る',
+        skipLabel: 'スキップ',
+        doneLabel: '始める',
+        showStepNumbers: false,
+        showBullets: true,
+        showProgress: true,
+        exitOnOverlayClick: true,
+        exitOnEsc: true,
+        scrollToElement: false,
+        disableInteraction: false,
+        overlayOpacity: 0.5,
+        helperElementPadding: 8,
+        tooltipClass: 'welcome-tour-tooltip'
+      })
+
+      intro.oncomplete(() => {
+        introRef.current = null
+        onExit()
+      })
+
+      intro.onexit(() => {
+        introRef.current = null
+        onExit()
+      })
+
+      introRef.current = intro
+      intro.start()
+    }, 500)
+
+    return () => {
+      clearTimeout(timer)
+      if (introRef.current) {
+        introRef.current.exit(true)
+        introRef.current = null
+      }
+    }
+  }, [enabled, onExit])
+
+  // intro.js はDOMを直接操作するため、JSXの描画は不要
+  return null
 }

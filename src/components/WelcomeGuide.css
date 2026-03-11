@@ -1,0 +1,240 @@
+/**
+ * intro.js ツアーのカスタムスタイル
+ * ダーク/ライトテーマ両対応
+ */
+
+/* ツールチップ本体 */
+.welcome-tour-tooltip.introjs-tooltip {
+  background: rgba(26, 31, 46, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 400px;
+  min-width: 300px;
+}
+
+[data-theme="light"] .welcome-tour-tooltip.introjs-tooltip {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  color: rgba(0, 0, 0, 0.8);
+}
+
+/* タイトル */
+.welcome-tour-tooltip .introjs-tooltip-title {
+  color: #4a9eff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-tooltip-title {
+  color: #2563eb;
+}
+
+/* 本文 */
+.welcome-tour-tooltip .introjs-tooltiptext {
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 8px 0;
+}
+
+.welcome-tour-tooltip .introjs-tooltiptext p {
+  margin: 0 0 6px;
+}
+
+.welcome-tour-tooltip .introjs-tooltiptext ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.welcome-tour-tooltip .introjs-tooltiptext li {
+  margin-bottom: 2px;
+}
+
+/* プログレスバー */
+.welcome-tour-tooltip .introjs-progressbar {
+  background: rgba(255, 255, 255, 0.1);
+  height: 3px;
+  border-radius: 2px;
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-progressbar {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.welcome-tour-tooltip .introjs-progress {
+  margin: 10px 0 0;
+}
+
+.welcome-tour-tooltip .introjs-progressbar .introjs-progressbar-fill {
+  background: #4a9eff;
+}
+
+/* ドットインジケーター */
+.welcome-tour-tooltip .introjs-bullets ul li a {
+  background: rgba(255, 255, 255, 0.2);
+  width: 8px;
+  height: 8px;
+}
+
+.welcome-tour-tooltip .introjs-bullets ul li a.active {
+  background: #4a9eff;
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-bullets ul li a {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-bullets ul li a.active {
+  background: #2563eb;
+}
+
+/* ボタン共通 */
+.welcome-tour-tooltip .introjs-button {
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 6px 14px;
+  text-shadow: none;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+/* 次へ・完了ボタン */
+.welcome-tour-tooltip .introjs-nextbutton,
+.welcome-tour-tooltip .introjs-donebutton {
+  background: #4a9eff;
+  color: #fff;
+}
+
+.welcome-tour-tooltip .introjs-nextbutton:hover,
+.welcome-tour-tooltip .introjs-donebutton:hover {
+  background: #3a8eef;
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+.welcome-tour-tooltip .introjs-nextbutton:focus,
+.welcome-tour-tooltip .introjs-donebutton:focus {
+  background: #3a8eef;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.4);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-nextbutton,
+[data-theme="light"] .welcome-tour-tooltip .introjs-donebutton {
+  background: #2563eb;
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-nextbutton:hover,
+[data-theme="light"] .welcome-tour-tooltip .introjs-donebutton:hover {
+  background: #1d4ed8;
+}
+
+/* 戻るボタン */
+.welcome-tour-tooltip .introjs-prevbutton {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.welcome-tour-tooltip .introjs-prevbutton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.welcome-tour-tooltip .introjs-prevbutton:focus {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-prevbutton {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-prevbutton:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* スキップボタン */
+.welcome-tour-tooltip .introjs-skipbutton {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+}
+
+.welcome-tour-tooltip .introjs-skipbutton:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-skipbutton {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-skipbutton:hover {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* ハイライト枠 */
+.introjs-helperLayer {
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 2px rgba(74, 158, 255, 0.4),
+    0 0 0 5000px rgba(0, 0, 0, 0.5);
+}
+
+/* アロー（矢印）の色調整 */
+.welcome-tour-tooltip .introjs-arrow.left {
+  border-right-color: rgba(26, 31, 46, 0.95);
+}
+
+.welcome-tour-tooltip .introjs-arrow.right {
+  border-left-color: rgba(26, 31, 46, 0.95);
+}
+
+.welcome-tour-tooltip .introjs-arrow.top {
+  border-bottom-color: rgba(26, 31, 46, 0.95);
+}
+
+.welcome-tour-tooltip .introjs-arrow.bottom {
+  border-top-color: rgba(26, 31, 46, 0.95);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-arrow.left {
+  border-right-color: rgba(255, 255, 255, 0.97);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-arrow.right {
+  border-left-color: rgba(255, 255, 255, 0.97);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-arrow.top {
+  border-bottom-color: rgba(255, 255, 255, 0.97);
+}
+
+[data-theme="light"] .welcome-tour-tooltip .introjs-arrow.bottom {
+  border-top-color: rgba(255, 255, 255, 0.97);
+}
+
+/* kbd スタイル（ツールチップ内） */
+.welcome-tour-tooltip kbd {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+[data-theme="light"] .welcome-tour-tooltip kbd {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.7);
+}

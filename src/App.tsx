@@ -4649,6 +4649,7 @@ function App() {
 
       {/* Left Legend Panel */}
       <aside
+        data-intro="left-sidebar"
         style={{
           position: 'absolute',
           left: showLeftLegend ? 0 : -leftSidebarWidth,
@@ -4692,7 +4693,7 @@ function App() {
         <AppHeader />
 
         {/* Search */}
-        <div style={{ marginBottom: '12px', position: 'relative' }}>
+        <div data-intro="search" style={{ marginBottom: '12px', position: 'relative' }}>
           <input
             ref={searchInputRef}
             type="text"
@@ -4826,6 +4827,7 @@ function App() {
 
         {/* Base map selector */}
         <div
+          data-intro="basemap"
           style={{ marginBottom: '12px' }}
           title="マップの背景地図スタイルを変更します（Mで切替）"
         >
@@ -5644,6 +5646,7 @@ function App() {
 
       {/* Right Legend Panel */}
       <aside
+        data-intro="right-sidebar"
         style={{
           position: 'absolute',
           right: showRightLegend ? 0 : -rightSidebarWidth,
@@ -5906,7 +5909,7 @@ function App() {
       </aside>
 
       {/* Map Container */}
-      <div ref={mapContainer} style={{ flex: 1 }} />
+      <div ref={mapContainer} data-intro="map" style={{ flex: 1 }} />
 
       {/* Custom Layer Manager */}
       <CustomLayerManager
@@ -6011,6 +6014,7 @@ function App() {
 
       {/* Help Button [?] */}
       <button
+        data-intro="help-btn"
         onClick={() => setShowHelp(true)}
         style={{
           position: 'fixed',
@@ -6259,10 +6263,10 @@ function App() {
         </button>
       </div>
 
-      {/* 初回訪問者向けウェルカムガイド */}
+      {/* 初回訪問者向けステップツアー */}
       <WelcomeGuide
-        isOpen={showWelcome}
-        onClose={() => setShowWelcome(false)}
+        enabled={showWelcome}
+        onExit={() => setShowWelcome(false)}
       />
 
       {/* Help Modal */}

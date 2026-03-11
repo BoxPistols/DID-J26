@@ -61,6 +61,7 @@ import {
 } from './components/DrawingTools'
 import { FocusCrosshair, type CrosshairDesign } from './components/FocusCrosshair'
 import { Modal } from './components/Modal'
+import { WelcomeGuide } from './components/WelcomeGuide'
 // NOTE: 右下の比較パネル（重複ボタン）は廃止し、隆起表示は右上UIに統一
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
@@ -742,9 +743,11 @@ function App() {
   // Help modal
   const [showHelp, setShowHelp] = useState(false)
 
-  // Check if this is the first visit and auto-show help modal
+  // Welcome guide for first-time visitors
+  const [showWelcome, setShowWelcome] = useState(false)
+
+  // 初回訪問時はウェルカムガイドを表示（Helpモーダルではなく）
   useEffect(() => {
-    // Skip if localStorage is not available
     if (!isStorageAvailable()) {
       return
     }
@@ -756,9 +759,7 @@ function App() {
     )
 
     if (!hasVisited) {
-      // Show help modal on first visit
-      setShowHelp(true)
-      // Mark as visited
+      setShowWelcome(true)
       saveToStorage(STORAGE_KEYS.FIRST_VISIT_COMPLETED, true)
     }
   }, [])
@@ -6257,6 +6258,12 @@ function App() {
           </svg>
         </button>
       </div>
+
+      {/* 初回訪問者向けウェルカムガイド */}
+      <WelcomeGuide
+        isOpen={showWelcome}
+        onClose={() => setShowWelcome(false)}
+      />
 
       {/* Help Modal */}
       <Modal

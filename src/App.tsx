@@ -61,6 +61,7 @@ import {
 } from './components/DrawingTools'
 import { FocusCrosshair, type CrosshairDesign } from './components/FocusCrosshair'
 import { Modal } from './components/Modal'
+import { WelcomeGuide } from './components/WelcomeGuide'
 // NOTE: 右下の比較パネル（重複ボタン）は廃止し、隆起表示は右上UIに統一
 import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
@@ -742,9 +743,11 @@ function App() {
   // Help modal
   const [showHelp, setShowHelp] = useState(false)
 
-  // Check if this is the first visit and auto-show help modal
+  // Welcome guide for first-time visitors
+  const [showWelcome, setShowWelcome] = useState(false)
+
+  // 初回訪問時はウェルカムガイドを表示（Helpモーダルではなく）
   useEffect(() => {
-    // Skip if localStorage is not available
     if (!isStorageAvailable()) {
       return
     }
@@ -756,9 +759,7 @@ function App() {
     )
 
     if (!hasVisited) {
-      // Show help modal on first visit
-      setShowHelp(true)
-      // Mark as visited
+      setShowWelcome(true)
       saveToStorage(STORAGE_KEYS.FIRST_VISIT_COMPLETED, true)
     }
   }, [])
@@ -1091,6 +1092,9 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ウェルカムガイド表示中はショートカット無効化（intro.jsに委譲）
+      if (showWelcome) return
+
       const isInputFocused =
         e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement
       const key = e.key.toLowerCase()
@@ -1227,7 +1231,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [mapLoaded, baseMap, handleBaseMapChange, showWeatherForecast])
+  }, [mapLoaded, baseMap, handleBaseMapChange, showWeatherForecast, showWelcome])
 
   // ============================================
   // Search functionality (DID + Geocoding)
@@ -4691,7 +4695,7 @@ function App() {
         <AppHeader />
 
         {/* Search */}
-        <div style={{ marginBottom: '12px', position: 'relative' }}>
+        <div data-intro="search" style={{ marginBottom: '12px', position: 'relative' }}>
           <input
             ref={searchInputRef}
             type="text"
@@ -4825,6 +4829,7 @@ function App() {
 
         {/* Base map selector */}
         <div
+          data-intro="basemap"
           style={{ marginBottom: '12px' }}
           title="マップの背景地図スタイルを変更します（Mで切替）"
         >
@@ -5051,6 +5056,7 @@ function App() {
         </div>
 
         {/* Drawing Tools - サイドバー内に埋め込み */}
+        <div data-intro="drawing-tools" style={{ position: 'relative' }}>
         <DrawingTools
           map={mapRef.current}
           mapLoaded={mapLoaded}
@@ -5104,9 +5110,11 @@ function App() {
             previousFeaturesRef.current = features
           }}
         />
+        </div>
 
         {/* Restriction Areas Section */}
         <div
+          data-intro="restrictions"
           style={{
             marginBottom: '12px',
             padding: '8px',
@@ -5643,6 +5651,7 @@ function App() {
 
       {/* Right Legend Panel */}
       <aside
+        data-intro="right-sidebar"
         style={{
           position: 'absolute',
           right: showRightLegend ? 0 : -rightSidebarWidth,
@@ -5905,7 +5914,7 @@ function App() {
       </aside>
 
       {/* Map Container */}
-      <div ref={mapContainer} style={{ flex: 1 }} />
+      <div ref={mapContainer} data-intro="map" style={{ flex: 1 }} />
 
       {/* Custom Layer Manager */}
       <CustomLayerManager
@@ -6010,6 +6019,7 @@ function App() {
 
       {/* Help Button [?] */}
       <button
+        data-intro="help-btn"
         onClick={() => setShowHelp(true)}
         style={{
           position: 'fixed',
@@ -6258,6 +6268,12 @@ function App() {
         </button>
       </div>
 
+      {/* 初回訪問者向けステップツアー */}
+      <WelcomeGuide
+        enabled={showWelcome}
+        onExit={() => setShowWelcome(false)}
+      />
+
       {/* Help Modal */}
       <Modal
         isOpen={showHelp}
@@ -6268,6 +6284,28 @@ function App() {
         maxHeight="85vh"
         overlayOpacity={0.25}
       >
+        {/* ガイドツアー再表示ボタン */}
+        <div style={{ marginBottom: '12px' }}>
+          <button
+            onClick={() => {
+              setShowHelp(false)
+              setTimeout(() => setShowWelcome(true), 300)
+            }}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: darkMode ? '#4a9eff' : '#2563eb',
+              backgroundColor: darkMode ? 'rgba(74, 158, 255, 0.1)' : 'rgba(37, 99, 235, 0.08)',
+              border: `1px solid ${darkMode ? 'rgba(74, 158, 255, 0.3)' : 'rgba(37, 99, 235, 0.2)'}`,
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            ガイドツアーを再表示
+          </button>
+        </div>
+
         <div
           style={{
             display: 'grid',

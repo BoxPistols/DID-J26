@@ -21,19 +21,19 @@ export interface WelcomeGuideProps {
 /** ツアーステップ定義 */
 const TOUR_STEPS: { element: string; title: string; intro: string; position: TooltipPosition }[] = [
   {
+    // 1. アプリ概要
     element: '[data-intro="map"]',
     title: 'DID in Japan へようこそ',
     intro: `
       <p>ドローン飛行の規制区域を地図上で確認できるツールです。</p>
       <ul style="margin:8px 0;padding-left:18px;line-height:1.8">
-        <li><strong>DID（人口集中地区）</strong>の表示</li>
-        <li><strong>空港周辺・飛行禁止区域</strong>の確認</li>
+        <li><strong>DID・空港・飛行禁止区域</strong>の表示</li>
         <li><strong>飛行ルート</strong>の描画と規制チェック</li>
         <li><strong>天気・雨雲レーダー</strong>の確認</li>
       </ul>
       <p style="margin:10px 0 0;padding:8px 10px;background:rgba(255,165,0,0.1);border-radius:4px;font-size:12px;line-height:1.5;color:#999">
-        本ツールはオープンソースのプロトタイプです。
-        情報の正確性について保証はありません。実際の飛行判断にはDIPS・NOTAM等の公式情報を必ず確認してください。<br>
+        本ツールはオープンソースのプロトタイプです。情報の正確性について保証はありません。
+        飛行判断にはDIPS・NOTAM等の公式情報を必ず確認してください。<br>
         <a href="https://github.com/BoxPistols/DID-J26" target="_blank" rel="noopener noreferrer" style="color:#4a9eff">GitHub</a>
         でソースコードを公開しています。
       </p>
@@ -41,23 +41,7 @@ const TOUR_STEPS: { element: string; title: string; intro: string; position: Too
     position: 'floating'
   },
   {
-    element: '[data-intro="left-sidebar"]',
-    title: 'レイヤー管理',
-    intro: `
-      <p>左サイドバーで表示するレイヤーを切り替えます。</p>
-      <ul style="margin:8px 0;padding-left:18px;line-height:1.8">
-        <li>DID（人口集中地区）</li>
-        <li>空港・ヘリポート</li>
-        <li>レッド/イエローゾーン</li>
-        <li>地形・標高情報</li>
-      </ul>
-      <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd>S</kbd> で開閉できます
-      </p>
-    `,
-    position: 'right'
-  },
-  {
+    // 2. 検索
     element: '[data-intro="search"]',
     title: '場所を検索',
     intro: `
@@ -69,34 +53,54 @@ const TOUR_STEPS: { element: string; title: string; intro: string; position: Too
     position: 'right'
   },
   {
-    element: '[data-intro="basemap"]',
-    title: '背景地図の切替',
+    // 3. 規制区域（メイン機能）
+    element: '[data-intro="restrictions"]',
+    title: '規制区域の確認',
     intro: `
-      <p>OSM・地理院地図・航空写真などに切り替えられます。</p>
+      <p>ドローン飛行に関わる規制区域を表示できます。</p>
+      <ul style="margin:8px 0;padding-left:18px;line-height:1.8">
+        <li><strong>NFZ</strong> -- 空港周辺の飛行制限空域</li>
+        <li><strong>DID</strong> -- 人口集中地区（飛行許可が必要）</li>
+        <li><strong>レッド/イエローゾーン</strong> -- 重要施設周辺</li>
+      </ul>
       <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd>M</kbd> でも切替可能です
+        チェックボックスでレイヤーの表示/非表示を切り替えられます
       </p>
     `,
     position: 'right'
   },
   {
+    // 4. 描画ツール
     element: '[data-intro="drawing-tools"]',
-    title: '描画ツール',
+    title: '飛行計画の描画',
     intro: `
-      <p>飛行ルートやエリアを地図上に描画できます。</p>
+      <p>地図上に飛行ルートやエリアを描画できます。</p>
       <ul style="margin:8px 0;padding-left:18px;line-height:1.8">
-        <li>ポリゴン・円・ウェイポイント・経路</li>
-        <li>規制区域との衝突チェック</li>
-        <li>GeoJSON/KML/CSVエクスポート</li>
+        <li>ポリゴン・円・ウェイポイント・経路の4種類</li>
+        <li>規制区域との衝突を自動チェック</li>
+        <li>GeoJSON / KML / CSV でエクスポート</li>
       </ul>
     `,
     position: 'right'
   },
   {
+    // 5. 背景地図
+    element: '[data-intro="basemap"]',
+    title: '背景地図の切替',
+    intro: `
+      <p>OSM・地理院地図・航空写真などに切り替えられます。</p>
+      <p style="font-size:12px;color:#999;margin-top:6px">
+        キー <kbd>M</kbd> でも切替可能
+      </p>
+    `,
+    position: 'right'
+  },
+  {
+    // 6. ヘルプ
     element: '[data-intro="help-btn"]',
     title: 'ヘルプ',
     intro: `
-      <p>詳しい操作方法やショートカットキーの一覧はここから確認できます。</p>
+      <p>操作方法やショートカットキーの一覧はここから確認できます。</p>
       <p style="font-size:12px;color:#999;margin-top:6px">
         キー <kbd>?</kbd> でも開けます
       </p>
@@ -133,7 +137,8 @@ export function WelcomeGuide({ enabled, onExit }: WelcomeGuideProps) {
         showProgress: true,
         exitOnOverlayClick: true,
         exitOnEsc: true,
-        scrollToElement: false,
+        scrollToElement: true,
+        scrollTo: 'tooltip',
         disableInteraction: false,
         overlayOpacity: 0.5,
         helperElementPadding: 8,

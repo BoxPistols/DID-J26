@@ -4652,7 +4652,6 @@ function App() {
 
       {/* Left Legend Panel */}
       <aside
-        data-intro="left-sidebar"
         style={{
           position: 'absolute',
           left: showLeftLegend ? 0 : -leftSidebarWidth,
@@ -5115,6 +5114,7 @@ function App() {
 
         {/* Restriction Areas Section */}
         <div
+          data-intro="restrictions"
           style={{
             marginBottom: '12px',
             padding: '8px',

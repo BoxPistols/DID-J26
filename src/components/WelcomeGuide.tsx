@@ -84,7 +84,21 @@ const TOUR_STEPS: { element: string; title: string; intro: string; position: Too
     position: 'right'
   },
   {
-    // 5. 背景地図
+    // 5. 右サイドバー（環境情報）
+    element: '[data-intro="right-sidebar"]',
+    title: '環境情報',
+    intro: `
+      <p>右サイドバーでは飛行に関わる環境情報を確認できます。</p>
+      <ul style="margin:8px 0;padding-left:18px;line-height:1.8">
+        <li><strong>地理情報</strong> -- 陰影・標高図・傾斜量図</li>
+        <li><strong>天候情報</strong> -- 雨雲レーダー・天気予報</li>
+        <li><strong>電波種</strong> -- LTE通信エリア</li>
+      </ul>
+    `,
+    position: 'left'
+  },
+  {
+    // 6. 背景地図
     element: '[data-intro="basemap"]',
     title: '背景地図の切替',
     intro: `

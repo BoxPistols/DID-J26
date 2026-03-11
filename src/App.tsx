@@ -5057,6 +5057,7 @@ function App() {
         </div>
 
         {/* Drawing Tools - サイドバー内に埋め込み */}
+        <div data-intro="drawing-tools">
         <DrawingTools
           map={mapRef.current}
           mapLoaded={mapLoaded}
@@ -5110,6 +5111,7 @@ function App() {
             previousFeaturesRef.current = features
           }}
         />
+        </div>
 
         {/* Restriction Areas Section */}
         <div
@@ -5649,7 +5651,6 @@ function App() {
 
       {/* Right Legend Panel */}
       <aside
-        data-intro="right-sidebar"
         style={{
           position: 'absolute',
           right: showRightLegend ? 0 : -rightSidebarWidth,

@@ -80,7 +80,7 @@ const TOUR_STEPS: { element: string; title: string; intro: string; position: Too
     position: 'right'
   },
   {
-    element: '[data-intro="right-sidebar"]',
+    element: '[data-intro="drawing-tools"]',
     title: '描画ツール',
     intro: `
       <p>飛行ルートやエリアを地図上に描画できます。</p>
@@ -89,11 +89,8 @@ const TOUR_STEPS: { element: string; title: string; intro: string; position: Too
         <li>規制区域との衝突チェック</li>
         <li>GeoJSON/KML/CSVエクスポート</li>
       </ul>
-      <p style="font-size:12px;color:#999;margin-top:6px">
-        キー <kbd>P</kbd> で開閉できます
-      </p>
     `,
-    position: 'left'
+    position: 'right'
   },
   {
     element: '[data-intro="help-btn"]',
@@ -127,8 +124,8 @@ export function WelcomeGuide({ enabled, onExit }: WelcomeGuideProps) {
 
       intro.setOptions({
         steps: TOUR_STEPS,
-        nextLabel: '次へ &rarr;',
-        prevLabel: '&larr; 戻る',
+        nextLabel: '次へ \u2192',
+        prevLabel: '\u2190 戻る',
         skipLabel: 'スキップ',
         doneLabel: '始める',
         showStepNumbers: false,

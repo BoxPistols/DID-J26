@@ -67,6 +67,10 @@ import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
+import {
+  hasSeenAirspaceLowZoomNotice,
+  markAirspaceLowZoomNoticeSeen
+} from './utils/airspaceLowZoomNotice'
 import { getAppTheme } from './styles/theme'
 import { STORAGE_KEYS, loadFromStorage, saveToStorage, isStorageAvailable } from './lib/utils/storage'
 import {
@@ -3228,9 +3232,6 @@ function App() {
   const KOKUAREA_MIN_MAP_ZOOM = 8
   const KOKUAREA_FETCH_CONCURRENCY = 6
   const KOKUAREA_TOAST_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24時間（1日1回）
-  // 低ズーム(z8未満)で空港空域が簡易表示になる告知は once-ever。
-  // 恒久パネルヒントが常に真実を示すため、トーストは初回ナッジ1回で十分（バージョンで再告知可能）。
-  const AIRSPACE_LOWZOOM_NOTICE_KEY = 'didj:airspace-lowzoom-notice/v1'
 
   type KokuareaToastKey = 'zoom' | 'tooMany'
 
@@ -3512,13 +3513,10 @@ function App() {
     const maybeToast = (key: KokuareaToastKey, message: string): void => {
       // 'zoom'（低ズームで空港空域が簡易表示）は once-ever。表示前に同期でフラグ確定し同tick二重発火を防ぐ。
       if (key === 'zoom') {
-        try {
-          if (localStorage.getItem(AIRSPACE_LOWZOOM_NOTICE_KEY) === '1') return
-          localStorage.setItem(AIRSPACE_LOWZOOM_NOTICE_KEY, '1')
-        } catch {
-          // localStorage不可時は当セッション内の重複のみ抑止して1回出す
-          if (state.lastToastKey === key) return
-        }
+        if (hasSeenAirspaceLowZoomNotice()) return
+        const persisted = markAirspaceLowZoomNoticeSeen()
+        // localStorage不可時は当セッション内の重複のみ抑止して1回出す
+        if (!persisted && state.lastToastKey === key) return
         state.lastToastKey = key
         toast.info(message)
         return
@@ -5183,7 +5181,7 @@ function App() {
             />
             <span>空港など周辺空域 [A]</span>
           </label>
-          {isRestrictionVisible('airport-airspace') && (mapZoom ?? 0) < 8 && (
+          {isRestrictionVisible('airport-airspace') && mapZoom !== null && mapZoom < 8 && (
             <div
               style={{
                 marginTop: '-4px',
@@ -5378,9 +5376,12 @@ function App() {
             />
             <span>イエローゾーン * [Y]</span>
           </label>
+          {/* red/yellow はズームゲート無しで全ズーム描画されるが、低ズームでは円が sub-pixel で
+              事実上見えない。閾値は空港空域(z8)と揃える(z8以上で見え始める前提の簡易助言)。 */}
           {(isRestrictionVisible('ZONE_IDS.NO_FLY_RED') ||
             isRestrictionVisible('ZONE_IDS.NO_FLY_YELLOW')) &&
-            (mapZoom ?? 99) < 8 && (
+            mapZoom !== null &&
+            mapZoom < 8 && (
               <div
                 style={{
                   marginTop: '-4px',

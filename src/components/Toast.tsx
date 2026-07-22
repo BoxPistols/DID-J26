@@ -17,8 +17,8 @@ export function ToastContainer() {
 
   return (
     <div
-      role="status"
       aria-live="polite"
+      aria-atomic="false"
       style={{
         position: 'fixed',
         top: '20px',

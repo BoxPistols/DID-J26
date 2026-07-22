@@ -17,6 +17,8 @@ export function ToastContainer() {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         position: 'fixed',
         top: '20px',
@@ -49,6 +51,8 @@ export function ToastContainer() {
         >
           <span>{toast.message}</span>
           <button
+            type="button"
+            aria-label="閉じる"
             onClick={() => removeToast(toast.id)}
             style={{
               background: 'none',

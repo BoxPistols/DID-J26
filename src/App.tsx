@@ -67,6 +67,10 @@ import { ToastContainer } from './components/Toast'
 import { DialogContainer } from './components/Dialog'
 import { fetchGeoJSONWithCache, clearOldCaches } from './lib/cache'
 import { toast } from './utils/toast'
+import {
+  hasSeenAirspaceLowZoomNotice,
+  markAirspaceLowZoomNoticeSeen
+} from './utils/airspaceLowZoomNotice'
 import { getAppTheme } from './styles/theme'
 import { STORAGE_KEYS, loadFromStorage, saveToStorage, isStorageAvailable } from './lib/utils/storage'
 import {
@@ -3507,6 +3511,17 @@ function App() {
     const { keys, xyzs, tooMany } = computeKokuareaZoomAndTiles(map)
 
     const maybeToast = (key: KokuareaToastKey, message: string): void => {
+      // 'zoom'（低ズームで空港空域が簡易表示）は once-ever。表示前に同期でフラグ確定し同tick二重発火を防ぐ。
+      if (key === 'zoom') {
+        if (hasSeenAirspaceLowZoomNotice()) return
+        const persisted = markAirspaceLowZoomNoticeSeen()
+        // localStorage不可時は当セッション内の重複のみ抑止して1回出す
+        if (!persisted && state.lastToastKey === key) return
+        state.lastToastKey = key
+        toast.info(message)
+        return
+      }
+      // 'tooMany'（広域でタイル過多）は繰り返し起こる正常系。従来の時間throttleを温存。
       const now = Date.now()
       if (state.lastToastKey === key) return
       if (now - state.lastToastAt < KOKUAREA_TOAST_INTERVAL_MS) return
@@ -5166,7 +5181,7 @@ function App() {
             />
             <span>空港など周辺空域 [A]</span>
           </label>
-          {isRestrictionVisible('airport-airspace') && (mapZoom ?? 0) < 8 && (
+          {isRestrictionVisible('airport-airspace') && mapZoom !== null && mapZoom < 8 && (
             <div
               style={{
                 marginTop: '-4px',
@@ -5361,6 +5376,25 @@ function App() {
             />
             <span>イエローゾーン * [Y]</span>
           </label>
+          {/* red/yellow はズームゲート無しで全ズーム描画されるが、低ズームでは円が sub-pixel で
+              事実上見えない。閾値は空港空域(z8)と揃える(z8以上で見え始める前提の簡易助言)。 */}
+          {(isRestrictionVisible('ZONE_IDS.NO_FLY_RED') ||
+            isRestrictionVisible('ZONE_IDS.NO_FLY_YELLOW')) &&
+            mapZoom !== null &&
+            mapZoom < 8 && (
+              <div
+                style={{
+                  marginTop: '-4px',
+                  marginBottom: '6px',
+                  paddingLeft: '22px',
+                  fontSize: '12px',
+                  color: darkMode ? '#888' : '#777'
+                }}
+              >
+                この縮尺では禁止区域が小さく見えにくい場合があります。ズームインで確認してください（現在
+                Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
+              </div>
+            )}
 
           {/* 参考情報 */}
           <h3

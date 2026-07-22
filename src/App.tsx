@@ -3228,6 +3228,9 @@ function App() {
   const KOKUAREA_MIN_MAP_ZOOM = 8
   const KOKUAREA_FETCH_CONCURRENCY = 6
   const KOKUAREA_TOAST_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24時間（1日1回）
+  // 低ズーム(z8未満)で空港空域が簡易表示になる告知は once-ever。
+  // 恒久パネルヒントが常に真実を示すため、トーストは初回ナッジ1回で十分（バージョンで再告知可能）。
+  const AIRSPACE_LOWZOOM_NOTICE_KEY = 'didj:airspace-lowzoom-notice/v1'
 
   type KokuareaToastKey = 'zoom' | 'tooMany'
 
@@ -3507,6 +3510,20 @@ function App() {
     const { keys, xyzs, tooMany } = computeKokuareaZoomAndTiles(map)
 
     const maybeToast = (key: KokuareaToastKey, message: string): void => {
+      // 'zoom'（低ズームで空港空域が簡易表示）は once-ever。表示前に同期でフラグ確定し同tick二重発火を防ぐ。
+      if (key === 'zoom') {
+        try {
+          if (localStorage.getItem(AIRSPACE_LOWZOOM_NOTICE_KEY) === '1') return
+          localStorage.setItem(AIRSPACE_LOWZOOM_NOTICE_KEY, '1')
+        } catch {
+          // localStorage不可時は当セッション内の重複のみ抑止して1回出す
+          if (state.lastToastKey === key) return
+        }
+        state.lastToastKey = key
+        toast.info(message)
+        return
+      }
+      // 'tooMany'（広域でタイル過多）は繰り返し起こる正常系。従来の時間throttleを温存。
       const now = Date.now()
       if (state.lastToastKey === key) return
       if (now - state.lastToastAt < KOKUAREA_TOAST_INTERVAL_MS) return
@@ -5361,6 +5378,22 @@ function App() {
             />
             <span>イエローゾーン * [Y]</span>
           </label>
+          {(isRestrictionVisible('ZONE_IDS.NO_FLY_RED') ||
+            isRestrictionVisible('ZONE_IDS.NO_FLY_YELLOW')) &&
+            (mapZoom ?? 99) < 8 && (
+              <div
+                style={{
+                  marginTop: '-4px',
+                  marginBottom: '6px',
+                  paddingLeft: '22px',
+                  fontSize: '12px',
+                  color: darkMode ? '#888' : '#777'
+                }}
+              >
+                この縮尺では禁止区域が小さく見えにくい場合があります。ズームインで確認してください（現在
+                Z {mapZoom !== null ? mapZoom.toFixed(1) : '--'}）
+              </div>
+            )}
 
           {/* 参考情報 */}
           <h3
